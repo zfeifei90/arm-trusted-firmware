@@ -97,12 +97,18 @@ static int mmc_block_seek(io_entity_t *entity, int mode,
 static int mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 			  size_t length, size_t *length_read)
 {
-	*length_read = mmc_read_blocks(seek_offset / MMC_BLOCK_SIZE,
-				       buffer, length);
+	uint8_t retries = 3U;
 
-	if (*length_read != length) {
-		return -EIO;
-	}
+	do {
+		retries--;
+		if (retries == 0U) {
+			return -EIO;
+		}
+
+		*length_read = mmc_read_blocks(seek_offset / MMC_BLOCK_SIZE,
+					       buffer, length);
+
+	} while (*length_read != length);
 
 	return 0;
 }
