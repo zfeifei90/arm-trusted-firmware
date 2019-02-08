@@ -132,7 +132,7 @@ void stm32mp1_syscfg_init(void)
 	mmio_write_32(syscfg_base + SYSCFG_CMPENSETR, SYSCFG_CMPENSETR_MPU_EN);
 
 	while ((mmio_read_32(syscfg_base + SYSCFG_CMPCR) &
-		SYSCFG_CMPCR_READY) != 0U) {
+		SYSCFG_CMPCR_READY) == 0U) {
 		;
 	}
 
