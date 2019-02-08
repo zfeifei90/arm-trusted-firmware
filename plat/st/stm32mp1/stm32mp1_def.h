@@ -393,6 +393,9 @@ enum ddr_type {
 #define IWDG_FZ_STOP_POS		5
 #define IWDG_FZ_STANDBY_POS		7
 
+/* HW2 OTP */
+#define HW2_OTP_PRODUCT_BELOW_2V5	BIT(13)
+
 /* NAND OTP */
 /* NAND parameter storage flag */
 #define NAND_PARAM_STORED_IN_OTP	U(0x80000000)

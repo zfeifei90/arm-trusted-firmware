@@ -51,8 +51,6 @@
  */
 #define SYSCFG_CMPENSETR_MPU_EN			BIT(0)
 
-#define PRODUCT_BELOW_2V5			BIT(13)
-
 void stm32mp1_syscfg_init(void)
 {
 	uint32_t bootr;
@@ -81,20 +79,22 @@ void stm32mp1_syscfg_init(void)
 	/*
 	 * High Speed Low Voltage Pad mode Enable for SPI, SDMMC, ETH, QSPI
 	 * and TRACE. Needed above ~50MHz and conditioned by AFMUX selection.
-	 * The customer will have to disable this for low frequencies
-	 * or if AFMUX is selected but the function not used, typically for
-	 * TRACE. Otherwise, impact on power consumption.
+	 * It could be disabled for low frequencies or if AFMUX is selected
+	 * but the function not used, typically for TRACE.
+	 * Otherwise, impact on power consumption.
 	 *
 	 * WARNING:
 	 *   Enabling High Speed mode while VDD > 2.7V
 	 *   with the OTP product_below_2v5 (OTP 18, BIT 13)
 	 *   erroneously set to 1 can damage the IC!
-	 *   => TF-A sets the register only if VDD < 2.7V (in DT)
+	 *   => TF-A enables the low power mode only if VDD < 2.7V (in DT)
 	 *      but this value needs to be consistent with board design.
 	 */
 	if (bsec_read_otp(&otp, HW2_OTP) != BSEC_OK) {
-		otp = otp & PRODUCT_BELOW_2V5;
+		panic();
 	}
+
+	otp = otp & HW2_OTP_PRODUCT_BELOW_2V5;
 
 	/* Get VDD = pwr-supply */
 	vdd_voltage = dt_get_pwr_vdd_voltage();
@@ -102,7 +102,7 @@ void stm32mp1_syscfg_init(void)
 
 	/* Check if VDD is Low Voltage */
 	if (vdd_voltage == 0U) {
-		INFO("VDD unknown");
+		WARN("VDD unknown");
 	} else if (vdd_voltage < 2700000U) {
 		mmio_write_32(syscfg_base + SYSCFG_IOCTRLSETR,
 			      SYSCFG_IOCTRLSETR_HSLVEN_TRACE |
@@ -116,8 +116,8 @@ void stm32mp1_syscfg_init(void)
 		}
 	} else {
 		if (otp != 0U) {
-			INFO("Product_below_2v5=1: HSLVEN update is\n");
-			INFO("  destructive, no update as VDD>2.7V\n");
+			ERROR("Product_below_2v5=1: HSLVEN update is destructive, no update as VDD>2.7V\n");
+			panic();
 		}
 	}
 
