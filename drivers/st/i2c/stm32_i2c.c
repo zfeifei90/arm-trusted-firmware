@@ -79,18 +79,18 @@ struct i2c_timing_s {
 	bool is_saved;
 };
 
-/**
- * All these values are coming from I2C Specification, Version 6.0, 4th of
- * April 2014.
+/*
+ * I2C specification values as per version 6.0, 4th of April 2014 [1],
+ * table 10 page 48: Characteristics of the SDA and SCL bus lines for
+ * Standard, Fast, and Fast-mode Plus I2C-bus devices.
  *
- * Table10. Characteristics of the SDA and SCL bus lines for Standard, Fast,
- * and Fast-mode Plus I2C-bus devices.
+ * [1] https://www.i2c-bus.org/specification/
  */
 static const struct i2c_spec_s i2c_specs[] = {
 	[I2C_SPEED_STANDARD] = {
 		.rate = STANDARD_RATE,
-		.rate_min = 8000,
-		.rate_max = 120000,
+		.rate_min = (STANDARD_RATE * 80) / 100,
+		.rate_max = (STANDARD_RATE * 120) / 100,
 		.fall_max = 300,
 		.rise_max = 1000,
 		.hddat_min = 0,
@@ -101,8 +101,8 @@ static const struct i2c_spec_s i2c_specs[] = {
 	},
 	[I2C_SPEED_FAST] = {
 		.rate = FAST_RATE,
-		.rate_min = 320000,
-		.rate_max = 480000,
+		.rate_min = (FAST_RATE * 80) / 100,
+		.rate_max = (FAST_RATE * 120) / 100,
 		.fall_max = 300,
 		.rise_max = 300,
 		.hddat_min = 0,
@@ -113,8 +113,8 @@ static const struct i2c_spec_s i2c_specs[] = {
 	},
 	[I2C_SPEED_FAST_PLUS] = {
 		.rate = FAST_PLUS_RATE,
-		.rate_min = 800000,
-		.rate_max = 1200000,
+		.rate_min = (FAST_PLUS_RATE * 80) / 100,
+		.rate_max = (FAST_PLUS_RATE * 120) / 100,
 		.fall_max = 100,
 		.rise_max = 120,
 		.hddat_min = 0,
