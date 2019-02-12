@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -159,7 +159,7 @@ enum {
 	IMG_IDX_NUM
 };
 
-static struct stm32image_device_info stm32image_dev_info_spec = {
+static struct stm32image_device_info stm32image_dev_info_spec __unused = {
 	.lba_size = MMC_BLOCK_SIZE,
 	.part_info[IMG_IDX_BL33] = {
 		.name = BL33_IMAGE_NAME,
@@ -186,7 +186,7 @@ static io_block_spec_t stm32image_block_spec = {
 	.length = 0,
 };
 
-static const io_dev_connector_t *stm32image_dev_con;
+static const io_dev_connector_t *stm32image_dev_con __unused;
 
 static int open_dummy(const uintptr_t spec);
 static int open_image(const uintptr_t spec);
@@ -403,8 +403,8 @@ static void print_bootrom_emmc_status(boot_api_context_t *boot_context)
 void stm32mp_io_setup(void)
 {
 	int io_result __unused;
-	uint8_t idx;
-	struct stm32image_part_info *part;
+	uint8_t idx __unused;
+	struct stm32image_part_info *part __unused;
 #if STM32MP_UART_PROGRAMMER
 	uintptr_t uart_addr;
 #endif
