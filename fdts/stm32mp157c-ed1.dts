@@ -339,6 +339,7 @@
 	system_suspend_supported_soc_modes = <
 		STM32_PM_CSLEEP_RUN
 		STM32_PM_CSTOP_ALLOW_LP_STOP
+		STM32_PM_CSTOP_ALLOW_LPLV_STOP
 		STM32_PM_CSTOP_ALLOW_STANDBY_DDR_SR
 	>;
 	system_off_soc_mode = <STM32_PM_CSTOP_ALLOW_STANDBY_DDR_OFF>;
@@ -356,6 +357,10 @@
 		regulator-on-in-suspend;
 		regulator-suspend-microvolt = <1200000>;
 	};
+	lplv-stop {
+		regulator-on-in-suspend;
+		regulator-suspend-microvolt = <900000>;
+	};
 	standby-ddr-sr {
 		regulator-off-in-suspend;
 	};
@@ -366,6 +371,10 @@
 
 &vdd_ddr {
 	lp-stop {
+		regulator-suspend-microvolt = <1350000>;
+		regulator-on-in-suspend;
+	};
+	lplv-stop {
 		regulator-suspend-microvolt = <1350000>;
 		regulator-on-in-suspend;
 	};
@@ -380,6 +389,10 @@
 
 &vdd {
 	lp-stop {
+		regulator-suspend-microvolt = <3300000>;
+		regulator-on-in-suspend;
+	};
+	lplv-stop {
 		regulator-suspend-microvolt = <3300000>;
 		regulator-on-in-suspend;
 	};
@@ -424,6 +437,9 @@
 	lp-stop {
 		regulator-off-in-suspend;
 	};
+	lplv-stop {
+		regulator-off-in-suspend;
+	};
 	standby-ddr-sr {
 		regulator-off-in-suspend;
 	};
@@ -461,6 +477,9 @@
 
 &vref_ddr {
 	lp-stop {
+		regulator-on-in-suspend;
+	};
+	lplv-stop {
 		regulator-on-in-suspend;
 	};
 	standby-ddr-sr {
