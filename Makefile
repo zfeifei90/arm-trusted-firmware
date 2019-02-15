@@ -916,6 +916,7 @@ $(eval $(call assert_booleans,\
         RAS_TRAP_LOWER_EL_ERR_ACCESS \
         COT_DESC_IN_DTB \
         USE_SP804_TIMER \
+        AARCH32_EXCEPTION_DEBUG \
 )))
 
 $(eval $(call assert_numerics,\
@@ -1005,6 +1006,7 @@ $(eval $(call add_defines,\
         RAS_TRAP_LOWER_EL_ERR_ACCESS \
         COT_DESC_IN_DTB \
         USE_SP804_TIMER \
+        AARCH32_EXCEPTION_DEBUG \
 )))
 
 ifeq (${SANITIZE_UB},trap)
