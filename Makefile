@@ -1041,6 +1041,7 @@ $(eval $(call assert_booleans,\
         ENABLE_FEAT_HCX \
         ENABLE_MPMM \
         ENABLE_MPMM_FCONF \
+        AARCH32_EXCEPTION_DEBUG \
 )))
 
 $(eval $(call assert_numerics,\
@@ -1153,6 +1154,7 @@ $(eval $(call add_defines,\
         ENABLE_FEAT_HCX \
         ENABLE_MPMM \
         ENABLE_MPMM_FCONF \
+        AARCH32_EXCEPTION_DEBUG \
 )))
 
 ifeq (${SANITIZE_UB},trap)
