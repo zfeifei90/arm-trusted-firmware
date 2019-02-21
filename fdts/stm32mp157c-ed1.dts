@@ -144,7 +144,9 @@
 };
 
 &pwr {
-	pwr-supply = <&vdd>;
+	pwr-regulators {
+		vdd-supply = <&vdd>;
+	};
 };
 
 &rng1 {

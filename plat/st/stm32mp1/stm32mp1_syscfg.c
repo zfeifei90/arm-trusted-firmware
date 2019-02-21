@@ -102,7 +102,7 @@ void stm32mp1_syscfg_init(void)
 
 	otp = otp & HW2_OTP_PRODUCT_BELOW_2V5;
 
-	/* Get VDD = pwr-supply */
+	/* Get VDD supply */
 	vdd_voltage = dt_get_pwr_vdd_voltage();
 	VERBOSE("VDD regulator voltage = %d\n", vdd_voltage);
 
