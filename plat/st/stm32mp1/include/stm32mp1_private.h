@@ -34,5 +34,7 @@ void stm32mp1_gic_init(void);
 enum etzpc_decprot_attributes stm32mp_etzpc_binding2decprot(uint32_t mode);
 
 void stm32mp1_syscfg_init(void);
+void stm32mp1_syscfg_enable_io_compensation(void);
+void stm32mp1_syscfg_disable_io_compensation(void);
 
 #endif /* STM32MP1_PRIVATE_H */

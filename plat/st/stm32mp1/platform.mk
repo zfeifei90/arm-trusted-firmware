@@ -141,7 +141,8 @@ PLAT_BL_COMMON_SOURCES	+=	${LIBFDT_SRCS}						\
 				plat/st/stm32mp1/stm32mp1_dbgmcu.c			\
 				plat/st/stm32mp1/stm32mp1_helper.S			\
 				plat/st/stm32mp1/stm32mp1_security.c			\
-				plat/st/stm32mp1/stm32mp1_shared_resources.c
+				plat/st/stm32mp1/stm32mp1_shared_resources.c 		\
+				plat/st/stm32mp1/stm32mp1_syscfg.c
 
 BL2_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/io/io_dummy.c					\
@@ -150,8 +151,7 @@ BL2_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/st/io/io_stm32image.c				\
 				plat/st/common/bl2_io_storage.c				\
 				plat/st/common/stm32mp_auth.c				\
-				plat/st/stm32mp1/bl2_plat_setup.c 			\
-				plat/st/stm32mp1/stm32mp1_syscfg.c
+				plat/st/stm32mp1/bl2_plat_setup.c
 
 ifeq (${STM32MP1_QSPI_NOR},1)
 BL2_SOURCES		+=	drivers/st/qspi/io_qspi.c

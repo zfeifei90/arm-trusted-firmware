@@ -129,6 +129,8 @@ static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
 	uintptr_t pwr_base = stm32mp_pwr_base();
 	uintptr_t rcc_base = stm32mp_rcc_base();
 
+	stm32mp1_syscfg_disable_io_compensation();
+
 	dcsw_op_all(DC_OP_CISW);
 
 	stm32_clean_context();
@@ -254,6 +256,8 @@ void stm32_exit_cstop(void)
 						   &sleep_time);
 
 	stm32mp1_stgen_increment(stdby_time_in_ms);
+
+	stm32mp1_syscfg_enable_io_compensation();
 }
 
 static void enter_shutdown(void)

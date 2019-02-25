@@ -45,6 +45,10 @@
  */
 #define SYSCFG_CMPCR_SW_CTRL			BIT(1)
 #define SYSCFG_CMPCR_READY			BIT(8)
+#define SYSCFG_CMPCR_RANSRC			GENMASK(19, 16)
+#define SYSCFG_CMPCR_RANSRC_SHIFT		16
+#define SYSCFG_CMPCR_RAPSRC			GENMASK(23, 20)
+#define SYSCFG_CMPCR_ANSRC_SHIFT		24
 
 /*
  * SYSCFG_CMPENSETR Register
@@ -125,11 +129,19 @@ void stm32mp1_syscfg_init(void)
 		(uint32_t)syscfg_base + SYSCFG_IOCTRLSETR,
 		mmio_read_32(syscfg_base + SYSCFG_IOCTRLSETR));
 
+	stm32mp1_syscfg_enable_io_compensation();
+}
+
+void stm32mp1_syscfg_enable_io_compensation(void)
+{
+	uintptr_t syscfg_base = dt_get_syscfg_base();
+
 	/*
 	 * Activate automatic I/O compensation.
 	 * Warning: need to ensure CSI enabled and ready in clock driver.
 	 */
-	mmio_write_32(syscfg_base + SYSCFG_CMPENSETR, SYSCFG_CMPENSETR_MPU_EN);
+	mmio_setbits_32(syscfg_base + SYSCFG_CMPENSETR,
+			SYSCFG_CMPENSETR_MPU_EN);
 
 	while ((mmio_read_32(syscfg_base + SYSCFG_CMPCR) &
 		SYSCFG_CMPCR_READY) == 0U) {
@@ -141,4 +153,35 @@ void stm32mp1_syscfg_init(void)
 	VERBOSE("[0x%x] SYSCFG.cmpcr = 0x%08x\n",
 		(uint32_t)syscfg_base + SYSCFG_CMPCR,
 		mmio_read_32(syscfg_base + SYSCFG_CMPCR));
+}
+
+void stm32mp1_syscfg_disable_io_compensation(void)
+{
+	uintptr_t syscfg_base = dt_get_syscfg_base();
+	uint32_t value;
+
+	/*
+	 * Deactivate automatic I/O compensation.
+	 * Warning: CSI is disabled automatically in STOP if not
+	 * requested for other usages and always OFF in STANDBY.
+	 */
+	value = mmio_read_32(syscfg_base + SYSCFG_CMPCR) >>
+	      SYSCFG_CMPCR_ANSRC_SHIFT;
+
+	mmio_clrbits_32(syscfg_base + SYSCFG_CMPCR,
+			SYSCFG_CMPCR_RANSRC | SYSCFG_CMPCR_RAPSRC);
+
+	value = mmio_read_32(syscfg_base + SYSCFG_CMPCR) |
+		(value << SYSCFG_CMPCR_RANSRC_SHIFT);
+
+	mmio_write_32(syscfg_base + SYSCFG_CMPCR, value);
+
+	mmio_setbits_32(syscfg_base + SYSCFG_CMPCR, SYSCFG_CMPCR_SW_CTRL);
+
+	VERBOSE("[0x%x] SYSCFG.cmpcr = 0x%08x\n",
+		(uint32_t)syscfg_base + SYSCFG_CMPCR,
+		mmio_read_32(syscfg_base + SYSCFG_CMPCR));
+
+	mmio_clrbits_32(syscfg_base + SYSCFG_CMPENSETR,
+			SYSCFG_CMPENSETR_MPU_EN);
 }
