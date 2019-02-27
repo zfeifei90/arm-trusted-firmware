@@ -22,6 +22,7 @@
 #include <stm32_console.h>
 #include <stm32_gpio.h>
 #include <stm32_iwdg.h>
+#include <stm32mp_auth.h>
 #include <stm32mp_common.h>
 #include <stm32mp_dt.h>
 #include <stm32mp_pmic.h>
@@ -42,6 +43,7 @@
 
 static struct console_stm32 console;
 static enum boot_device_e boot_device = BOOT_DEVICE_BOARD;
+static struct auth_ops stm32mp_auth_ops;
 
 static void print_reset_reason(void)
 {
@@ -398,6 +400,13 @@ skip_console_init:
 	    0) {
 		ERROR("Cannot save boot interface\n");
 	}
+
+	stm32mp_auth_ops.check_key =
+		boot_context->p_bootrom_ext_service_ecdsa_check_key;
+	stm32mp_auth_ops.verify_signature =
+		boot_context->p_bootrom_ext_service_ecdsa_verify_signature;
+
+	stm32mp_init_auth(&stm32mp_auth_ops);
 
 	stm32mp1_arch_security_setup();
 
