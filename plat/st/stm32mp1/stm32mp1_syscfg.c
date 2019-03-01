@@ -6,9 +6,11 @@
 
 #include <bsec.h>
 #include <debug.h>
+#include <dt-bindings/clock/stm32mp1-clks.h>
 #include <mmio.h>
 #include <platform_def.h>
 #include <stm32mp_dt.h>
+#include <stm32mp1_clk.h>
 #include <stm32mp1_private.h>
 #include <stpmic1.h>
 
@@ -139,7 +141,10 @@ void stm32mp1_syscfg_enable_io_compensation(void)
 	/*
 	 * Activate automatic I/O compensation.
 	 * Warning: need to ensure CSI enabled and ready in clock driver.
+	 * Enable non-secure clock, we assume non-secure is suspended.
 	 */
+	stm32mp1_clk_enable_non_secure(SYSCFG);
+
 	mmio_setbits_32(syscfg_base + SYSCFG_CMPENSETR,
 			SYSCFG_CMPENSETR_MPU_EN);
 
@@ -164,6 +169,7 @@ void stm32mp1_syscfg_disable_io_compensation(void)
 	 * Deactivate automatic I/O compensation.
 	 * Warning: CSI is disabled automatically in STOP if not
 	 * requested for other usages and always OFF in STANDBY.
+	 * Disable non-secure SYSCFG clock, we assume non-secure is suspended.
 	 */
 	value = mmio_read_32(syscfg_base + SYSCFG_CMPCR) >>
 	      SYSCFG_CMPCR_ANSRC_SHIFT;
@@ -184,4 +190,6 @@ void stm32mp1_syscfg_disable_io_compensation(void)
 
 	mmio_clrbits_32(syscfg_base + SYSCFG_CMPENSETR,
 			SYSCFG_CMPENSETR_MPU_EN);
+
+	stm32mp1_clk_disable_non_secure(SYSCFG);
 }
