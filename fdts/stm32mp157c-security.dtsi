@@ -8,7 +8,7 @@
 
 / {
 	soc {
-		iwdg1: iwdg@5C003000 {
+		iwdg1: watchdog@5C003000 {
 			compatible = "st,stm32mp1-iwdg";
 			reg = <0x5C003000 0x400>;
 			clocks = <&rcc IWDG1>, <&rcc CK_LSI>;
