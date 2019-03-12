@@ -80,17 +80,7 @@ static void stm32_sgi1_it_handler(void)
 		}
 	} while (id <= MAX_SPI_ID);
 
-
-	isb();
-	dsb();
-
-	/* Flush L1/L2 data caches */
-	write_sctlr(read_sctlr() & ~SCTLR_C_BIT);
-	dcsw_op_all(DC_OP_CISW);
-
-	for ( ; ; ) {
-		wfi();
-	}
+	stm32mp_wait_cpu_reset();
 }
 
 /*******************************************************************************

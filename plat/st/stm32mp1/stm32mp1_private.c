@@ -136,6 +136,21 @@ uintptr_t get_uart_address(uint32_t instance_nb)
 }
 #endif
 
+void __dead2 stm32mp_wait_cpu_reset(void)
+{
+	dcsw_op_all(DC_OP_CISW);
+	write_sctlr(read_sctlr() & ~SCTLR_C_BIT);
+	dcsw_op_all(DC_OP_CISW);
+	__asm__("clrex");
+
+	dsb();
+	isb();
+
+	for ( ; ; ) {
+		wfi();
+	}
+}
+
 void __dead2 stm32mp_plat_reset(int cpu)
 {
 	uint32_t reg = RCC_MP_GRSTCSETR_MPUP0RST;
@@ -150,16 +165,7 @@ void __dead2 stm32mp_plat_reset(int cpu)
 
 	mmio_write_32(stm32mp_rcc_base() + RCC_MP_GRSTCSETR, reg);
 
-	isb();
-	dsb();
-
-	/* Flush L1/L2 data caches */
-	write_sctlr(read_sctlr() & ~SCTLR_C_BIT);
-	dcsw_op_all(DC_OP_CISW);
-
-	for ( ; ; ) {
-		wfi();
-	}
+	stm32mp_wait_cpu_reset();
 }
 
 static uint32_t get_part_number(void)
