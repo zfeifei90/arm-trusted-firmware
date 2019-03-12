@@ -368,8 +368,8 @@ func wfi_svc_int_enable
 	str	r4, [sp, #SMC_CTX_SCR]
 	cps	#MODE32_svc
 	cpsie	af
-	isb
 	dsb
+	isb
 	wfi
 	cpsid	af
 	cps	#MODE32_mon

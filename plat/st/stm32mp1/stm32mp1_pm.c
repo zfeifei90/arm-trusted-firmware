@@ -40,11 +40,12 @@ static void stm32_cpu_standby(plat_local_state_t cpu_state)
 	assert(cpu_state == ARM_LOCAL_STATE_RET);
 
 	/*
-	 * Enter standby state
-	 * dsb is good practice before using wfi to enter low power states
+	 * Enter standby state.
+	 * Synchronize on memory accesses and instruction flow before the WFI
+	 * instruction.
 	 */
-	isb();
 	dsb();
+	isb();
 	while (interrupt == GIC_SPURIOUS_INTERRUPT) {
 		wfi();
 
@@ -183,9 +184,12 @@ static void __dead2 stm32_pwr_domain_pwr_down_wfi(const psci_power_state_t
 	mmio_write_32(stm32mp_rcc_base() + RCC_MP_GRSTCSETR,
 		      RCC_MP_GRSTCSETR_MPUP1RST);
 
-	/* wfi is required for an auto-reset */
-	isb();
+	/*
+	 * Synchronize on memory accesses and instruction flow before
+	 * auto-reset from the WFI instruction.
+	 */
 	dsb();
+	isb();
 	wfi();
 
 	/* This shouldn't be reached */
