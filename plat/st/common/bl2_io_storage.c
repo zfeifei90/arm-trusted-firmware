@@ -412,7 +412,8 @@ static void boot_mmc(enum mmc_device_type mmc_dev_type,
 	struct mmc_device_info device_info;
 	const partition_entry_t *entry;
 
-	memset(&params, 0, sizeof(struct stm32_sdmmc2_params));
+	zeromem(&device_info, sizeof(struct mmc_device_info));
+	zeromem(&params, sizeof(struct stm32_sdmmc2_params));
 
 	device_info.mmc_dev_type = mmc_dev_type;
 
