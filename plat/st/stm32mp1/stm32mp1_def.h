@@ -203,9 +203,9 @@ enum ddr_type {
 
 #define STM32MP_NAND_BL33_OFFSET	U(0x00200000)
 #ifdef AARCH32_SP_OPTEE
-#define STM32MP_NAND_TEEH_OFFSET	U(0x00400000)
-#define STM32MP_NAND_TEED_OFFSET	U(0x00480000)
-#define STM32MP_NAND_TEEX_OFFSET	U(0x00500000)
+#define STM32MP_NAND_TEEH_OFFSET	U(0x00600000)
+#define STM32MP_NAND_TEED_OFFSET	U(0x00680000)
+#define STM32MP_NAND_TEEX_OFFSET	U(0x00700000)
 #endif
 
 /*******************************************************************************
