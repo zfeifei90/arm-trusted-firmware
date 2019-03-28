@@ -427,7 +427,7 @@ void stm32mp1_calib_it_handler(uint32_t id)
 	}
 
 	if (timer_val != 0U) {
-		write_cntptval(timer_val);
+		write_cntp_tval(timer_val);
 	}
 }
 
@@ -511,8 +511,8 @@ void stm32mp1_calib_init(void)
 
 	if (timer_val != 0U) {
 		/* Load & enable timer */
-		write_cntptval(timer_val);
-		write_cntpctl(BIT(0));
+		write_cntp_tval(timer_val);
+		write_cntp_ctl(BIT(0));
 	};
 
 	if (fdt_rcc_enable_it("mcu_sev") < 0) {
