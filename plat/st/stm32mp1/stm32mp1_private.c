@@ -15,6 +15,7 @@
 #include <stm32_iwdg.h>
 #include <stm32mp_common.h>
 #include <stm32mp_dt.h>
+#include <stm32mp_reset.h>
 #include <xlat_tables_v2.h>
 
 /* Internal layout of the 32bit OTP word board_id */
@@ -138,6 +139,8 @@ uintptr_t get_uart_address(uint32_t instance_nb)
 
 void __dead2 stm32mp_wait_cpu_reset(void)
 {
+	uint32_t id;
+
 	dcsw_op_all(DC_OP_CISW);
 	write_sctlr(read_sctlr() & ~SCTLR_C_BIT);
 	dcsw_op_all(DC_OP_CISW);
@@ -147,13 +150,93 @@ void __dead2 stm32mp_wait_cpu_reset(void)
 	isb();
 
 	for ( ; ; ) {
+		do {
+			id = plat_ic_get_pending_interrupt_id();
+
+			if (id <= MAX_SPI_ID) {
+				gicv2_end_of_interrupt(id);
+
+				plat_ic_disable_interrupt(id);
+			}
+		} while (id <= MAX_SPI_ID);
+
 		wfi();
 	}
 }
 
+/*
+ * tzc_source_ip contains the TZC transaction source IPs that need to be reset
+ * before a C-A7 subsystem is reset (i.e. independent reset):
+ * - C-A7 subsystem is reset separately later in the sequence,
+ * - C-M4 subsystem is not concerned here,
+ * - DAP is excluded for debug purpose,
+ * - IPs are stored with their ETZPC IDs (STM32MP1_ETZPC_MAX_ID if not
+ *   applicable) because some of them need to be reset only if they are not
+ *   configured in MCU isolation mode inside ETZPC device tree.
+ */
+struct tzc_source_ip {
+	uint32_t reset_id;
+	uint32_t clock_id;
+	uint32_t decprot_id;
+};
+
+#define _TZC_FIXED(res, clk)			\
+	{						\
+		.reset_id = (res),			\
+		.clock_id = (clk),			\
+		.decprot_id = STM32MP1_ETZPC_MAX_ID,	\
+	}
+
+#define _TZC_COND(res, clk, decprot)			\
+	{						\
+		.reset_id = (res),			\
+		.clock_id = (clk),			\
+		.decprot_id = (decprot),		\
+	}
+
+static const struct tzc_source_ip tzc_source_ip[] = {
+	_TZC_FIXED(LTDC_R, LTDC_PX),
+	_TZC_FIXED(GPU_R, GPU),
+	_TZC_FIXED(USBH_R, USBH),
+	_TZC_FIXED(SDMMC1_R, SDMMC1_K),
+	_TZC_FIXED(SDMMC2_R, SDMMC2_K),
+	_TZC_FIXED(MDMA_R, MDMA),
+	_TZC_COND(USBO_R, USBO_K, STM32MP1_ETZPC_OTG_ID),
+	_TZC_COND(SDMMC3_R, SDMMC3_K, STM32MP1_ETZPC_SDMMC3_ID),
+	_TZC_COND(ETHMAC_R, ETHMAC, STM32MP1_ETZPC_ETH_ID),
+	_TZC_COND(DMA1_R, DMA1, STM32MP1_ETZPC_DMA1_ID),
+	_TZC_COND(DMA2_R, DMA2, STM32MP1_ETZPC_DMA2_ID),
+};
+
+#define ARM_CNTXCTL_IMASK	BIT(1)
+#define RCC_AHB6RSTSETR_GPURST	BIT(5)
+
 void __dead2 stm32mp_plat_reset(int cpu)
 {
 	uint32_t reg = RCC_MP_GRSTCSETR_MPUP0RST;
+	uint32_t id;
+
+	/* Mask timer interrupts */
+	write_cntp_ctl(read_cntp_ctl() | ARM_CNTXCTL_IMASK);
+	write_cntv_ctl(read_cntv_ctl() | ARM_CNTXCTL_IMASK);
+
+	for (id = 0U; id < ARRAY_SIZE(tzc_source_ip); id++) {
+		if ((!stm32mp1_clk_is_enabled(tzc_source_ip[id].clock_id)) ||
+		    ((tzc_source_ip[id].decprot_id != STM32MP1_ETZPC_MAX_ID) &&
+		     (etzpc_get_decprot(tzc_source_ip[id].decprot_id) ==
+		      TZPC_DECPROT_MCU_ISOLATION))) {
+			continue;
+		}
+
+		if (tzc_source_ip[id].reset_id != GPU_R) {
+			stm32mp_reset_assert(tzc_source_ip[id].reset_id);
+			stm32mp_reset_deassert(tzc_source_ip[id].reset_id);
+		} else {
+			/* GPU reset automatically cleared by hardware */
+			mmio_setbits_32(stm32mp_rcc_base() + RCC_AHB6RSTSETR,
+					RCC_AHB6RSTSETR_GPURST);
+		}
+	}
 
 	if (stm32mp_is_single_core() == 0) {
 		unsigned int sec_cpu = (cpu == STM32MP_PRIMARY_CPU) ?
@@ -162,6 +245,16 @@ void __dead2 stm32mp_plat_reset(int cpu)
 		gicv2_raise_sgi(ARM_IRQ_SEC_SGI_1, sec_cpu);
 		reg |= RCC_MP_GRSTCSETR_MPUP1RST;
 	}
+
+	do {
+		id = plat_ic_get_pending_interrupt_id();
+
+		if (id <= MAX_SPI_ID) {
+			gicv2_end_of_interrupt(id);
+
+			plat_ic_disable_interrupt(id);
+		}
+	} while (id <= MAX_SPI_ID);
 
 	mmio_write_32(stm32mp_rcc_base() + RCC_MP_GRSTCSETR, reg);
 
