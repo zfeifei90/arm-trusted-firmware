@@ -247,6 +247,11 @@ void stm32_exit_cstop(void)
 
 static void enter_shutdown(void)
 {
+	/* Set DDR in Self-refresh before shutting down the platform */
+	if (ddr_standby_sr_entry(NULL) != 0) {
+		WARN("DDR can't be set in Self-refresh mode\n");
+	}
+
 	if (dt_pmic_status() > 0) {
 		if (!initialize_pmic_i2c()) {
 			panic();
