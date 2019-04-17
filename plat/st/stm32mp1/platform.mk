@@ -9,7 +9,10 @@ ARM_WITH_NEON		:=	yes
 BL2_AT_EL3		:=	1
 USE_COHERENT_MEM	:=	0
 
+# Please don't increment this value without good understanding of
+# the monotonic counter
 STM32_TF_VERSION	?=	0
+$(eval $(call add_define_val,STM32_TF_VERSION,${STM32_TF_VERSION}))
 
 # Not needed for Cortex-A7
 WORKAROUND_CVE_2017_5715:=	0
