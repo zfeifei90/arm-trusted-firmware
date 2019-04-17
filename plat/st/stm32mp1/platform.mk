@@ -24,6 +24,8 @@ ifneq ($(STM32MP_USE_STM32IMAGE),1)
 ENABLE_PIE		:=	1
 endif
 
+# Please don't increment this value without good understanding of
+# the monotonic counter
 STM32_TF_VERSION	?=	0
 
 # Enable dynamic memory mapping
