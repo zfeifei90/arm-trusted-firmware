@@ -9,6 +9,8 @@ ARM_WITH_NEON		:=	yes
 BL2_AT_EL3		:=	1
 USE_COHERENT_MEM	:=	0
 
+# Please don't increment this value without good understanding of
+# the monotonic counter
 STM32_TF_VERSION	?=	0
 
 # Enable dynamic memory mapping
