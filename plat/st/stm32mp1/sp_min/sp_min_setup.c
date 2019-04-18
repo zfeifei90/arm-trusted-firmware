@@ -21,6 +21,7 @@
 #include <drivers/st/stm32_console.h>
 #include <drivers/st/stm32_gpio.h>
 #include <drivers/st/stm32_iwdg.h>
+#include <drivers/st/stm32_rng.h>
 #include <drivers/st/stm32_rtc.h>
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp1_clk.h>
@@ -239,6 +240,12 @@ static void stm32mp1_sp_min_security_setup(void)
 	ret = stm32_rtc_init();
 	if (ret < 0) {
 		WARN("RTC driver init error %i\n", ret);
+	}
+
+	/*  Init rng driver */
+	ret = stm32_rng_init();
+	if (ret < 0) {
+		WARN("RNG driver init error %i\n", ret);
 	}
 }
 
