@@ -38,6 +38,7 @@ uintptr_t stm32mp_rcc_base(void);
 
 void stm32mp_gic_pcpu_init(void);
 void stm32mp_gic_init(void);
+int stm32mp_gic_enable_spi(int node, const char *name);
 
 /* Check MMU status to allow spinlock use */
 bool stm32mp_lock_available(void);
