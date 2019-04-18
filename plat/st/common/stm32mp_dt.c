@@ -131,6 +131,40 @@ int fdt_get_node_parent_size_cells(int node)
 }
 
 /*******************************************************************************
+ * This function return interrupts from node.
+ ******************************************************************************/
+int fdt_get_interrupt(int node, const fdt32_t **array, int *len, bool *extended)
+{
+	uint8_t status = fdt_get_status(node);
+
+	*extended = false;
+
+	switch (status) {
+	case DT_SECURE:
+		*array = fdt_getprop(fdt, node, "interrupts-extended", len);
+		if (*array == NULL) {
+			*array = fdt_getprop(fdt, node, "interrupts", len);
+		} else {
+			*extended = true;
+		}
+		break;
+
+	case DT_SHARED:
+		*array = fdt_getprop(fdt, node, "secure-interrupts", len);
+		break;
+
+	default:
+		return -FDT_ERR_NOTFOUND;
+	}
+
+	if (*array == NULL) {
+		return -FDT_ERR_NOTFOUND;
+	}
+
+	return 0;
+}
+
+/*******************************************************************************
  * This function reads a value of a node property (generic use of fdt
  * library).
  * Returns value if success, and a default value if property not found.
