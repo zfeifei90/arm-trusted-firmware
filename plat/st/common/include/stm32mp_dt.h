@@ -49,5 +49,7 @@ uintptr_t dt_get_pwr_base(void);
 uint32_t dt_get_pwr_vdd_voltage(void);
 uintptr_t dt_get_syscfg_base(void);
 const char *dt_get_board_model(void);
+int fdt_get_gpio_bank_pinctrl_node(unsigned int bank);
+int fdt_get_gpioz_nbpins_from_dt(void);
 
 #endif /* STM32MP_DT_H */

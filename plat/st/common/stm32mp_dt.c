@@ -561,3 +561,67 @@ const char *dt_get_board_model(void)
 
 	return (const char *)fdt_getprop(fdt, node, "model", NULL);
 }
+
+/*******************************************************************************
+ * This function gets GPIO bank PINCTRL node information from the DT.
+ * Returns node value.
+ ******************************************************************************/
+int fdt_get_gpio_bank_pinctrl_node(unsigned int bank)
+{
+	switch (bank) {
+	case GPIO_BANK_A ... GPIO_BANK_K:
+		return fdt_path_offset(fdt, "/soc/pin-controller");
+	case GPIO_BANK_Z:
+		return fdt_path_offset(fdt, "/soc/pin-controller-z");
+	default:
+		panic();
+	}
+}
+
+/*******************************************************************************
+ * This function gets GPIOZ pin number information from the DT.
+ * It also checks node consistency.
+ ******************************************************************************/
+int fdt_get_gpioz_nbpins_from_dt(void)
+{
+	int pinctrl_node;
+	int pinctrl_subnode;
+
+	pinctrl_node = fdt_get_gpio_bank_pinctrl_node(GPIO_BANK_Z);
+	if (pinctrl_node < 0) {
+		return -FDT_ERR_NOTFOUND;
+	}
+
+	fdt_for_each_subnode(pinctrl_subnode, fdt, pinctrl_node) {
+		uint32_t bank_offset;
+		const fdt32_t *cuint;
+
+		if (fdt_getprop(fdt, pinctrl_subnode,
+				"gpio-controller", NULL) == NULL) {
+			continue;
+		}
+
+		cuint = fdt_getprop(fdt, pinctrl_subnode, "reg", NULL);
+		if (cuint == NULL) {
+			continue;
+		}
+
+		bank_offset = stm32_get_gpio_bank_offset(GPIO_BANK_Z);
+		if (fdt32_to_cpu(*cuint) != bank_offset) {
+			continue;
+		}
+
+		if (fdt_get_status(pinctrl_subnode) == DT_DISABLED) {
+			return 0;
+		}
+
+		cuint = fdt_getprop(fdt, pinctrl_subnode, "ngpios", NULL);
+		if (cuint == NULL) {
+			return -FDT_ERR_NOTFOUND;
+		}
+
+		return (int)fdt32_to_cpu(*cuint);
+	}
+
+	return 0;
+}
