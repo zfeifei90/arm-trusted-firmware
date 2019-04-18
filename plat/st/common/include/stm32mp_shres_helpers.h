@@ -12,6 +12,19 @@
 #include <common/debug.h>
 
 /*
+ * Lock/unlock access to shared registers
+ *
+ * @lock - NULL or pointer to spin lock
+ */
+
+void stm32mp_lock_shregs(void);
+void stm32mp_unlock_shregs(void);
+void stm32mp_mmio_clrsetbits_32_shregs(uintptr_t addr, uint32_t clear,
+				       uint32_t set);
+void stm32mp_mmio_clrbits_32_shregs(uintptr_t addr, uint32_t clear);
+void stm32mp_mmio_setbits_32_shregs(uintptr_t addr, uint32_t set);
+
+/*
  * Shared reference counter: increments by 2 on secure increment
  * request, decrements by 2 on secure decrement request. Bit #0
  * is set to 1 on non-secure increment request and reset to 0 on
