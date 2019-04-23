@@ -268,6 +268,102 @@ static void print_boot_device(boot_api_context_t *boot_context)
 	}
 }
 
+#if STM32MP_SDMMC
+static void print_bootrom_sd_status(boot_api_context_t *boot_context)
+{
+	if (boot_context->sd_err_internal_timeout_cnt != 0U) {
+		WARN("BootROM: %d timeout issues\n",
+		     boot_context->sd_err_internal_timeout_cnt);
+	}
+
+	if (boot_context->sd_err_dcrc_fail_cnt != 0U) {
+		WARN("BootROM: %d DCRCFAIL error\n",
+		     boot_context->sd_err_dcrc_fail_cnt);
+	}
+
+	if (boot_context->sd_err_dtimeout_cnt != 0U) {
+		WARN("BootROM: %d DTIMEOUT error\n",
+		     boot_context->sd_err_dtimeout_cnt);
+	}
+
+	if (boot_context->sd_err_ctimeout_cnt != 0U) {
+		WARN("BootROM: %d CTIMEOUT error\n",
+		     boot_context->sd_err_ctimeout_cnt);
+	}
+
+	if (boot_context->sd_err_ccrc_fail_cnt != 0U) {
+		WARN("BootROM: %d CCRCFAIL error count\n",
+		     boot_context->sd_err_ccrc_fail_cnt);
+	}
+
+	if (boot_context->sd_overall_retry_cnt != 0U) {
+		WARN("BootROM: %d command retries\n",
+		     boot_context->sd_overall_retry_cnt);
+	}
+}
+#endif
+
+#if STM32MP_EMMC
+static void print_bootrom_emmc_status(boot_api_context_t *boot_context)
+{
+	INFO("BootROM: %d (0x%x) bytes copied from eMMC\n",
+	     boot_context->emmc_nbbytes_rxcopied_tosysram_download_area,
+	     boot_context->emmc_nbbytes_rxcopied_tosysram_download_area);
+
+	if (boot_context->emmc_error_status !=
+	    BOOT_API_CTX_EMMC_ERROR_STATUS_NONE) {
+		WARN("BootROM eMMC error:\n");
+		switch (boot_context->emmc_error_status) {
+		case BOOT_API_CTX_EMMC_ERROR_STATUS_CMD_TIMEOUT:
+			WARN("  CMD timeout\n");
+			break;
+		case BOOT_API_CTX_EMMC_ERROR_STATUS_ACK_TIMEOUT:
+			WARN("  ACK timeout\n");
+			break;
+		case BOOT_API_CTX_EMMC_ERROR_STATUS_DATA_CRC_FAIL:
+			WARN("  DATA CRC failed\n");
+			break;
+		case BOOT_API_CTX_EMMC_ERROR_STATUS_NOT_ENOUGH_BOOT_DATA_RX:
+			WARN("  Not enough data copied\n");
+			break;
+		case BOOT_API_CTX_EMMC_ERROR_STATUS_HEADER_NOT_FOUND:
+			WARN("  Header not found\n");
+			break;
+		case BOOT_API_CTX_EMMC_ERROR_STATUS_HEADER_SIZE_ZERO:
+			WARN("  Header size is zero\n");
+			break;
+		case BOOT_API_CTX_EMMC_ERROR_STATUS_IMAGE_NOT_COMPLETE:
+			WARN("  Image not complete\n");
+			break;
+		default:
+			WARN("  Error not listed\n");
+			break;
+		}
+	}
+
+	switch (boot_context->emmc_xfer_status) {
+	case BOOT_API_CTX_EMMC_XFER_STATUS_NOT_STARTED:
+		WARN("BootROM: eMMC transfer status:\n");
+		WARN("  not started\n");
+		break;
+	case BOOT_API_CTX_EMMC_XFER_STATUS_DATAEND_DETECTED:
+		break;
+	case BOOT_API_CTX_EMMC_XFER_STATUS_XFER_OVERALL_TIMEOUT_DETECTED:
+		WARN("BootROM: eMMC transfer status:\n");
+		WARN("  timeout detected\n");
+		break;
+	case BOOT_API_CTX_EMMC_XFER_STATUS_XFER_DATA_TIMEOUT:
+		WARN("BootROM: eMMC transfer status:\n");
+		WARN("  data timeout detected\n");
+		break;
+	default:
+		WARN("BootROM: eMMC transfer status:\n");
+		WARN("  status not listed\n");
+		break;
+	}
+}
+#endif
+
 #if STM32MP_SDMMC || STM32MP_EMMC
 static void boot_mmc(enum mmc_device_type mmc_dev_type,
 		     uint16_t boot_interface_instance)
@@ -545,12 +641,14 @@ void stm32mp_io_setup(void)
 #if STM32MP_SDMMC
 	case BOOT_API_CTX_BOOT_INTERFACE_SEL_FLASH_SD:
 		dmbsy();
+		print_bootrom_sd_status(boot_context);
 		boot_mmc(MMC_IS_SD, boot_context->boot_interface_instance);
 		break;
 #endif
 #if STM32MP_EMMC
 	case BOOT_API_CTX_BOOT_INTERFACE_SEL_FLASH_EMMC:
 		dmbsy();
+		print_bootrom_emmc_status(boot_context);
 		boot_mmc(MMC_IS_EMMC, boot_context->boot_interface_instance);
 		break;
 #endif
