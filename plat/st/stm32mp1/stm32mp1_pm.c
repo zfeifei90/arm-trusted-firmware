@@ -86,6 +86,9 @@ static int stm32_pwr_domain_on(u_register_t mpidr)
 		return PSCI_E_INVALID_PARAMS;
 	}
 
+	/* Reset backup register content */
+	mmio_write_32(bkpr_core1_magic, 0);
+
 	/* Need to send additional IT 0 after individual core 1 reset */
 	gicv2_raise_sgi(ARM_IRQ_NON_SEC_SGI_0, STM32MP_SECONDARY_CPU);
 
