@@ -56,6 +56,10 @@ void stm32mp1_clk_rcc_regs_lock(void);
 void stm32mp1_clk_rcc_regs_unlock(void);
 
 unsigned long stm32mp1_clk_rcc2id(unsigned int offset, unsigned int bit);
+#if defined(IMAGE_BL32)
+void stm32mp1_clk_mpu_suspend(void);
+void stm32mp1_clk_mpu_resume(void);
+#endif
 
 void stm32mp1_rcc_init_late(void);
 
