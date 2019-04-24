@@ -58,11 +58,14 @@ struct stm32mp_ddr_info {
 };
 
 #define TIMEOUT_US_1S	1000000U
+#define TIMEOUT_500US	500U
 
 void stm32mp_ddr_set_reg(const struct stm32mp_ddr_priv *priv, enum stm32mp_ddr_reg_type type,
 			 const void *param, const struct stm32mp_ddr_reg_info *ddr_registers);
 void stm32mp_ddr_start_sw_done(struct stm32mp_ddrctl *ctl);
 void stm32mp_ddr_wait_sw_done_ack(struct stm32mp_ddrctl *ctl);
+void stm32mp_ddr_do_sw_handshake(void);
+void stm32mp_ddr_do_sw_ack(void);
 void stm32mp_ddr_enable_axi_port(struct stm32mp_ddrctl *ctl);
 int stm32mp_board_ddr_power_init(enum ddr_type ddr_type);
 

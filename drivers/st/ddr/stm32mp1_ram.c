@@ -23,6 +23,7 @@
 #include <lib/mmio.h>
 
 static struct stm32mp_ddr_priv ddr_priv_data;
+static bool ddr_self_refresh;
 
 int stm32mp1_ddr_clk_enable(struct stm32mp_ddr_priv *priv, uint32_t mem_speed)
 {
@@ -89,6 +90,13 @@ static int stm32mp1_ddr_setup(void)
 		return ret;
 	}
 
+	config.self_refresh = false;
+
+	if (stm32mp1_is_wakeup_from_standby()) {
+		config.self_refresh = true;
+		config.zdata = stm32_get_zdata_from_context();
+	}
+
 	/* Disable axidcg clock gating during init */
 	mmio_clrbits_32(priv->rcc + RCC_DDRITFCR, RCC_DDRITFCR_AXIDCGEN);
 
@@ -106,32 +114,59 @@ static int stm32mp1_ddr_setup(void)
 		panic();
 	}
 
-	uret = stm32mp_ddr_test_data_bus();
-	if (uret != 0U) {
-		ERROR("DDR data bus test: can't access memory @ 0x%x\n",
-		      uret);
-		panic();
+	if (config.self_refresh) {
+		uret = stm32mp_ddr_test_rw_access();
+		if (uret != 0U) {
+			ERROR("DDR rw test: Can't access memory @ 0x%x\n",
+			      uret);
+			panic();
+		}
+
+		/* Restore area overwritten by training */
+		stm32_restore_ddr_training_area();
+	} else {
+		uret = stm32mp_ddr_test_data_bus();
+		if (uret != 0U) {
+			ERROR("DDR data bus test: can't access memory @ 0x%x\n",
+			      uret);
+			panic();
+		}
+
+		uret = stm32mp_ddr_test_addr_bus(config.info.size);
+		if (uret != 0U) {
+			ERROR("DDR addr bus test: can't access memory @ 0x%x\n",
+			      uret);
+			panic();
+		}
+
+		uret = stm32mp_ddr_check_size();
+		if (uret < config.info.size) {
+			ERROR("DDR size: 0x%x does not match DT config: 0x%x\n",
+			      uret, config.info.size);
+			panic();
+		}
 	}
 
-	uret = stm32mp_ddr_test_addr_bus(config.info.size);
-	if (uret != 0U) {
-		ERROR("DDR addr bus test: can't access memory @ 0x%x\n",
-		      uret);
-		panic();
-	}
-
-	uret = stm32mp_ddr_check_size();
-	if (uret < config.info.size) {
-		ERROR("DDR size: 0x%x does not match DT config: 0x%x\n",
-		      uret, config.info.size);
-		panic();
-	}
+	/*
+	 * Initialization sequence has configured DDR registers with settings.
+	 * The Self Refresh (SR) mode corresponding to these settings has now
+	 * to be set.
+	 */
+	ddr_set_sr_mode(ddr_read_sr_mode());
 
 	if (stm32mp_unmap_ddr() != 0) {
 		panic();
 	}
 
+	/* Save DDR self_refresh state */
+	ddr_self_refresh = config.self_refresh;
+
 	return 0;
+}
+
+bool stm32mp1_ddr_is_restored(void)
+{
+	return ddr_self_refresh;
 }
 
 int stm32mp1_ddr_probe(void)

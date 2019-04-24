@@ -79,6 +79,29 @@ void stm32mp_ddr_wait_sw_done_ack(struct stm32mp_ddrctl *ctl)
 		(uintptr_t)&ctl->swstat, swstat);
 }
 
+void stm32mp_ddr_do_sw_handshake(void)
+{
+	uintptr_t ddrctrl_base = stm32mp_ddrctrl_base();
+
+	mmio_clrbits_32(ddrctrl_base + DDRCTRL_SWCTL, DDRCTRL_SWCTL_SW_DONE);
+}
+
+void stm32mp_ddr_do_sw_ack(void)
+{
+	uint64_t timeout;
+	uintptr_t ddrctrl_base = stm32mp_ddrctrl_base();
+
+	mmio_setbits_32(ddrctrl_base + DDRCTRL_SWCTL, DDRCTRL_SWCTL_SW_DONE);
+
+	timeout = timeout_init_us(TIMEOUT_500US);
+	while ((mmio_read_32(ddrctrl_base + DDRCTRL_SWSTAT) &
+		DDRCTRL_SWSTAT_SW_DONE_ACK) == 0U) {
+		if (timeout_elapsed(timeout)) {
+			panic();
+		}
+	}
+}
+
 void stm32mp_ddr_enable_axi_port(struct stm32mp_ddrctl *ctl)
 {
 	/* Enable uMCTL2 AXI port 0 */

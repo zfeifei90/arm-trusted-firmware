@@ -22,6 +22,8 @@
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 
+#define TIMESLOT_US_1US	1U
+
 #define DDRCTL_REG(x, y)					\
 	{							\
 		.name = #x,					\
@@ -536,7 +538,8 @@ static void stm32mp1_refresh_disable(struct stm32mp_ddrctl *ctl)
 	/* Quasi-dynamic register update*/
 	mmio_setbits_32((uintptr_t)&ctl->rfshctl3,
 			DDRCTRL_RFSHCTL3_DIS_AUTO_REFRESH);
-	mmio_clrbits_32((uintptr_t)&ctl->pwrctl, DDRCTRL_PWRCTL_POWERDOWN_EN);
+	mmio_clrbits_32((uintptr_t)&ctl->pwrctl, DDRCTRL_PWRCTL_POWERDOWN_EN |
+						 DDRCTRL_PWRCTL_SELFREF_EN);
 	mmio_clrbits_32((uintptr_t)&ctl->dfimisc,
 			DDRCTRL_DFIMISC_DFI_INIT_COMPLETE_EN);
 	stm32mp_ddr_wait_sw_done_ack(ctl);
@@ -554,15 +557,97 @@ static void stm32mp1_refresh_restore(struct stm32mp_ddrctl *ctl,
 		mmio_setbits_32((uintptr_t)&ctl->pwrctl,
 				DDRCTRL_PWRCTL_POWERDOWN_EN);
 	}
+	if ((pwrctl & DDRCTRL_PWRCTL_SELFREF_EN) != 0U) {
+		mmio_setbits_32((uintptr_t)&ctl->pwrctl,
+				DDRCTRL_PWRCTL_SELFREF_EN);
+	}
 	mmio_setbits_32((uintptr_t)&ctl->dfimisc,
 			DDRCTRL_DFIMISC_DFI_INIT_COMPLETE_EN);
 	stm32mp_ddr_wait_sw_done_ack(ctl);
 }
 
+static void stm32mp1_refresh_cmd(struct stm32mp_ddrctl *ctl)
+{
+	uint32_t dbgstat;
+
+	do {
+		dbgstat = mmio_read_32((uintptr_t)&ctl->dbgstat);
+	} while ((dbgstat & DDRCTRL_DBGSTAT_RANK0_REFRESH_BUSY) != 0U);
+
+	mmio_setbits_32((uintptr_t)&ctl->dbgcmd, DDRCTRL_DBGCMD_RANK0_REFRESH);
+}
+
+/* Refresh compensation by forcing refresh command
+ * Rule1: Tref should be always < tREFW ? R x tREBW/8
+ * Rule2: refcomp = RU(Tref/tREFI)  = RU(RxTref/tREFW)
+ */
+static
+void stm32mp1_refresh_compensation(const struct stm32mp_ddr_config *config,
+				   struct stm32mp_ddrctl *ctl,
+				   uint64_t start)
+{
+	uint32_t tck_ps;
+	uint64_t time_us, tref, trefi, refcomp, i;
+
+	time_us = timeout_init_us(0) - start;
+	tck_ps = 1000000000U / config->info.speed;
+	if (tck_ps == 0U) {
+		return;
+	}
+	/* ref = refresh time in tck */
+	tref = time_us * 1000000U / tck_ps;
+	trefi = ((mmio_read_32((uintptr_t)&ctl->rfshtmg) &
+		  DDRCTRL_RFSHTMG_T_RFC_NOM_X1_X32_MASK)
+		 >> DDRCTRL_RFSHTMG_T_RFC_NOM_X1_X32_SHIFT) * 32U;
+	if (trefi == 0U) {
+		return;
+	}
+
+	/* div round up : number of refresh to compensate */
+	refcomp = (tref + trefi - 1U) / trefi;
+
+	for (i = 0; i < refcomp; i++) {
+		stm32mp1_refresh_cmd(ctl);
+	}
+}
+
+static void stm32mp1_self_refresh_zcal(struct stm32mp_ddr_priv *priv, uint32_t zdata)
+{
+	/* sequence for PUBL I/O Data Retention during Power-Down */
+
+	/* 10. Override ZQ calibration with previously (pre-retention)
+	 *     calibrated values. This is done by writing 1 to ZQ0CRN.ZDEN
+	 *     and the override data to ZQ0CRN.ZDATA.
+	 */
+	mmio_setbits_32((uintptr_t)&priv->phy->zq0cr0, DDRPHYC_ZQ0CRN_ZDEN);
+
+	mmio_clrsetbits_32((uintptr_t)&priv->phy->zq0cr0,
+			   DDRPHYC_ZQ0CRN_ZDATA_MASK,
+			   zdata << DDRPHYC_ZQ0CRN_ZDATA_SHIFT);
+
+	/* 11. De-assert the PHY_top data retention enable signals
+	 *     (ret_en or ret_en_i/ret_en_n_i).
+	 */
+	mmio_setbits_32((uintptr_t)(priv->pwr) + PWR_CR3, PWR_CR3_DDRSRDIS);
+	mmio_clrbits_32((uintptr_t)(priv->pwr) + PWR_CR3, PWR_CR3_DDRRETEN);
+
+	/* 12. Remove ZQ calibration override by writing 0 to ZQ0CRN.ZDEN. */
+	mmio_clrbits_32((uintptr_t)&priv->phy->zq0cr0, DDRPHYC_ZQ0CRN_ZDEN);
+
+	/* 13. Trigger ZQ calibration by writing 1 to PIR.INIT
+	 *     and '1' to PIR.ZCAL
+	 */
+	/* 14. Wait for ZQ calibration to finish by polling a 1 status
+	 * on PGSR.IDONE.
+	 */
+	stm32mp1_ddrphy_init(priv->phy, DDRPHYC_PIR_ZCAL);
+}
+
 void stm32mp1_ddr_init(struct stm32mp_ddr_priv *priv,
 		       struct stm32mp_ddr_config *config)
 {
-	uint32_t pir;
+	uint32_t pir, ddr_reten;
+	uint64_t time;
 	int ret = -EINVAL;
 
 	if ((config->c_reg.mstr & DDRCTRL_MSTR_DDR3) != 0U) {
@@ -582,6 +667,25 @@ void stm32mp1_ddr_init(struct stm32mp_ddr_priv *priv,
 	VERBOSE("name = %s\n", config->info.name);
 	VERBOSE("speed = %u kHz\n", config->info.speed);
 	VERBOSE("size  = 0x%x\n", config->info.size);
+	if (config->self_refresh) {
+		VERBOSE("sel-refresh exit (zdata = 0x%x)\n", config->zdata);
+	}
+
+	/* Check DDR PHY pads retention */
+	ddr_reten = mmio_read_32((uint32_t)(priv->pwr) + PWR_CR3) &
+		    PWR_CR3_DDRRETEN;
+	if (config->self_refresh) {
+		if (ddr_reten == 0U) {
+			VERBOSE("self-refresh aborted: no retention\n");
+			config->self_refresh = false;
+		}
+	}
+
+	if (!config->self_refresh) {
+		VERBOSE("disable DDR PHY retention\n");
+		mmio_setbits_32((uint32_t)(priv->pwr) + PWR_CR3, PWR_CR3_DDRSRDIS);
+		mmio_clrbits_32((uint32_t)(priv->pwr) + PWR_CR3, PWR_CR3_DDRRETEN);
+	}
 
 	/* DDR INIT SEQUENCE */
 
@@ -642,6 +746,12 @@ void stm32mp1_ddr_init(struct stm32mp_ddr_priv *priv,
 	stm32mp_ddr_set_reg(priv, REG_TIMING, &config->c_timing, ddr_registers);
 	stm32mp_ddr_set_reg(priv, REG_MAP, &config->c_map, ddr_registers);
 
+	/* Keep the controller in self-refresh mode */
+	if (config->self_refresh) {
+		mmio_setbits_32((uintptr_t)&priv->ctl->pwrctl,
+				DDRCTRL_PWRCTL_SELFREF_SW);
+	}
+
 	/* Skip CTRL init, SDRAM init is done by PHY PUBL */
 	mmio_clrsetbits_32((uintptr_t)&priv->ctl->init0,
 			   DDRCTRL_INIT0_SKIP_DRAM_INIT_MASK,
@@ -694,7 +804,19 @@ void stm32mp1_ddr_init(struct stm32mp_ddr_priv *priv,
 		pir |= DDRPHYC_PIR_DRAMRST; /* Only for DDR3 */
 	}
 
+	/* Treat self-refresh exit : hot boot */
+	if (config->self_refresh) {
+		/* DDR in self refresh mode, remove zcal & reset & init */
+		pir &= ~(DDRPHYC_PIR_ZCAL & DDRPHYC_PIR_DRAMRST
+			 & DDRPHYC_PIR_DRAMINIT);
+		pir |= DDRPHYC_PIR_ZCALBYP;
+	}
+
 	stm32mp1_ddrphy_init(priv->phy, pir);
+
+	if (config->self_refresh) {
+		stm32mp1_self_refresh_zcal(priv, config->zdata);
+	}
 
 	/*
 	 *  6. SET DFIMISC.dfi_init_complete_en to 1
@@ -716,6 +838,13 @@ void stm32mp1_ddr_init(struct stm32mp_ddr_priv *priv,
 	 */
 
 	/* Wait uMCTL2 ready */
+
+	/* Trigger self-refresh exit */
+	if (config->self_refresh) {
+		mmio_clrbits_32((uintptr_t)&priv->ctl->pwrctl,
+				DDRCTRL_PWRCTL_SELFREF_SW);
+	}
+
 	stm32mp1_wait_operating_mode(priv, DDRCTRL_STAT_OPERATING_MODE_NORMAL);
 
 	/* Switch to DLL OFF mode */
@@ -723,7 +852,9 @@ void stm32mp1_ddr_init(struct stm32mp_ddr_priv *priv,
 		stm32mp1_ddr3_dll_off(priv);
 	}
 
-	VERBOSE("DDR DQS training : ");
+	VERBOSE("DDR DQS training.\n");
+
+	time = timeout_init_us(0);
 
 	/*
 	 *  8. Disable Auto refresh and power down by setting
@@ -751,8 +882,13 @@ void stm32mp1_ddr_init(struct stm32mp_ddr_priv *priv,
 
 	stm32mp1_ddrphy_init(priv->phy, pir);
 
-	/* 11. monitor PUB PGSR.IDONE to poll cpmpletion of training sequence */
+	/* 11. monitor PUB PGSR.IDONE to poll completion of training sequence */
 	stm32mp1_ddrphy_idone_wait(priv->phy);
+
+	/* Refresh compensation: forcing refresh command */
+	if (config->self_refresh) {
+		stm32mp1_refresh_compensation(config, priv->ctl, time);
+	}
 
 	/*
 	 * 12. set back registers in step 8 to the orginal values if desidered
