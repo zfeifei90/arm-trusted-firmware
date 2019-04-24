@@ -56,6 +56,15 @@ int dt_pmic_status(void)
 	return fdt_get_status(node);
 }
 
+static bool dt_pmic_is_secure(void)
+{
+	int status = dt_pmic_status();
+
+	return (status >= 0) &&
+		(status == DT_SECURE) &&
+		(i2c_handle.dt_status == DT_SECURE);
+}
+
 /*
  * Get PMIC and its I2C bus configuration from the device tree.
  * Return 0 on success, negative on error, 1 if no PMIC node is found.
@@ -318,12 +327,29 @@ bool initialize_pmic_i2c(void)
 	return true;
 }
 
+static void register_non_secure_pmic(void)
+{
+	if (i2c_handle.i2c_base_addr == 0U) {
+		return;
+	}
+
+	stm32mp_register_non_secure_periph_iomem(i2c_handle.i2c_base_addr);
+
+	stm32mp_register_clock_parents(i2c_handle.clock);
+}
+
+static void register_secure_pmic(void)
+{
+	stm32mp_register_secure_periph_iomem(i2c_handle.i2c_base_addr);
+}
+
 void initialize_pmic(void)
 {
 	unsigned long pmic_version;
 
 	if (!initialize_pmic_i2c()) {
 		VERBOSE("No PMIC\n");
+		register_non_secure_pmic();
 		return;
 	}
 
@@ -334,6 +360,13 @@ void initialize_pmic(void)
 
 	INFO("PMIC version = 0x%02lx\n", pmic_version);
 	stpmic1_dump_regulators();
+
+	if (dt_pmic_is_secure()) {
+		register_secure_pmic();
+	} else {
+		VERBOSE("PMIC is not secure-only hence assumed non secure\n");
+		register_non_secure_pmic();
+	}
 
 #if defined(IMAGE_BL2)
 	if (dt_pmic_configure_boot_on_regulators() != 0) {
