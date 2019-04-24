@@ -17,6 +17,8 @@
 #ifndef __ASSEMBLER__
 #include <drivers/st/bsec.h>
 #include <drivers/st/stm32mp1_clk.h>
+#include <drivers/st/stm32mp1_ddr_regs.h>
+#include <drivers/st/stm32mp1_pwr.h>
 
 #include <boot_api.h>
 #include <stm32mp_auth.h>
@@ -397,6 +399,7 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
  * Device Tree defines
  ******************************************************************************/
 #define DT_BSEC_COMPAT			"st,stm32mp15-bsec"
+#define DT_DDR_COMPAT			"st,stm32mp1-ddr"
 #define DT_IWDG_COMPAT			"st,stm32mp1-iwdg"
 #define DT_PWR_COMPAT			"st,stm32mp1-pwr"
 #define DT_RCC_CLK_COMPAT		"st,stm32mp1-rcc"
