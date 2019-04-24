@@ -33,6 +33,10 @@ uintptr_t stm32mp_rcc_base(void);
 /* Check MMU status to allow spinlock use */
 bool stm32mp_lock_available(void);
 
+/* SMP protection on PWR registers access */
+void stm32mp_pwr_regs_lock(void);
+void stm32mp_pwr_regs_unlock(void);
+
 /* Get IWDG platform instance ID from peripheral IO memory base address */
 uint32_t stm32_iwdg_get_instance(uintptr_t base);
 
