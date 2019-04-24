@@ -143,10 +143,17 @@ enum ddr_type {
   #define MAX_MMAP_REGIONS		6
 #endif
 
+#define XLAT_TABLE_OCTETSIZE		U(0x1000)
+#define PLAT_XLAT_SIZE			(MAX_XLAT_TABLES *	\
+					 XLAT_TABLE_OCTETSIZE)
+
+#define PLAT_XLAT_BASE			(STM32MP_BL2_BASE -	\
+					 PLAT_XLAT_SIZE)
+
 /* DTB initialization value */
 #define STM32MP_DTB_SIZE		U(0x00005000)	/* 20 KB for DTB */
 
-#define STM32MP_DTB_BASE		(STM32MP_BL2_BASE - \
+#define STM32MP_DTB_BASE		(PLAT_XLAT_BASE -	\
 					 STM32MP_DTB_SIZE)
 
 #define STM32MP_BL33_BASE		(STM32MP_DDR_BASE + U(0x100000))
