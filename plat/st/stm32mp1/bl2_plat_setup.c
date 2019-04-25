@@ -329,6 +329,8 @@ void bl2_el3_plat_arch_setup(void)
 		panic();
 	}
 
+	stm32mp1_syscfg_init();
+
 	result = dt_get_stdout_uart_info(&dt_uart_info);
 
 	if ((result <= 0) ||
@@ -417,8 +419,6 @@ skip_console_init:
 	print_reset_reason();
 
 	stm32mp_io_setup();
-
-	stm32mp1_syscfg_init();
 }
 
 #if defined(AARCH32_SP_OPTEE)
