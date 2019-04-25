@@ -8,15 +8,33 @@
 
 #include <platform_def.h>
 
+#include <arch.h>
+#include <arch_helpers.h>
 #include <common/debug.h>
+#include <common/runtime_svc.h>
 #include <drivers/st/bsec.h>
+#include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp1_ddr_helpers.h>
+#include <drivers/st/stpmic1.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
+#include <services/std_svc.h>
 
+#include <boot_api.h>
+#include <stm32mp1_dbgmcu.h>
 #include <stm32mp1_smc.h>
 
 #include "bsec_svc.h"
+
+#define SSP_OTP_REQ		BIT(BOOT_API_OTP_SSP_REQ_BIT_POS)
+#define SSP_OTP_SUCCESS		BIT(BOOT_API_OTP_SSP_SUCCESS_BIT_POS)
+#define SSP_OTP_MASK		(SSP_OTP_REQ | SSP_OTP_SUCCESS)
+
+enum bsec_ssp_status {
+	BSEC_NO_SSP = 0,
+	BSEC_SSP_SET,
+	BSEC_SSP_ERROR
+};
 
 struct otp_exchange {
 	uint32_t version;
@@ -45,6 +63,41 @@ struct otp_exchange {
 	uint32_t ip_id;
 	uint32_t ip_magic_id;
 };
+
+static enum bsec_ssp_status bsec_check_ssp(uint32_t otp, uint32_t update)
+{
+	boot_api_context_t *boot_context =
+		(boot_api_context_t *)BOOT_PARAM_ADDR;
+
+	/* No SSP update or SSP already done*/
+	if ((((otp & SSP_OTP_MASK) == 0U) && ((update & SSP_OTP_MASK) == 0U)) ||
+	    (((otp & SSP_OTP_MASK) == SSP_OTP_MASK) &&
+	     ((update & SSP_OTP_MASK) == SSP_OTP_MASK))) {
+		return BSEC_NO_SSP;
+	}
+
+	/* SSP update */
+	if ((update & SSP_OTP_MASK) != 0U) {
+		if ((update & SSP_OTP_SUCCESS) != 0U) {
+			return BSEC_SSP_ERROR;
+		}
+
+		/* SSP boot process */
+		boot_context->p_ssp_config->ssp_cmd =
+			BOOT_API_CTX_SSP_CMD_CALC_CHIP_PUBK;
+
+		flush_dcache_range((uintptr_t)boot_context->p_ssp_config,
+				   sizeof(boot_api_ssp_config_t));
+
+		if (dt_pmic_status() > 0) {
+			initialize_pmic();
+			stpmic1_regulator_mask_reset_set("buck1");
+		}
+
+		return BSEC_SSP_SET;
+	}
+	return BSEC_NO_SSP;
+}
 
 static uint32_t bsec_read_all_bsec(struct otp_exchange *exchange)
 {
@@ -181,6 +234,20 @@ static uint32_t bsec_write_all_bsec(struct otp_exchange *exchange,
 		ret = bsec_read_otp(&value, i);
 		if (ret != BSEC_OK) {
 			return ret;
+		}
+
+		if ((value ==  exchange->otp_value[i]) &&
+		    (i != BOOT_API_OTP_SSP_WORD_NB)) {
+			continue;
+		}
+
+		if (i == BOOT_API_OTP_SSP_WORD_NB) {
+			*ret_otp_value = (uint32_t)bsec_check_ssp(value,
+							exchange->otp_value[i]);
+			VERBOSE("Result OTP SSP %d\n", *ret_otp_value);
+			if (*ret_otp_value == (uint32_t)BSEC_SSP_ERROR) {
+				continue;
+			}
 		}
 
 		ret = bsec_program_otp(exchange->otp_value[i], i);
@@ -373,6 +440,18 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 		break;
 	case STM32_SMC_PROG_OTP:
 		*ret_otp_value = 0U;
+		if (x2 == BOOT_API_OTP_SSP_WORD_NB) {
+			result = bsec_read_otp(&tmp_data, x2);
+			if (result != BSEC_OK) {
+				break;
+			}
+
+			*ret_otp_value = (uint32_t)bsec_check_ssp(tmp_data, x3);
+			if (*ret_otp_value == (uint32_t)BSEC_SSP_ERROR) {
+				result = BSEC_OK;
+				break;
+			}
+		}
 		result = bsec_program_otp(x3, x2);
 		break;
 	case STM32_SMC_WRITE_SHADOW:
