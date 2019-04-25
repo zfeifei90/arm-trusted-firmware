@@ -46,7 +46,8 @@ void sp_min_plat_fiq_handler(uint32_t id)
 {
 	switch (id & INT_ID_MASK) {
 	case STM32MP1_IRQ_TZC400:
-		ERROR("STM32MP1_IRQ_TZC400 generated\n");
+		tzc400_init(STM32MP1_TZC_BASE);
+		tzc400_it_handler();
 		panic();
 		break;
 	case STM32MP1_IRQ_AXIERRIRQ:

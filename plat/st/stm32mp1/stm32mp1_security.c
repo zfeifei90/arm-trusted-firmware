@@ -76,7 +76,7 @@ static void init_tzc400(void)
 #endif
 
 	/* Raise an exception if a NS device tries to access secure memory */
-	tzc400_set_action(TZC_ACTION_ERR);
+	tzc400_set_action(TZC_ACTION_INT);
 
 	tzc400_enable_filters();
 }
