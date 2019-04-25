@@ -135,7 +135,7 @@
  */
 #define BSEC_LOCK_UPPER_OTP			0x00
 #define BSEC_LOCK_DEBUG				0x02
-#define BSEC_LOCK_PROGRAM			0x03
+#define BSEC_LOCK_PROGRAM			0x04
 
 /* Values for struct bsec_config::freq */
 #define FREQ_10_20_MHZ			0x0
