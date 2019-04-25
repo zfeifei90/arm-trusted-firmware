@@ -58,6 +58,11 @@ static struct stm32_tamp_ext ext_tamp[PLAT_MAX_TAMP_EXT] = {
 	TAMP_UNUSED,
 };
 
+static void tzc_it_handler(void)
+{
+	ERROR("No IT handler in ARM tzc400 driver\n");
+}
+
 static void stm32_sgi1_it_handler(void)
 {
 	uint32_t id;
@@ -84,6 +89,8 @@ static void stm32_sgi1_it_handler(void)
  ******************************************************************************/
 void sp_min_plat_fiq_handler(uint32_t id)
 {
+	uint32_t value = 0;
+
 	switch (id & INT_ID_MASK) {
 	case ARM_IRQ_SEC_PHY_TIMER:
 	case STM32MP1_IRQ_MCU_SEV:
@@ -91,7 +98,8 @@ void sp_min_plat_fiq_handler(uint32_t id)
 		stm32mp1_calib_it_handler(id);
 		break;
 	case STM32MP1_IRQ_TZC400:
-		ERROR("STM32MP1_IRQ_TZC400 generated\n");
+		tzc400_init(STM32MP1_TZC_BASE);
+		tzc400_it_handler();
 		panic();
 		break;
 	case STM32MP1_IRQ_TAMPSERRS:
@@ -106,6 +114,23 @@ void sp_min_plat_fiq_handler(uint32_t id)
 		break;
 	case STM32MP1_IRQ_AXIERRIRQ:
 		ERROR("STM32MP1_IRQ_AXIERRIRQ generated\n");
+		tzc400_init(STM32MP1_TZC_BASE);
+		__asm__("mrc	p15, 1, %0, c9, c0, 3" : "=r" (value));
+		if (value) {
+			/* we have a pending IT clear it */
+			value = 0;
+			__asm__("mcr	p15, 1, %0, c9, c0, 3" :: "r" (value));
+		} else {
+			ERROR("IRQ_AXIERRIRQ handle call w/o any flag set!!\n");
+		}
+
+		/* Check if FIQ has been generated due to TZC400 abort*/
+		if (tzc400_is_pending_interrupt()) {
+			tzc_it_handler();
+		} else {
+			ERROR("IRQ_AXIERRIRQ cause can't be detected");
+		}
+
 		panic();
 		break;
 	default:
