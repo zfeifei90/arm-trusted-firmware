@@ -214,7 +214,7 @@
 
 /* CLOCK init */
 &rcc {
-	secure-status = "disabled";
+	secure-status = "okay";
 	st,hsi-cal;
 	st,csi-cal;
 	st,cal-sec = <60>;
