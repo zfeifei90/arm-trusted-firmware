@@ -529,6 +529,68 @@ static const uint8_t stm32mp1_axi_div[8] = {
 	1, 2, 3, 4, 4, 4, 4, 4
 };
 
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+static const char * const stm32mp1_clk_parent_name[_PARENT_NB] __unused = {
+	[_HSI] = "HSI",
+	[_HSE] = "HSE",
+	[_CSI] = "CSI",
+	[_LSI] = "LSI",
+	[_LSE] = "LSE",
+	[_I2S_CKIN] = "I2S_CKIN",
+	[_HSI_KER] = "HSI_KER",
+	[_HSE_KER] = "HSE_KER",
+	[_HSE_KER_DIV2] = "HSE_KER_DIV2",
+	[_CSI_KER] = "CSI_KER",
+	[_PLL1_P] = "PLL1_P",
+	[_PLL1_Q] = "PLL1_Q",
+	[_PLL1_R] = "PLL1_R",
+	[_PLL2_P] = "PLL2_P",
+	[_PLL2_Q] = "PLL2_Q",
+	[_PLL2_R] = "PLL2_R",
+	[_PLL3_P] = "PLL3_P",
+	[_PLL3_Q] = "PLL3_Q",
+	[_PLL3_R] = "PLL3_R",
+	[_PLL4_P] = "PLL4_P",
+	[_PLL4_Q] = "PLL4_Q",
+	[_PLL4_R] = "PLL4_R",
+	[_ACLK] = "ACLK",
+	[_PCLK1] = "PCLK1",
+	[_PCLK2] = "PCLK2",
+	[_PCLK3] = "PCLK3",
+	[_PCLK4] = "PCLK4",
+	[_PCLK5] = "PCLK5",
+	[_HCLK6] = "KCLK6",
+	[_HCLK2] = "HCLK2",
+	[_CK_PER] = "CK_PER",
+	[_CK_MPU] = "CK_MPU",
+	[_CK_MCU] = "CK_MCU",
+	[_USB_PHY_48] = "USB_PHY_48",
+};
+
+static const char *
+const stm32mp1_clk_parent_sel_name[_PARENT_SEL_NB] __unused = {
+	[_I2C12_SEL] = "I2C12",
+	[_I2C35_SEL] = "I2C35",
+	[_STGEN_SEL] = "STGEN",
+	[_I2C46_SEL] = "I2C46",
+	[_SPI6_SEL] = "SPI6",
+	[_UART1_SEL] = "USART1",
+	[_RNG1_SEL] = "RNG1",
+	[_UART6_SEL] = "UART6",
+	[_UART24_SEL] = "UART24",
+	[_UART35_SEL] = "UART35",
+	[_UART78_SEL] = "UART78",
+	[_SDMMC12_SEL] = "SDMMC12",
+	[_SDMMC3_SEL] = "SDMMC3",
+	[_QSPI_SEL] = "QSPI",
+	[_FMC_SEL] = "FMC",
+	[_AXIS_SEL] = "ASS",
+	[_MCUS_SEL] = "MSS",
+	[_USBPHY_SEL] = "USBPHY",
+	[_USBO_SEL] = "USBO",
+};
+#endif
+
 /* RCC clock device driver private */
 static unsigned long stm32mp1_osc[NB_OSC];
 static struct spinlock reg_lock;
@@ -681,6 +743,12 @@ static int stm32mp1_clk_get_parent(unsigned long id)
 	sel = clk_sel_ref(s);
 	p_sel = (mmio_read_32(rcc_base + sel->offset) & sel->msk) >> sel->src;
 	if (p_sel < sel->nb_parent) {
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+		VERBOSE("%s: %s clock is the parent %s of clk id %ld\n",
+			__func__,
+			stm32mp1_clk_parent_name[sel->parent[p_sel]],
+			stm32mp1_clk_parent_sel_name[s], id);
+#endif
 		return (int)sel->parent[p_sel];
 	}
 
@@ -2130,6 +2198,11 @@ static int get_parent_id_parent(unsigned int parent_id)
 		}
 	}
 
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+	VERBOSE("No parent selected for %s",
+		stm32mp1_clk_parent_name[parent_id]);
+#endif
+
 	return -1;
 }
 
@@ -2259,6 +2332,21 @@ void stm32mp1_update_earlyboot_clocks_state(void)
 			stm32mp1_clk_disable_non_secure(clock_id);
 		}
 	}
+
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+	/* Dump clocks state */
+	for (idx = 0U; idx < NB_GATES; idx++) {
+		const struct stm32mp1_clk_gate *gate = gate_ref(idx);
+		unsigned long __unused clock_id = gate->index;
+		unsigned int __unused refcnt = gate_refcounts[idx];
+		int __unused p = stm32mp1_clk_get_parent(clock_id);
+
+		VERBOSE("stm32mp1 clk %lu %sabled (refcnt %d) (parent %d %s)\n",
+			clock_id, __clk_is_enabled(gate) ? "en" : "dis",
+			refcnt, p,
+			p < 0 ? "n.a" : stm32mp1_clk_parent_sel_name[p]);
+	}
+#endif
 }
 
 static void sync_earlyboot_clocks_state(void)
