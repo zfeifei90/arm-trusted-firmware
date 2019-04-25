@@ -85,10 +85,10 @@ static enum bsec_ssp_status bsec_check_ssp(uint32_t otp, uint32_t update)
 		/* SSP boot process */
 		boot_context->p_ssp_config->ssp_cmd =
 			BOOT_API_CTX_SSP_CMD_CALC_CHIP_PUBK;
-
+#ifndef DCACHE_OFF
 		flush_dcache_range((uintptr_t)boot_context->p_ssp_config,
 				   sizeof(boot_api_ssp_config_t));
-
+#endif
 		if (dt_pmic_status() > 0) {
 			initialize_pmic();
 			stpmic1_regulator_mask_reset_set("buck1");
