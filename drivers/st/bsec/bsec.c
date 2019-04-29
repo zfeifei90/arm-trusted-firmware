@@ -776,22 +776,21 @@ bool bsec_wr_lock(uint32_t otp)
 /*
  * bsec_otp_lock: Lock Upper OTP or Global programming or debug enable
  * service: Service to lock see header file.
- * value: Value to write must always set to 1 (only use for debug purpose).
  * return: BSEC_OK if succeed.
  */
-uint32_t bsec_otp_lock(uint32_t service, uint32_t value)
+uint32_t bsec_otp_lock(uint32_t service)
 {
 	uintptr_t reg = bsec_base + BSEC_OTP_LOCK_OFF;
 
 	switch (service) {
 	case BSEC_LOCK_UPPER_OTP:
-		mmio_write_32(reg, value << BSEC_LOCK_UPPER_OTP);
+		mmio_write_32(reg, BIT(BSEC_LOCK_UPPER_OTP));
 		break;
 	case BSEC_LOCK_DEBUG:
-		mmio_write_32(reg, value << BSEC_LOCK_DEBUG);
+		mmio_write_32(reg, BIT(BSEC_LOCK_DEBUG));
 		break;
 	case BSEC_LOCK_PROGRAM:
-		mmio_write_32(reg, value << BSEC_LOCK_PROGRAM);
+		mmio_write_32(reg, BIT(BSEC_LOCK_PROGRAM));
 		break;
 	default:
 		return BSEC_INVALID_PARAM;
