@@ -754,23 +754,24 @@ bool bsec_read_sp_lock(uint32_t otp)
 /*
  * bsec_wr_lock: Read permanent lock status.
  * otp: OTP number.
- * return: true if OTP is locked, else false.
+ * value: read value (true or false).
+ * return value: BSEC_OK if no error.
  */
-bool bsec_wr_lock(uint32_t otp)
+uint32_t bsec_wr_lock(uint32_t otp, bool *value)
 {
 	uint32_t bank = otp_bank_offset(otp);
-	uint32_t lock_bit = BIT(otp & BSEC_OTP_MASK);
+	uint32_t otp_mask = BIT(otp & BSEC_OTP_MASK);
+	uint32_t bank_value;
 
-	if ((mmio_read_32(bsec_base + BSEC_WRLOCK_OFF + bank) &
-	     lock_bit) != 0U) {
-		/*
-		 * In case of write don't need to write,
-		 * the lock is already set.
-		 */
-		return true;
+	if ((otp > STM32MP1_OTP_MAX_ID) || (value == NULL)) {
+		return BSEC_INVALID_PARAM;
 	}
 
-	return false;
+	bank_value = mmio_read_32(bsec_base + BSEC_WRLOCK_OFF + bank);
+
+	*value = (bank_value & otp_mask) != 0U;
+
+	return BSEC_OK;
 }
 
 /*

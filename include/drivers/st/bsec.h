@@ -195,7 +195,7 @@ bool bsec_write_sw_lock(uint32_t otp, uint32_t value);
 bool bsec_read_sw_lock(uint32_t otp);
 bool bsec_write_sp_lock(uint32_t otp, uint32_t value);
 bool bsec_read_sp_lock(uint32_t otp);
-bool bsec_wr_lock(uint32_t otp);
+uint32_t bsec_wr_lock(uint32_t otp, bool *value);
 uint32_t bsec_otp_lock(uint32_t service);
 
 bool bsec_mode_is_closed_device(void);
