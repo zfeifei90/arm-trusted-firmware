@@ -295,7 +295,8 @@ static uint32_t bsec_write_all_bsec(struct otp_exchange *exchange,
 
 			value = (exchange->programming_lock[j] >> i) & 1U;
 			if (value != 0U) {
-				if (!bsec_write_sp_lock((32U * j) + i, 1U)) {
+				if (bsec_set_sp_lock((32U * j) + i) !=
+				    BSEC_OK) {
 					return BSEC_ERROR;
 				}
 			}
@@ -315,7 +316,8 @@ static uint32_t bsec_write_all_bsec(struct otp_exchange *exchange,
 
 			value = (exchange->shadow_write_lock[j] >> i) & 1U;
 			if (value != 0U) {
-				if (!bsec_write_sw_lock((32U * j) + i, 1U)) {
+				if (bsec_set_sw_lock((32U * j) + i) !=
+				    BSEC_OK) {
 					return BSEC_ERROR;
 				}
 			}
@@ -335,7 +337,8 @@ static uint32_t bsec_write_all_bsec(struct otp_exchange *exchange,
 
 			value = (exchange->shadow_read_lock[j] >> i) & 1U;
 			if (value != 0U) {
-				if (!bsec_write_sr_lock((32U * j) + i, 1U)) {
+				if (bsec_set_sr_lock((32U * j) + i) !=
+				    BSEC_OK) {
 					return BSEC_ERROR;
 				}
 			}
