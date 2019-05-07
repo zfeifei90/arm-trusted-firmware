@@ -141,7 +141,6 @@ int dt_pmic_configure_boot_on_regulators(void)
 
 		if (fdt_getprop(fdt, regulator_node, "regulator-pull-down",
 				NULL) != NULL) {
-			int status;
 
 			status = stpmic1_regulator_pull_down_set(node_name);
 			if (status != 0) {
@@ -151,7 +150,6 @@ int dt_pmic_configure_boot_on_regulators(void)
 
 		if (fdt_getprop(fdt, regulator_node, "st,mask-reset",
 				NULL) != NULL) {
-			int status;
 
 			status = stpmic1_regulator_mask_reset_set(node_name);
 			if (status != 0) {
