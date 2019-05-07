@@ -146,20 +146,6 @@ void bl2_platform_setup(void)
 {
 	int ret;
 
-	if (dt_pmic_status() > 0) {
-		initialize_pmic();
-#if STM32MP1_DEBUG_ENABLE
-		/* Program PMIC to keep debug ON */
-		if ((stm32mp1_dbgmcu_boot_debug_info() == 1) &&
-		    (stm32mp1_dbgmcu_is_debug_on() != 0)) {
-			VERBOSE("Program PMIC to keep debug ON\n");
-			if (pmic_keep_debug_unit() != 0) {
-				ERROR("PMIC not properly set for debug\n");
-			}
-		}
-#endif
-	}
-
 	ret = stm32mp1_ddr_probe();
 	if (ret < 0) {
 		ERROR("Invalid DDR init: error %d\n", ret);
@@ -417,6 +403,20 @@ skip_console_init:
 	stm32mp1_arch_security_setup();
 
 	print_reset_reason();
+
+	if (dt_pmic_status() > 0) {
+		initialize_pmic();
+#if STM32MP1_DEBUG_ENABLE
+		/* Program PMIC to keep debug ON */
+		if ((stm32mp1_dbgmcu_boot_debug_info() == 1) &&
+		    (stm32mp1_dbgmcu_is_debug_on() != 0)) {
+			VERBOSE("Program PMIC to keep debug ON\n");
+			if (pmic_keep_debug_unit() != 0) {
+				ERROR("PMIC not properly set for debug\n");
+			}
+		}
+#endif
+	}
 
 	stm32mp_io_setup();
 }
