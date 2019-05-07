@@ -15,6 +15,8 @@
 #include <stm32_iwdg.h>
 #include <stm32mp_common.h>
 #include <stm32mp_dt.h>
+#include <stm32mp_pmic.h>
+#include <stm32mp_regulator.h>
 #include <stm32mp_reset.h>
 #include <xlat_tables_v2.h>
 
@@ -546,4 +548,13 @@ enum etzpc_decprot_attributes stm32mp_etzpc_binding2decprot(uint32_t mode)
 	default:
 		panic();
 	}
+}
+
+int plat_bind_regulator(struct stm32mp_regulator *regu)
+{
+	if ((dt_pmic_status() > 0) && is_pmic_regulator(regu)) {
+		bind_pmic_regulator(regu);
+	}
+
+	return 0;
 }
