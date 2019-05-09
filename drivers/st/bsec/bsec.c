@@ -125,17 +125,21 @@ static uint32_t otp_bank_offset(uint32_t otp)
 	       sizeof(uint32_t);
 }
 
-static uint32_t bsec_check_error(uint32_t otp)
+static uint32_t bsec_check_error(uint32_t otp, bool check_disturbed)
 {
 	uint32_t bit = BIT(otp & BSEC_OTP_MASK);
 	uint32_t bank = otp_bank_offset(otp);
 
-	if ((mmio_read_32(bsec_base + BSEC_DISTURBED_OFF + bank) & bit) != 0U) {
-		return BSEC_DISTURBED;
-	}
-
 	if ((mmio_read_32(bsec_base + BSEC_ERROR_OFF + bank) & bit) != 0U) {
 		return BSEC_ERROR;
+	}
+
+	if (!check_disturbed) {
+		return BSEC_OK;
+	}
+
+	if ((mmio_read_32(bsec_base + BSEC_DISTURBED_OFF + bank) & bit) != 0U) {
+		return BSEC_DISTURBED;
 	}
 
 	return BSEC_OK;
@@ -299,7 +303,7 @@ uint32_t bsec_shadow_register(uint32_t otp)
 		;
 	}
 
-	result = bsec_check_error(otp);
+	result = bsec_check_error(otp, true);
 
 	bsec_unlock();
 
@@ -320,22 +324,14 @@ uint32_t bsec_shadow_register(uint32_t otp)
  */
 uint32_t bsec_read_otp(uint32_t *val, uint32_t otp)
 {
-	uint32_t result;
-
 	if (otp > STM32MP1_OTP_MAX_ID) {
 		return BSEC_INVALID_PARAM;
 	}
 
-	bsec_lock();
-
 	*val = mmio_read_32(bsec_base + BSEC_OTP_DATA_OFF +
 			    (otp * sizeof(uint32_t)));
 
-	result = bsec_check_error(otp);
-
-	bsec_unlock();
-
-	return result;
+	return BSEC_OK;
 }
 
 /*
@@ -368,8 +364,6 @@ uint32_t bsec_write_otp(uint32_t val, uint32_t otp)
 
 	mmio_write_32(bsec_base + BSEC_OTP_DATA_OFF +
 		      (otp * sizeof(uint32_t)), val);
-
-	result = bsec_check_error(otp);
 
 	bsec_unlock();
 
@@ -431,7 +425,7 @@ uint32_t bsec_program_otp(uint32_t val, uint32_t otp)
 	if ((bsec_get_status() & BSEC_MODE_PROGFAIL_MASK) != 0U) {
 		result = BSEC_PROG_FAIL;
 	} else {
-		result = bsec_check_error(otp);
+		result = bsec_check_error(otp, true);
 	}
 
 	bsec_unlock();
@@ -495,7 +489,7 @@ uint32_t bsec_permanent_lock_otp(uint32_t otp)
 	if ((bsec_get_status() & BSEC_MODE_PROGFAIL_MASK) != 0U) {
 		result = BSEC_PROG_FAIL;
 	} else {
-		result = bsec_check_error(otp);
+		result = bsec_check_error(otp, false);
 	}
 
 	bsec_unlock();
