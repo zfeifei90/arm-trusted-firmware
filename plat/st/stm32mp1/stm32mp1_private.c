@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -16,6 +16,23 @@
 #include <stm32mp_common.h>
 #include <stm32mp_dt.h>
 #include <xlat_tables_v2.h>
+
+/* Internal layout of the 32bit OTP word board_id */
+#define BOARD_ID_BOARD_NB_MASK		GENMASK(31, 16)
+#define BOARD_ID_BOARD_NB_SHIFT		16
+#define BOARD_ID_VARIANT_MASK		GENMASK(15, 12)
+#define BOARD_ID_VARIANT_SHIFT		12
+#define BOARD_ID_REVISION_MASK		GENMASK(11, 8)
+#define BOARD_ID_REVISION_SHIFT		8
+#define BOARD_ID_BOM_MASK		GENMASK(3, 0)
+
+#define BOARD_ID2NB(_id)		(((_id) & BOARD_ID_BOARD_NB_MASK) >> \
+					 BOARD_ID_BOARD_NB_SHIFT)
+#define BOARD_ID2VAR(_id)		(((_id) & BOARD_ID_VARIANT_MASK) >> \
+					 BOARD_ID_VARIANT_SHIFT)
+#define BOARD_ID2REV(_id)		(((_id) & BOARD_ID_REVISION_MASK) >> \
+					 BOARD_ID_REVISION_SHIFT)
+#define BOARD_ID2BOM(_id)		((_id) & BOARD_ID_BOM_MASK)
 
 #define MAP_ROM		MAP_REGION_FLAT(STM32MP_ROM_BASE, \
 					STM32MP_ROM_SIZE, \
@@ -237,23 +254,49 @@ void stm32mp_print_cpuinfo(void)
 
 void stm32mp_print_boardinfo(void)
 {
-	uint32_t board;
-	int res = 0;
+	uint32_t board_id = 0;
+	uint32_t board_otp;
+	int bsec_node, bsec_board_id_node;
+	void *fdt;
+	const fdt32_t *cuint;
 
-	if (bsec_shadow_read_otp(&board, BOARD_OTP) != BSEC_OK) {
-		ERROR("BSEC: PART_NUMBER_OTP Error\n");
-		res = -1;
+	if (fdt_get_address(&fdt) == 0) {
+		panic();
 	}
 
-	if ((res == 0) && (board != 0U)) {
-		char rev[1];
+	bsec_node = fdt_node_offset_by_compatible(fdt, -1, DT_BSEC_COMPAT);
+	if (bsec_node < 0) {
+		return;
+	}
 
-		*rev = ((board >> 8) & 0xF) - 1 + 'A';
+	bsec_board_id_node = fdt_subnode_offset(fdt, bsec_node, "board_id");
+	if (bsec_board_id_node <= 0) {
+		return;
+	}
+
+	cuint = fdt_getprop(fdt, bsec_board_id_node, "reg", NULL);
+	if (cuint == NULL) {
+		ERROR("board_id node without reg property\n");
+		panic();
+	}
+
+	board_otp = fdt32_to_cpu(*cuint) / sizeof(uint32_t);
+
+	if (bsec_shadow_read_otp(&board_id, board_otp) != BSEC_OK) {
+		ERROR("BSEC: PART_NUMBER_OTP Error\n");
+		return;
+	}
+
+	if (board_id != 0U) {
+		char rev[2];
+
+		rev[0] = BOARD_ID2REV(board_id) - 1 + 'A';
+		rev[1] = '\0';
 		NOTICE("Board: MB%04x Var%d Rev.%s-%02d\n",
-		       board >> 16,
-		       (board >> 12) & 0xF,
+		       BOARD_ID2NB(board_id),
+		       BOARD_ID2VAR(board_id),
 		       rev,
-		       board & 0xF);
+		       BOARD_ID2BOM(board_id));
 	}
 }
 

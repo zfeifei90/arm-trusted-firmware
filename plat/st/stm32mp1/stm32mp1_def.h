@@ -374,7 +374,6 @@ enum ddr_type {
 #define UID2_OTP			U(15)
 #define PACKAGE_OTP			U(16)
 #define HW2_OTP				U(18) /* HW watchdog OTP */
-#define BOARD_OTP			U(59)
 
 /* OTP mask */
 /* DATA0 */
@@ -531,6 +530,7 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
 /*******************************************************************************
  * Device Tree defines
  ******************************************************************************/
+#define DT_BSEC_COMPAT			"st,stm32mp15-bsec"
 #define DT_PWR_COMPAT			"st,stm32mp1-pwr"
 #define DT_RCC_CLK_COMPAT		"st,stm32mp1-rcc"
 #define DT_SYSCFG_COMPAT		"st,stm32mp157-syscfg"
