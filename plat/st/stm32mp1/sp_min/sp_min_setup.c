@@ -20,6 +20,7 @@
 #include <drivers/st/stm32_console.h>
 #include <drivers/st/stm32_gpio.h>
 #include <drivers/st/stm32_iwdg.h>
+#include <drivers/st/stm32_rtc.h>
 #include <drivers/st/stm32mp1_clk.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <lib/el3_runtime/context_mgmt.h>
@@ -147,6 +148,30 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 }
 
 /*******************************************************************************
+ * Set security setup in sp_min
+ ******************************************************************************/
+static void stm32mp1_sp_min_security_setup(void)
+{
+	int ret;
+
+	/* Unlock ETZPC securable peripherals */
+#define STM32MP1_ETZPC_BASE	0x5C007000U
+#define ETZPC_DECPROT0		0x010U
+	mmio_write_32(STM32MP1_ETZPC_BASE + ETZPC_DECPROT0, 0xFFFFFFFF);
+
+	/* Set GPIO bank Z as non secure */
+	for (uint32_t pin = 0U; pin < STM32MP_GPIOZ_PIN_MAX_COUNT; pin++) {
+		set_gpio_secure_cfg(GPIO_BANK_Z, pin, false);
+	}
+
+	/* Init rtc driver */
+	ret = stm32_rtc_init();
+	if (ret < 0) {
+		WARN("RTC driver init error %i\n", ret);
+	}
+}
+
+/*******************************************************************************
  * Initialize the MMU, security and the GIC.
  ******************************************************************************/
 void sp_min_platform_setup(void)
@@ -158,15 +183,8 @@ void sp_min_platform_setup(void)
 
 	stm32mp1_gic_init();
 
-	/* Unlock ETZPC securable peripherals */
-#define STM32MP1_ETZPC_BASE	0x5C007000U
-#define ETZPC_DECPROT0		0x010U
-	mmio_write_32(STM32MP1_ETZPC_BASE + ETZPC_DECPROT0, 0xFFFFFFFF);
-
-	/* Set GPIO bank Z as non secure */
-	for (uint32_t pin = 0U; pin < STM32MP_GPIOZ_PIN_MAX_COUNT; pin++) {
-		set_gpio_secure_cfg(GPIO_BANK_Z, pin, false);
-	}
+	/* Update security settings */
+	stm32mp1_sp_min_security_setup();
 
 	if (stm32_iwdg_init() < 0) {
 		panic();
