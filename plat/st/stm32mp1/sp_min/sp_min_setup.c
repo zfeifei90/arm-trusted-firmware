@@ -22,6 +22,7 @@
 #include <drivers/st/regulator_fixed.h>
 #include <drivers/st/stm32_gpio.h>
 #include <drivers/st/stm32_iwdg.h>
+#include <drivers/st/stm32_rtc.h>
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp1_clk.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
@@ -215,8 +216,16 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 
 static void init_sec_peripherals(void)
 {
+	int ret;
+
 	/* Disable MCU subsystem protection */
 	stm32mp1_clk_mcuss_protect(false);
+
+	/* Init rtc driver */
+	ret = stm32_rtc_init();
+	if (ret < 0) {
+		WARN("RTC driver init error %i\n", ret);
+	}
 }
 
 /*******************************************************************************

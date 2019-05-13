@@ -31,6 +31,8 @@ bool stm32mp1_rcc_is_mckprot(void);
 void stm32mp1_clk_force_enable(unsigned long id);
 void stm32mp1_clk_force_disable(unsigned long id);
 
+bool stm32mp1_rtc_get_read_twice(void);
+
 /* SMP protection on RCC registers access */
 void stm32mp1_clk_rcc_regs_lock(void);
 void stm32mp1_clk_rcc_regs_unlock(void);
