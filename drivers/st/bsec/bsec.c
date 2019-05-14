@@ -270,10 +270,6 @@ uint32_t bsec_shadow_register(uint32_t otp)
 	bool value;
 	bool power_up = false;
 
-	if (otp > STM32MP1_OTP_MAX_ID) {
-		return BSEC_INVALID_PARAM;
-	}
-
 	result = bsec_read_sr_lock(otp, &value);
 	if (result != BSEC_OK) {
 		ERROR("BSEC: %u Sticky-read bit read Error %i\n", otp, result);
@@ -345,10 +341,6 @@ uint32_t bsec_write_otp(uint32_t val, uint32_t otp)
 	uint32_t result;
 	bool value;
 
-	if (otp > STM32MP1_OTP_MAX_ID) {
-		return BSEC_INVALID_PARAM;
-	}
-
 	result = bsec_read_sw_lock(otp, &value);
 	if (result != BSEC_OK) {
 		ERROR("BSEC: %u Sticky-write bit read Error %i\n", otp, result);
@@ -360,6 +352,7 @@ uint32_t bsec_write_otp(uint32_t val, uint32_t otp)
 			otp);
 	}
 
+	/* Ensure integrity of each register access sequence */
 	bsec_lock();
 
 	mmio_write_32(bsec_base + BSEC_OTP_DATA_OFF +
@@ -382,10 +375,6 @@ uint32_t bsec_program_otp(uint32_t val, uint32_t otp)
 	uint32_t result;
 	bool power_up = false;
 	bool value;
-
-	if (otp > STM32MP1_OTP_MAX_ID) {
-		return BSEC_INVALID_PARAM;
-	}
 
 	result = bsec_read_sp_lock(otp, &value);
 	if (result != BSEC_OK) {
@@ -626,13 +615,13 @@ uint32_t bsec_read_sr_lock(uint32_t otp, bool *value)
 	uint32_t otp_mask = BIT(otp & BSEC_OTP_MASK);
 	uint32_t bank_value;
 
-	if ((otp > STM32MP1_OTP_MAX_ID) || (value == NULL)) {
+	if (otp > STM32MP1_OTP_MAX_ID) {
 		return BSEC_INVALID_PARAM;
 	}
 
 	bank_value = mmio_read_32(bsec_base + BSEC_SRLOCK_OFF + bank);
 
-	*value = (bank_value & otp_mask) != 0U;
+	*value = ((bank_value & otp_mask) != 0U);
 
 	return BSEC_OK;
 }
@@ -688,13 +677,13 @@ uint32_t bsec_read_sw_lock(uint32_t otp, bool *value)
 	uint32_t otp_mask = BIT(otp & BSEC_OTP_MASK);
 	uint32_t bank_value;
 
-	if ((otp > STM32MP1_OTP_MAX_ID) || (value == NULL)) {
+	if (otp > STM32MP1_OTP_MAX_ID) {
 		return BSEC_INVALID_PARAM;
 	}
 
 	bank_value = mmio_read_32(bsec_base + BSEC_SWLOCK_OFF + bank);
 
-	*value = (bank_value & otp_mask) != 0U;
+	*value = ((bank_value & otp_mask) != 0U);
 
 	return BSEC_OK;
 }
@@ -750,36 +739,36 @@ uint32_t bsec_read_sp_lock(uint32_t otp, bool *value)
 	uint32_t otp_mask = BIT(otp & BSEC_OTP_MASK);
 	uint32_t bank_value;
 
-	if ((otp > STM32MP1_OTP_MAX_ID) || (value == NULL)) {
+	if (otp > STM32MP1_OTP_MAX_ID) {
 		return BSEC_INVALID_PARAM;
 	}
 
 	bank_value = mmio_read_32(bsec_base + BSEC_SPLOCK_OFF + bank);
 
-	*value = (bank_value & otp_mask) != 0U;
+	*value = ((bank_value & otp_mask) != 0U);
 
 	return BSEC_OK;
 }
 
 /*
- * bsec_wr_lock: Read permanent lock status.
+ * bsec_read_permanent_lock: Read permanent lock status.
  * otp: OTP number.
  * value: read value (true or false).
  * return value: BSEC_OK if no error.
  */
-uint32_t bsec_wr_lock(uint32_t otp, bool *value)
+uint32_t bsec_read_permanent_lock(uint32_t otp, bool *value)
 {
 	uint32_t bank = otp_bank_offset(otp);
 	uint32_t otp_mask = BIT(otp & BSEC_OTP_MASK);
 	uint32_t bank_value;
 
-	if ((otp > STM32MP1_OTP_MAX_ID) || (value == NULL)) {
+	if (otp > STM32MP1_OTP_MAX_ID) {
 		return BSEC_INVALID_PARAM;
 	}
 
 	bank_value = mmio_read_32(bsec_base + BSEC_WRLOCK_OFF + bank);
 
-	*value = (bank_value & otp_mask) != 0U;
+	*value = ((bank_value & otp_mask) != 0U);
 
 	return BSEC_OK;
 }
