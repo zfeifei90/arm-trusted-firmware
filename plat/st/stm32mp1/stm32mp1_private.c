@@ -137,6 +137,15 @@ uintptr_t get_uart_address(uint32_t instance_nb)
 }
 #endif
 
+#define ARM_CNTXCTL_IMASK	BIT(1)
+
+void stm32mp_mask_timer(void)
+{
+	/* Mask timer interrupts */
+	write_cntp_ctl(read_cntp_ctl() | ARM_CNTXCTL_IMASK);
+	write_cntv_ctl(read_cntv_ctl() | ARM_CNTXCTL_IMASK);
+}
+
 void __dead2 stm32mp_wait_cpu_reset(void)
 {
 	uint32_t id;
@@ -208,17 +217,13 @@ static const struct tzc_source_ip tzc_source_ip[] = {
 	_TZC_COND(DMA2_R, DMA2, STM32MP1_ETZPC_DMA2_ID),
 };
 
-#define ARM_CNTXCTL_IMASK	BIT(1)
-#define RCC_AHB6RSTSETR_GPURST	BIT(5)
-
 void __dead2 stm32mp_plat_reset(int cpu)
 {
 	uint32_t reg = RCC_MP_GRSTCSETR_MPUP0RST;
 	uint32_t id;
 
 	/* Mask timer interrupts */
-	write_cntp_ctl(read_cntp_ctl() | ARM_CNTXCTL_IMASK);
-	write_cntv_ctl(read_cntv_ctl() | ARM_CNTXCTL_IMASK);
+	stm32mp_mask_timer();
 
 	for (id = 0U; id < ARRAY_SIZE(tzc_source_ip); id++) {
 		if ((!stm32mp1_clk_is_enabled(tzc_source_ip[id].clock_id)) ||

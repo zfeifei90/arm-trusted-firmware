@@ -18,6 +18,7 @@ enum boot_device_e {
 
 void configure_mmu(void);
 
+void stm32mp_mask_timer(void);
 void __dead2 stm32mp_wait_cpu_reset(void);
 
 void stm32mp1_arch_security_setup(void);
