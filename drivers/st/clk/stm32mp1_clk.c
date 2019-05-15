@@ -654,7 +654,7 @@ static struct stm32mp1_clk_cal stm32mp1_clk_cal_csi = {
 	.trim_max = 15,
 	.trim_min = -16,
 	.ref_freq = 0,
-	.freq_margin = 4,
+	.freq_margin = 5,
 	.set_trim = csi_set_trim,
 	.get_trim = csi_get_trimed_cal,
 };
@@ -2300,9 +2300,27 @@ static void stm32mp1_rcc_calibration(struct stm32mp1_clk_cal *clk_cal)
 	clk_cal->set_trim(trim);
 	freq = clk_cal->get_freq();
 	if ((freq < min) || (freq > max)) {
-		ERROR("%s Calibration : Freq %lu , trim %i\n",
+		ERROR("%s Calibration : Freq %lu, trim %i\n",
 		      (clk_cal->set_trim == hsi_set_trim) ? "HSI" : "CSI",
 		      freq, trim);
+#if DEBUG
+		/*
+		 * Show the steps around the selected trim value
+		 * to correct the margin if needed
+		 */
+		new_trim = trim_decrease(clk_cal, trim);
+		clk_cal->set_trim(new_trim);
+		ERROR("%s Calibration : Freq %lu, trim %i\n",
+		      (clk_cal->set_trim == hsi_set_trim) ?
+		      "HSI" : "CSI", clk_cal->get_freq(),
+		      new_trim);
+		new_trim = trim_increase(clk_cal, trim);
+		clk_cal->set_trim(new_trim);
+		ERROR("%s Calibration : Freq %lu, trim %i\n",
+		      (clk_cal->set_trim == hsi_set_trim) ?
+		      "HSI" : "CSI", clk_cal->get_freq(),
+		      new_trim);
+#endif
 		panic();
 	}
 }
