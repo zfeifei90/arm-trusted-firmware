@@ -316,6 +316,24 @@ void stm32mp_print_cpuinfo(void)
 	case STM32MP151A_PART_NB:
 		cpu_s = "151A";
 		break;
+	case STM32MP157F_PART_NB:
+		cpu_s = "157F";
+		break;
+	case STM32MP157D_PART_NB:
+		cpu_s = "157D";
+		break;
+	case STM32MP153F_PART_NB:
+		cpu_s = "153F";
+		break;
+	case STM32MP153D_PART_NB:
+		cpu_s = "153D";
+		break;
+	case STM32MP151F_PART_NB:
+		cpu_s = "151F";
+		break;
+	case STM32MP151D_PART_NB:
+		cpu_s = "151D";
+		break;
 	default:
 		cpu_s = "????";
 		break;
@@ -418,7 +436,9 @@ int stm32mp_is_single_core(void)
 
 	/* STM32MP151x is a single core */
 	if ((part_number == STM32MP151A_PART_NB) ||
-	    (part_number == STM32MP151C_PART_NB)) {
+	    (part_number == STM32MP151C_PART_NB) ||
+	    (part_number == STM32MP151D_PART_NB) ||
+	    (part_number == STM32MP151F_PART_NB)) {
 		return 1;
 	}
 
