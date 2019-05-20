@@ -147,6 +147,10 @@ ifeq ($(AARCH32_SP),optee)
 BL2_SOURCES		+=	lib/optee/optee_utils.c
 endif
 
+
+# Do not use neon in TF-A code, it leads to issues in low-power functions
+TF_CFLAGS		+=	-mfloat-abi=soft
+
 # Macros and rules to build TF binary
 STM32_TF_ELF_LDFLAGS	:=	--hash-style=gnu --as-needed
 STM32_DT_BASENAME	:=	$(DTB_FILE_NAME:.dtb=)
