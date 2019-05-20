@@ -20,6 +20,10 @@ $(warning STM32MP_USE_STM32IMAGE is deprecated)
 $(warning )
 endif
 
+# Add specific ST version
+ST_VERSION 		:=	r1.0
+VERSION_STRING		:=	v${VERSION_MAJOR}.${VERSION_MINOR}-${PLAT}-${ST_VERSION}(${BUILD_TYPE}):${BUILD_STRING}
+
 ifneq ($(STM32MP_USE_STM32IMAGE),1)
 ENABLE_PIE		:=	1
 BL2_IN_XIP_MEM		:=	1
