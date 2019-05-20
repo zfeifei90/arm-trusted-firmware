@@ -64,6 +64,10 @@ void stm32mp1_clk_rcc_regs_unlock(void);
 void stm32mp1_stgen_increment(unsigned long long offset_in_ms);
 
 unsigned long stm32mp1_clk_rcc2id(unsigned int offset, unsigned int bit);
+#if defined(IMAGE_BL32)
+void stm32mp1_clk_mpu_suspend(void);
+void stm32mp1_clk_mpu_resume(void);
+#endif
 
 void stm32mp1_register_clock_parents_secure(unsigned long id);
 
