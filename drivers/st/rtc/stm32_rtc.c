@@ -484,5 +484,11 @@ int stm32_rtc_init(void)
 		return node;
 	}
 
+	if (rtc_dev.status == DT_SECURE) {
+		stm32mp_register_secure_periph_iomem(rtc_dev.base);
+	} else {
+		stm32mp_register_non_secure_periph_iomem(rtc_dev.base);
+	}
+
 	return 0;
 }
