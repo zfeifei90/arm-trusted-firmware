@@ -24,7 +24,9 @@
 #include <drivers/st/stm32_iwdg.h>
 #include <drivers/st/stm32_rng.h>
 #include <drivers/st/stm32_rtc.h>
+#include <drivers/st/stm32_tamp.h>
 #include <drivers/st/stm32mp_pmic.h>
+#include <drivers/st/stm32mp_reset.h>
 #include <drivers/st/stm32mp1_clk.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <lib/el3_runtime/context_mgmt.h>
@@ -39,6 +41,25 @@
  * BL32 from BL2.
  ******************************************************************************/
 static entry_point_info_t bl33_image_ep_info;
+
+static const char * const tamper_name[] = {
+	[INT_TAMP1] = "RTC power domain",
+	[INT_TAMP2] = "Temperature monitoring",
+	[INT_TAMP3] = "LSE monitoring",
+	[INT_TAMP4] = "HSE monitoring",
+};
+
+static int stm32mp1_tamper_action(int id)
+{
+	const char *tamp_name = NULL;
+
+	if ((id >= 0) && ((size_t)id < ARRAY_SIZE(tamper_name))) {
+		tamp_name = tamper_name[id];
+	}
+	ERROR("Tamper %u (%s) occurs\n", id, tamp_name);
+
+	return 1; /* ack TAMPER and reset system */
+}
 
 static void disable_usb_phy_regulator(void)
 {
@@ -69,6 +90,9 @@ void sp_min_plat_fiq_handler(uint32_t id)
 		tzc400_init(STM32MP1_TZC_BASE);
 		(void)tzc400_it_handler();
 		panic();
+		break;
+	case STM32MP1_IRQ_TAMPSERRS:
+		stm32_tamp_it_handler();
 		break;
 	case STM32MP1_IRQ_AXIERRIRQ:
 		ERROR("STM32MP1_IRQ_AXIERRIRQ generated\n");
@@ -232,6 +256,24 @@ static void init_sec_peripherals(void)
 	ret = stm32_rng_init();
 	if (ret < 0) {
 		WARN("RNG driver init error %i\n", ret);
+	}
+
+	/* Init tamper */
+	if (stm32_tamp_init() > 0) {
+		stm32_tamp_configure_secure_access(TAMP_REGS_IT_SECURE);
+
+		stm32_tamp_configure_internal(INT_TAMP1, TAMP_ENABLE, stm32mp1_tamper_action);
+		stm32_tamp_configure_internal(INT_TAMP2, TAMP_ENABLE, stm32mp1_tamper_action);
+		stm32_tamp_configure_internal(INT_TAMP3, TAMP_ENABLE, stm32mp1_tamper_action);
+		stm32_tamp_configure_internal(INT_TAMP4, TAMP_ENABLE, stm32mp1_tamper_action);
+
+		ret = stm32_tamp_set_config();
+		if (ret < 0) {
+			panic();
+		}
+
+		/* Enable timestamp for tamper */
+		stm32_rtc_set_tamper_timestamp();
 	}
 }
 
