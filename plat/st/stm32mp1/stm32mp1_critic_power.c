@@ -126,6 +126,9 @@ void stm32_pwr_call_optee_ep(void)
 #endif
 
 #if defined(IMAGE_BL32)
+extern void wfi_svc_int_enable(uintptr_t stack_addr);
+static uint32_t int_stack[STM32MP_INT_STACK_SIZE];
+
 void stm32_pwr_down_wfi(bool is_cstop, uint32_t mode)
 {
 	uint32_t interrupt = GIC_SPURIOUS_INTERRUPT;
@@ -142,8 +145,11 @@ void stm32_pwr_down_wfi(bool is_cstop, uint32_t mode)
 		shutdown_critic_enter();
 	}
 
-	while (interrupt == GIC_SPURIOUS_INTERRUPT) {
-		wfi();
+	stm32mp1_calib_set_wakeup(false);
+
+	while (interrupt == GIC_SPURIOUS_INTERRUPT &&
+	       !stm32mp1_calib_get_wakeup()) {
+		wfi_svc_int_enable((uintptr_t)&int_stack[0]);
 
 		interrupt = gicv2_acknowledge_interrupt();
 

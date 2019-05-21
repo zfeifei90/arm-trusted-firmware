@@ -26,6 +26,8 @@
 #include <drivers/st/stm32_rng.h>
 #include <drivers/st/stm32_rtc.h>
 #include <drivers/st/stm32_tamp.h>
+#include <drivers/st/stm32_timer.h>
+#include <drivers/st/stm32mp_clkfunc.h>
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp_reset.h>
 #include <drivers/st/stm32mp1_clk.h>
@@ -90,6 +92,18 @@ static void stm32_sgi1_it_handler(void)
 	} while (id <= MAX_SPI_ID);
 
 	stm32mp_wait_cpu_reset();
+}
+
+static void configure_wakeup_interrupt(void)
+{
+	int irq_num = fdt_rcc_enable_it("wakeup");
+
+	if (irq_num < 0) {
+		ERROR("irq_num = %d\n", irq_num);
+		panic();
+	}
+
+	plat_ic_set_interrupt_priority(irq_num, STM32MP1_IRQ_RCC_SEC_PRIO);
 }
 
 static void initialize_pll1_settings(void)
@@ -172,6 +186,11 @@ static void disable_usb_phy_regulator(void)
 void sp_min_plat_fiq_handler(uint32_t id)
 {
 	switch (id & INT_ID_MASK) {
+	case ARM_IRQ_SEC_PHY_TIMER:
+	case STM32MP1_IRQ_MCU_SEV:
+	case STM32MP1_IRQ_RCC_WAKEUP:
+		stm32mp1_calib_it_handler(id);
+		break;
 	case STM32MP1_IRQ_TZC400:
 		tzc400_init(STM32MP1_TZC_BASE);
 		(void)tzc400_it_handler();
@@ -435,6 +454,10 @@ static void init_sec_peripherals(void)
 		/* Enable timestamp for tamper */
 		stm32_rtc_set_tamper_timestamp();
 	}
+
+	if (stm32_timer_init() == 0) {
+		stm32mp1_calib_init();
+	}
 }
 
 /*******************************************************************************
@@ -453,6 +476,8 @@ void sp_min_platform_setup(void)
 	if (stm32_iwdg_init() < 0) {
 		panic();
 	}
+
+	configure_wakeup_interrupt();
 
 	stm32mp_lock_periph_registering();
 
