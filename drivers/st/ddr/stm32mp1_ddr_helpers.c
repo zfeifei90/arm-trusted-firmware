@@ -494,3 +494,32 @@ void ddr_sr_mode_hsr(void)
 	mmio_setbits_32(ddrctrl_base + DDRCTRL_PWRCTL,
 			DDRCTRL_PWRCTL_EN_DFI_DRAM_CLK_DISABLE);
 }
+
+bool ddr_is_nonsecured_area(uintptr_t address, uint32_t length)
+{
+	uint64_t pa;
+
+	write_ats1cpw(address);
+
+	isb();
+
+	pa = read64_par();
+
+	if  ((((pa >> PAR_NS_SHIFT) & PAR_NS_MASK) != PAR_NS_MASK) ||
+	     (((pa >> PAR_F_SHIFT) & PAR_F_MASK) == PAR_F_MASK)) {
+		return false;
+	}
+
+	write_ats1cpw(address + length - 1U);
+
+	isb();
+
+	pa = read64_par();
+
+	if  ((((pa >> PAR_NS_SHIFT) & PAR_NS_MASK) == PAR_NS_MASK) &&
+	     (((pa >> PAR_F_SHIFT) & PAR_F_MASK) != PAR_F_MASK)) {
+		return true;
+	}
+
+	return false;
+}
