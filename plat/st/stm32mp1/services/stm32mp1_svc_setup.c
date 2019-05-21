@@ -15,6 +15,7 @@
 #include <stm32mp1_smc.h>
 
 #include "bsec_svc.h"
+#include "rcc_svc.h"
 
 /* STM32 SiP Service UUID */
 DEFINE_SVC_UUID2(stm32_sip_svc_uid,
@@ -64,6 +65,10 @@ static uintptr_t stm32mp1_svc_smc_handler(uint32_t smc_fid, u_register_t x1,
 		ret1 = bsec_main(x1, x2, x3, &ret2);
 		ret2_enabled = true;
 		break;
+	case STM32_SMC_RCC_CAL:
+		ret1 = rcc_cal_scv_handler(x1);
+		break;
+
 
 	default:
 		WARN("Unimplemented STM32MP1 Service Call: 0x%x\n", smc_fid);

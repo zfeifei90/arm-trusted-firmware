@@ -42,6 +42,11 @@
 	secure-status = "okay";
 };
 
+&rcc {
+	secure-interrupts = <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "wakeup";
+};
+
 &sdmmc1 {
 	compatible = "st,stm32-sdmmc2";
 };

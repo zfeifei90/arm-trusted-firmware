@@ -17,6 +17,7 @@
 
 #ifndef __ASSEMBLER__
 #include <drivers/st/bsec.h>
+#include <drivers/st/stm32mp1_calib.h>
 #include <drivers/st/stm32mp1_clk.h>
 #include <drivers/st/stm32mp1_ddr_regs.h>
 #include <drivers/st/stm32mp1_pwr.h>
@@ -159,6 +160,9 @@ enum ddr_type {
 					 STM32MP_DTB_SIZE)
 
 #define STM32MP_BL33_BASE		(STM32MP_DDR_BASE + U(0x100000))
+
+/* Define Temporary Stack size use during low power mode */
+#define STM32MP_INT_STACK_SIZE		0x400
 
 /* Define maximum page size for NAND devices */
 #define PLATFORM_MTD_MAX_PAGE_SIZE	U(0x1000)
@@ -465,6 +469,13 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
  * STM32MP1 CRYP
  ******************************************************************************/
 #define CRYP1_BASE	U(0x54001000)
+
+/*******************************************************************************
+ * STM32MP1 TIMERS
+ ******************************************************************************/
+#define TIM12_BASE			U(0x40006000)
+#define TIM15_BASE			U(0x44006000)
+#define TIM_MAX_INSTANCE		U(2)
 
 /*******************************************************************************
  * Device Tree defines

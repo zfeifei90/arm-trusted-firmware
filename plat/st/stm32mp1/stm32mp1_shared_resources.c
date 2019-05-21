@@ -776,6 +776,8 @@ static void check_rcc_secure_configuration(void)
 	bool mckprot = stm32mp1_rcc_is_mckprot();
 	bool secure = stm32mp1_rcc_is_secure();
 
+	stm32mp1_calib_init_late();
+
 	for (n = 0; n < ARRAY_SIZE(shres_state); n++) {
 		if  ((shres_state[n] == SHRES_SECURE) ||
 		     (shres_state[n] == SHRES_SHARED)) {
