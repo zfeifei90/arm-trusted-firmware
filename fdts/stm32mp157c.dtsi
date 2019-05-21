@@ -362,5 +362,10 @@
 			#size-cells = <0>;
 			status = "disabled";
 		};
+
+		tamp: tamp@5c00a000 {
+			compatible = "simple-bus", "syscon", "simple-mfd";
+			reg = <0x5c00a000 0x400>;
+		};
 	};
 };
