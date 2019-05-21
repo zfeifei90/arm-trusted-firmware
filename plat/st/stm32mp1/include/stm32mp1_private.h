@@ -9,6 +9,8 @@
 
 #include <stdint.h>
 
+#include <drivers/st/etzpc.h>
+
 void configure_mmu(void);
 
 void stm32mp_mask_timer(void);
@@ -19,6 +21,8 @@ void stm32mp1_security_setup(void);
 
 void stm32mp1_gic_pcpu_init(void);
 void stm32mp1_gic_init(void);
+
+enum etzpc_decprot_attributes stm32mp_etzpc_binding2decprot(uint32_t mode);
 
 void stm32mp1_syscfg_init(void);
 void stm32mp1_syscfg_enable_io_compensation(void);

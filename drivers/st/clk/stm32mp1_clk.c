@@ -1017,16 +1017,6 @@ void __stm32mp1_clk_disable(unsigned long id, bool secure)
 	stm32mp1_clk_unlock(&refcount_lock);
 }
 
-void stm32mp_clk_enable(unsigned long id)
-{
-	__stm32mp1_clk_enable(id, true);
-}
-
-void stm32mp_clk_disable(unsigned long id)
-{
-	__stm32mp1_clk_disable(id, true);
-}
-
 bool stm32mp_clk_is_enabled(unsigned long id)
 {
 	int i = stm32mp1_clk_get_gated_id(id);
@@ -1939,8 +1929,271 @@ static void stm32mp1_osc_init(void)
 	}
 }
 
+/*
+ * Get the parent ID of the target parent clock, for tagging as secure
+ * shared clock dependencies.
+ */
+static int get_parent_id_parent(unsigned int parent_id)
+{
+	enum stm32mp1_parent_sel s = _UNKNOWN_SEL;
+	enum stm32mp1_pll_id pll_id;
+	uint32_t p_sel;
+
+	switch (parent_id) {
+	case _ACLK:
+	case _PCLK4:
+	case _PCLK5:
+		s = _AXIS_SEL;
+		break;
+	case _PLL1_P:
+	case _PLL1_Q:
+	case _PLL1_R:
+		pll_id = _PLL1;
+		break;
+	case _PLL2_P:
+	case _PLL2_Q:
+	case _PLL2_R:
+		pll_id = _PLL2;
+		break;
+	case _PLL3_P:
+	case _PLL3_Q:
+	case _PLL3_R:
+		pll_id = _PLL3;
+		break;
+	case _PLL4_P:
+	case _PLL4_Q:
+	case _PLL4_R:
+		pll_id = _PLL4;
+		break;
+	case _PCLK1:
+	case _PCLK2:
+	case _HCLK2:
+	case _HCLK6:
+	case _CK_PER:
+	case _CK_MPU:
+	case _CK_MCU:
+	case _USB_PHY_48:
+		/* We do not expected to access these */
+		panic();
+		break;
+	default:
+		/* Other parents have no parent */
+		return -1;
+	}
+
+	if (s != _UNKNOWN_SEL) {
+		const struct stm32mp1_clk_sel *sel = clk_sel_ref(s);
+		uintptr_t rcc_base = stm32mp_rcc_base();
+
+		p_sel = (mmio_read_32(rcc_base + sel->offset) >> sel->src) &
+			sel->msk;
+
+		if (p_sel < sel->nb_parent) {
+			return (int)sel->parent[p_sel];
+		}
+	} else {
+		const struct stm32mp1_clk_pll *pll = pll_ref(pll_id);
+		uintptr_t rcc_base = stm32mp_rcc_base();
+
+		p_sel = mmio_read_32(rcc_base + pll->rckxselr) &
+			RCC_SELR_REFCLK_SRC_MASK;
+
+		if (pll->refclk[p_sel] != _UNKNOWN_OSC_ID) {
+			return (int)pll->refclk[p_sel];
+		}
+	}
+
+	return -1;
+}
+
+static void secure_parent_clocks(unsigned long parent_id)
+{
+	int grandparent_id;
+
+	switch (parent_id) {
+	/* Secure only the parents for these clocks */
+	case _ACLK:
+	case _HCLK2:
+	case _HCLK6:
+	case _PCLK4:
+	case _PCLK5:
+		break;
+	/* PLLs */
+	case _PLL1_P:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL1_P);
+		break;
+	case _PLL1_Q:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL1_Q);
+		break;
+	case _PLL1_R:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL1_R);
+		break;
+
+	case _PLL2_P:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL2_P);
+		break;
+	case _PLL2_Q:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL2_Q);
+		break;
+	case _PLL2_R:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL2_R);
+		break;
+
+	case _PLL3_P:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL3_P);
+		break;
+	case _PLL3_Q:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL3_Q);
+		break;
+	case _PLL3_R:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL3_R);
+		break;
+
+	/* Source clocks */
+	case _HSI:
+	case _HSI_KER:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_HSI);
+		break;
+	case _LSI:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_LSI);
+		break;
+	case _CSI:
+	case _CSI_KER:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_CSI);
+		break;
+	case _HSE:
+	case _HSE_KER:
+	case _HSE_KER_DIV2:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_HSE);
+		break;
+	case _LSE:
+		stm32mp1_register_secure_periph(STM32MP1_SHRES_LSE);
+		break;
+
+	default:
+		panic();
+	}
+
+	grandparent_id = get_parent_id_parent(parent_id);
+	if (grandparent_id >= 0) {
+		secure_parent_clocks(grandparent_id);
+	}
+}
+
+void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
+{
+	int parent_id;
+
+	if (!stm32mp1_rcc_is_secure()) {
+		return;
+	}
+
+	switch (clock_id) {
+	case PLL1:
+		parent_id = get_parent_id_parent(_PLL1_P);
+		break;
+	case PLL2:
+		parent_id = get_parent_id_parent(_PLL2_P);
+		break;
+	case PLL3:
+		parent_id = get_parent_id_parent(_PLL3_P);
+		break;
+	case PLL4:
+		ERROR("PLL4 cannot be secured\n");
+		panic();
+		break;
+	default:
+		/* Others are expected gateable clock */
+		parent_id = stm32mp1_clk_get_parent(clock_id);
+		break;
+	}
+
+	if (parent_id < 0) {
+		ERROR("No parent for clock %lu", clock_id);
+		panic();
+	}
+
+	secure_parent_clocks(parent_id);
+}
+
+/* Sync secure clock refcount after all drivers probe/inits,  */
+void stm32mp1_update_earlyboot_clocks_state(void)
+{
+	unsigned int idx;
+
+	for (idx = 0U; idx < NB_GATES; idx++) {
+		const struct stm32mp1_clk_gate *gate = gate_ref(idx);
+		unsigned long clock_id = gate_ref(idx)->index;
+
+		/* Drop non secure refcnt on non shared shareable clocks */
+		if (__clk_is_enabled(gate) &&
+		    stm32mp1_clock_is_shareable(clock_id) &&
+		    !stm32mp1_clock_is_shared(clock_id)) {
+			stm32mp1_clk_disable_non_secure(clock_id);
+		}
+	}
+}
+
 static void sync_earlyboot_clocks_state(void)
 {
+	unsigned int idx;
+
+	for (idx = 0U; idx < NB_GATES; idx++) {
+		assert(gate_refcounts[idx] == 0);
+	}
+
+	/* Set a non secure refcnt for shareable clocks enabled from boot */
+	for (idx = 0U; idx < NB_GATES; idx++) {
+		struct stm32mp1_clk_gate const *gate = gate_ref(idx);
+
+		if (__clk_is_enabled(gate) &&
+		    stm32mp1_clock_is_shareable(gate->index)) {
+			gate_refcounts[idx] = SHREFCNT_NONSECURE_FLAG;
+		}
+	}
+
+	/*
+	 * Register secure clock parents and init a refcount for
+	 * secure only resources that are not registered from a driver probe.
+	 * - DDR controller and phy clocks.
+	 * - TZC400, ETZPC and STGEN clocks.
+	 * - RTCAPB clocks on multi-core
+	 */
+	stm32mp1_register_clock_parents_secure(DDRC1);
+	stm32mp1_clk_enable_secure(DDRC1);
+	stm32mp1_register_clock_parents_secure(DDRC1LP);
+	stm32mp1_clk_enable_secure(DDRC1LP);
+	stm32mp1_register_clock_parents_secure(DDRC2);
+	stm32mp1_clk_enable_secure(DDRC2);
+	stm32mp1_register_clock_parents_secure(DDRC2LP);
+	stm32mp1_clk_enable_secure(DDRC2LP);
+	stm32mp1_register_clock_parents_secure(DDRPHYC);
+	stm32mp1_clk_enable_secure(DDRPHYC);
+	stm32mp1_register_clock_parents_secure(DDRPHYCLP);
+	stm32mp1_clk_enable_secure(DDRPHYCLP);
+	stm32mp1_register_clock_parents_secure(DDRCAPB);
+	stm32mp1_clk_enable_secure(DDRCAPB);
+	stm32mp1_register_clock_parents_secure(AXIDCG);
+	stm32mp1_clk_enable_secure(AXIDCG);
+	stm32mp1_register_clock_parents_secure(DDRPHYCAPB);
+	stm32mp1_clk_enable_secure(DDRPHYCAPB);
+	stm32mp1_register_clock_parents_secure(DDRPHYCAPBLP);
+	stm32mp1_clk_enable_secure(DDRPHYCAPBLP);
+
+	stm32mp1_register_clock_parents_secure(TZPC);
+	stm32mp1_clk_enable_secure(TZPC);
+	stm32mp1_register_clock_parents_secure(TZC1);
+	stm32mp1_clk_enable_secure(TZC1);
+	stm32mp1_register_clock_parents_secure(TZC2);
+	stm32mp1_clk_enable_secure(TZC2);
+	stm32mp1_register_clock_parents_secure(STGEN_K);
+	stm32mp1_clk_enable_secure(STGEN_K);
+
+	stm32mp1_register_clock_parents_secure(BSEC);
+	stm32mp1_register_clock_parents_secure(BKPSRAM);
+
+	stm32mp1_register_clock_parents_secure(RTCAPB);
+
 	if (!stm32mp_is_single_core()) {
 		stm32mp1_clk_enable_secure(RTCAPB);
 	}

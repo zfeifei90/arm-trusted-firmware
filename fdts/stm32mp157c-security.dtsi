@@ -4,8 +4,18 @@
  * SPDX-License-Identifier:	GPL-2.0+	BSD-3-Clause
  */
 
+#include <dt-bindings/soc/st,stm32-etzpc.h>
+
 / {
 	soc {
+		etzpc: etzpc@5c007000 {
+			compatible = "st,stm32-etzpc";
+			reg = <0x5C007000 0x400>;
+			clocks = <&rcc TZPC>;
+			status = "disabled";
+			secure-status = "okay";
+		};
+
 		stgen: stgen@5c008000 {
 			compatible = "st,stm32-stgen";
 			reg = <0x5C008000 0x1000>;

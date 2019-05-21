@@ -17,6 +17,7 @@
 #include <drivers/arm/tzc400.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/st/bsec.h>
+#include <drivers/st/etzpc.h>
 #include <drivers/st/stm32_console.h>
 #include <drivers/st/stm32_gpio.h>
 #include <drivers/st/stm32_iwdg.h>
@@ -229,14 +230,9 @@ static void stm32mp1_sp_min_security_setup(void)
 {
 	int ret;
 
-	/* Unlock ETZPC securable peripherals */
-#define STM32MP1_ETZPC_BASE	0x5C007000U
-#define ETZPC_DECPROT0		0x010U
-	mmio_write_32(STM32MP1_ETZPC_BASE + ETZPC_DECPROT0, 0xFFFFFFFF);
-
-	/* Set GPIO bank Z as non secure */
-	for (uint32_t pin = 0U; pin < STM32MP_GPIOZ_PIN_MAX_COUNT; pin++) {
-		set_gpio_secure_cfg(GPIO_BANK_Z, pin, false);
+	if (etzpc_init() != 0) {
+		ERROR("ETZPC configuration issue\n");
+		panic();
 	}
 
 	/* Init rtc driver */
@@ -264,6 +260,8 @@ void sp_min_platform_setup(void)
 	if (stm32_iwdg_init() < 0) {
 		panic();
 	}
+
+	stm32mp1_driver_init_late();
 }
 
 void sp_min_plat_arch_setup(void)

@@ -92,6 +92,7 @@ PLAT_BL_COMMON_SOURCES	+=	drivers/arm/tzc/tzc400.c				\
 				plat/st/stm32mp1/stm32mp1_dbgmcu.c			\
 				plat/st/stm32mp1/stm32mp1_helper.S			\
 				plat/st/stm32mp1/stm32mp1_security.c			\
+				plat/st/stm32mp1/stm32mp1_shared_resources.c 		\
 				plat/st/stm32mp1/stm32mp1_syscfg.c
 
 BL2_SOURCES		+=	drivers/io/io_block.c					\
