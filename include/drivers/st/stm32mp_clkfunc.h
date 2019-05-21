@@ -29,6 +29,7 @@ bool fdt_get_rcc_secure_state(void);
 int fdt_rcc_enable_it(const char *name);
 
 int fdt_get_clock_id(int node);
+int fdt_get_clock_id_by_name(int node, const char *name);
 unsigned long fdt_get_uart_clock_freq(uintptr_t instance);
 
 void stm32mp_stgen_config(unsigned long rate);
