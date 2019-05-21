@@ -8,6 +8,16 @@
 
 / {
 	soc {
+		iwdg1: watchdog@5c003000 {
+			compatible = "st,stm32mp1-iwdg";
+			reg = <0x5C003000 0x400>;
+			clocks = <&rcc IWDG1>, <&rcc CK_LSI>;
+			clock-names = "pclk", "lsi";
+			interrupts = <GIC_SPI 150 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+			secure-status = "disabled";
+		};
+
 		etzpc: etzpc@5c007000 {
 			compatible = "st,stm32-etzpc";
 			reg = <0x5C007000 0x400>;
@@ -40,6 +50,10 @@
 
 &hash1 {
 	secure-status = "okay";
+};
+
+&iwdg2 {
+	secure-interrupts = <GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>;
 };
 
 &rcc {
