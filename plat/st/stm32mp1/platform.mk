@@ -36,9 +36,11 @@ STM32MP_SPI_NOR		?=	0
 
 # Serial boot devices
 STM32MP_UART_PROGRAMMER	?=	0
+STM32MP_USB_PROGRAMMER	?=	0
 
 ifeq ($(filter 1,${STM32MP_EMMC} ${STM32MP_SDMMC} ${STM32MP_RAW_NAND} \
-	${STM32MP_SPI_NAND} ${STM32MP_SPI_NOR} ${STM32MP_UART_PROGRAMMER}),)
+	${STM32MP_SPI_NAND} ${STM32MP_SPI_NOR} ${STM32MP_UART_PROGRAMMER} \
+	${STM32MP_USB_PROGRAMMER}),)
 $(error "No boot device driver is enabled")
 endif
 
@@ -54,7 +56,9 @@ $(eval $(call add_define,STM32MP_SPI_NAND))
 $(eval $(call add_define,STM32MP_SPI_NOR))
 
 $(eval $(call assert_boolean,STM32MP_UART_PROGRAMMER))
+$(eval $(call assert_boolean,STM32MP_USB_PROGRAMMER))
 $(eval $(call add_define,STM32MP_UART_PROGRAMMER))
+$(eval $(call add_define,STM32MP_USB_PROGRAMMER))
 
 PLAT_INCLUDES		:=	-Iplat/st/common/include/
 PLAT_INCLUDES		+=	-Iplat/st/stm32mp1/include/
@@ -158,6 +162,14 @@ BL2_SOURCES		+=	drivers/st/ddr/stm32mp1_ddr.c				\
 BL2_SOURCES		+=	common/desc_image_load.c				\
 				plat/st/stm32mp1/plat_bl2_mem_params_desc.c		\
 				plat/st/stm32mp1/plat_image_load.c
+
+ifeq (${STM32MP_USB_PROGRAMMER},1)
+BL2_SOURCES		+=	drivers/st/io/io_programmer_st_usb.c			\
+				drivers/st/usb_dwc2/usb_dwc2.c				\
+				lib/usb/usb_core.c					\
+				lib/usb/usb_st_dfu.c					\
+				plat/st/stm32mp1/stm32mp1_usb_desc.c
+endif
 
 ifeq ($(AARCH32_SP),optee)
 BL2_SOURCES		+=	lib/optee/optee_utils.c

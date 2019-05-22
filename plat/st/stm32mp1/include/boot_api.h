@@ -126,6 +126,9 @@ BOOT_API_CTX_STBY_EXIT_STATUS_WKUP_MCU_ONLY_MCU_ABT_SEC_PERIMETER_ISSUE	0x07
 /* Boot occurred on UART  */
 #define BOOT_API_CTX_BOOT_INTERFACE_SEL_SERIAL_UART		0x5U
 
+/* Boot occurred on USB */
+#define BOOT_API_CTX_BOOT_INTERFACE_SEL_SERIAL_USB		0x6U
+
 /* Boot occurred on QSPI NAND */
 #define BOOT_API_CTX_BOOT_INTERFACE_SEL_FLASH_NAND_QSPI		0x7U
 
@@ -238,7 +241,8 @@ typedef struct {
 	 */
 	uint16_t boot_interface_selected;
 	uint16_t boot_interface_instance;
-	uint32_t reserved1[13];
+	uint32_t reserved1[12];
+	uint32_t usb_context;
 	uint32_t otp_afmux_values[3];
 	uint32_t reserved[2];
 	/*

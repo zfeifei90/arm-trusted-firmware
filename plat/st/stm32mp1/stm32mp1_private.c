@@ -40,6 +40,13 @@
 					MT_SECURE | \
 					MT_EXECUTE_NEVER)
 
+#define MAP_SRAM_MCU	MAP_REGION_FLAT(STM32MP_SRAM_MCU_BASE, \
+					STM32MP_SRAM_MCU_SIZE, \
+					MT_MEMORY | \
+					MT_RW | \
+					MT_NS | \
+					MT_EXECUTE_NEVER)
+
 #define MAP_DEVICE1	MAP_REGION_FLAT(STM32MP1_DEVICE1_BASE, \
 					STM32MP1_DEVICE1_SIZE, \
 					MT_DEVICE | \
@@ -57,6 +64,9 @@
 #if defined(IMAGE_BL2)
 static const mmap_region_t stm32mp1_mmap[] = {
 	MAP_SRAM,
+#if STM32MP_USB_PROGRAMMER
+	MAP_SRAM_MCU,
+#endif
 	MAP_DEVICE1,
 	MAP_DEVICE2,
 	{0}

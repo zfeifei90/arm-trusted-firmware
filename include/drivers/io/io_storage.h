@@ -26,6 +26,7 @@ typedef enum {
 	IO_TYPE_MMC,
 	IO_TYPE_STM32IMAGE,
 	IO_TYPE_UART,
+	IO_TYPE_USB,
 	IO_TYPE_MAX
 } io_type_t;
 

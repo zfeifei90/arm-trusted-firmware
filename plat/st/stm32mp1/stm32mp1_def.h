@@ -33,6 +33,8 @@
 #include <stm32mp1_dbgmcu.h>
 #include <stm32mp1_private.h>
 #include <stm32mp1_shared_resources.h>
+#include <stm32mp1_usb_desc.h>
+#include <usb_ctx.h>
 #endif
 
 /*******************************************************************************
@@ -63,6 +65,10 @@
 
 #define STM32MP_SYSRAM_BASE		U(0x2FFC0000)
 #define STM32MP_SYSRAM_SIZE		U(0x00040000)
+
+/* 384 KB (128 x 3) Non secure from MCU available for TF*/
+#define STM32MP_SRAM_MCU_BASE		U(0x30000000)
+#define STM32MP_SRAM_MCU_SIZE		U(0x00060000)
 
 #define STM32MP_BACKUP_RAM_BASE		U(0x54000000)
 #define STM32MP_BACKUP_RAM_SIZE		U(0x00001000)
@@ -141,7 +147,11 @@ enum ddr_type {
  * BL stm32mp1_mmap size + mmap regions in *_plat_arch_setup
  */
 #if defined(IMAGE_BL2)
+ #if STM32MP_USB_PROGRAMMER
+  #define MAX_MMAP_REGIONS		12
+ #else
   #define MAX_MMAP_REGIONS		11
+ #endif
 #endif
 #if defined(IMAGE_BL32)
   #define MAX_MMAP_REGIONS		6
@@ -340,6 +350,9 @@ enum ddr_type {
 #define PART_NUMBER_OTP			U(1)
 #define MONOTONIC_OTP			U(4)
 #define NAND_OTP			U(9)
+#define UID0_OTP			U(13)
+#define UID1_OTP			U(14)
+#define UID2_OTP			U(15)
 #define PACKAGE_OTP			U(16)
 #define HW2_OTP				U(18)
 
@@ -424,6 +437,11 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
 	return TAMP_BKP_REGISTER_BASE + (idx << 2);
 }
 #endif
+
+/*******************************************************************************
+ * STM32MP1 USB
+ ******************************************************************************/
+#define USB_OTG_BASE			U(0x49000000)
 
 /*******************************************************************************
  * STM32MP1 DDRCTRL
