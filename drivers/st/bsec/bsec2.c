@@ -14,11 +14,12 @@
 #include <arch_helpers.h>
 #include <common/debug.h>
 #include <drivers/st/bsec.h>
+#include <drivers/st/bsec2_reg.h>
 #include <lib/mmio.h>
 #include <lib/spinlock.h>
 
-#define BSEC_IP_VERSION_1_0	0x10
-#define BSEC_COMPAT		"st,stm32mp15-bsec"
+#define BSEC_IP_VERSION_1_1	U(0x11)
+#define BSEC_IP_ID_2		U(0x100032)
 
 #define OTP_ACCESS_SIZE (round_up(OTP_MAX_SIZE, __WORD_BIT) / __WORD_BIT)
 
@@ -48,7 +49,7 @@ static int bsec_get_dt_node(struct dt_node_info *info)
 {
 	int node;
 
-	node = dt_get_node(info, -1, BSEC_COMPAT);
+	node = dt_get_node(info, -1, DT_BSEC_COMPAT);
 	if (node < 0) {
 		return -FDT_ERR_NOTFOUND;
 	}
@@ -161,6 +162,11 @@ uint32_t bsec_probe(void)
 	}
 
 	bsec_base = bsec_info.base;
+
+	if (((bsec_get_version() & BSEC_IPVR_MSK) != BSEC_IP_VERSION_1_1) ||
+	    (bsec_get_id() != BSEC_IP_ID_2)) {
+		panic();
+	}
 
 #if defined(IMAGE_BL32)
 	bsec_dt_otp_nsec_access(fdt, node);

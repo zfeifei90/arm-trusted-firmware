@@ -13,6 +13,7 @@
 #include <common/debug.h>
 #include <common/runtime_svc.h>
 #include <drivers/st/bsec.h>
+#include <drivers/st/bsec2_reg.h>
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp1_ddr_helpers.h>
 #include <drivers/st/stpmic1.h>
