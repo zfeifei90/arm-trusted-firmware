@@ -18,6 +18,9 @@ void __dead2 stm32mp_wait_cpu_reset(void);
 
 void stm32mp1_arch_security_setup(void);
 void stm32mp1_security_setup(void);
+#if STM32MP_UART_PROGRAMMER
+uintptr_t get_uart_address(uint32_t instance_nb);
+#endif
 
 void stm32mp1_gic_pcpu_init(void);
 void stm32mp1_gic_init(void);

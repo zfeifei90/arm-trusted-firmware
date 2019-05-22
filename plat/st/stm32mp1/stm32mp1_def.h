@@ -21,6 +21,7 @@
 #include <drivers/st/stm32mp1_clk.h>
 #include <drivers/st/stm32mp1_ddr_regs.h>
 #include <drivers/st/stm32mp1_pwr.h>
+#include <drivers/st/stm32mp1xx_hal_uart.h>
 
 #include <boot_api.h>
 #include <stm32mp_auth.h>

@@ -79,6 +79,30 @@ void configure_mmu(void)
 	enable_mmu_svc_mon(0);
 }
 
+#if STM32MP_UART_PROGRAMMER
+/*
+ * UART Management
+ */
+static const uintptr_t stm32mp1_uart_addresses[8] = {
+	USART1_BASE,
+	USART2_BASE,
+	USART3_BASE,
+	UART4_BASE,
+	UART5_BASE,
+	USART6_BASE,
+	UART7_BASE,
+	UART8_BASE,
+};
+
+uintptr_t get_uart_address(uint32_t instance_nb)
+{
+	if (!instance_nb || instance_nb > ARRAY_SIZE(stm32mp1_uart_addresses))
+		return 0;
+
+	return stm32mp1_uart_addresses[instance_nb - 1];
+}
+#endif
+
 #define ARM_CNTXCTL_IMASK	BIT(1)
 
 void stm32mp_mask_timer(void)

@@ -23,11 +23,15 @@
 #include <drivers/st/stm32mp1_clk.h>
 #include <drivers/st/stm32mp1_pwr.h>
 #include <drivers/st/stm32mp1_ram.h>
+#if STM32MP_UART_PROGRAMMER
+#include <drivers/st/stm32mp1xx_hal_uart.h>
+#endif
 #include <lib/mmio.h>
 #include <lib/optee_utils.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/common/platform.h>
 
+#include <boot_api.h>
 #include <stm32mp1_context.h>
 #include <stm32mp1_dbgmcu.h>
 
@@ -299,6 +303,17 @@ void bl2_el3_plat_arch_setup(void)
 
 	generic_delay_timer_init();
 
+#if STM32MP_UART_PROGRAMMER
+	/* Disable programmer UART before changing clock tree */
+	if (boot_context->boot_interface_selected ==
+	    BOOT_API_CTX_BOOT_INTERFACE_SEL_SERIAL_UART) {
+		uintptr_t uart_prog_addr =
+			get_uart_address(boot_context->boot_interface_instance);
+
+		((USART_TypeDef *)uart_prog_addr)->CR1 &= ~USART_CR1_UE;
+	}
+#endif
+
 	if (stm32mp1_clk_probe() < 0) {
 		panic();
 	}
@@ -313,6 +328,12 @@ void bl2_el3_plat_arch_setup(void)
 
 	if ((result <= 0) ||
 	    (dt_uart_info.status == 0U) ||
+#if STM32MP_UART_PROGRAMMER
+	    ((boot_context->boot_interface_selected ==
+	      BOOT_API_CTX_BOOT_INTERFACE_SEL_SERIAL_UART) &&
+	     (get_uart_address(boot_context->boot_interface_instance) ==
+	      dt_uart_info.base)) ||
+#endif
 	    (dt_uart_info.clock < 0) ||
 	    (dt_uart_info.reset < 0)) {
 		goto skip_console_init;

@@ -83,6 +83,10 @@
  */
 #define PLAT_STM32MP_NS_IMAGE_OFFSET	BL33_BASE
 
+/* need by flash programmer */
+#define FLASHLAYOUT_BASE		STM32MP_DDR_BASE
+#define FLASHLAYOUT_LIMIT		STM32MP_BL33_BASE
+
 /*******************************************************************************
  * DTB specific defines.
  ******************************************************************************/

@@ -178,6 +178,9 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 				  u_register_t arg2, u_register_t arg3)
 {
+#if STM32MP_UART_PROGRAMMER
+	uint32_t boot_itf, boot_instance;
+#endif
 	struct dt_node_info dt_uart_info;
 	int result;
 	bl_params_t *params_from_bl2 = (bl_params_t *)arg0;
@@ -223,8 +226,15 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	}
 
 	result = dt_get_stdout_uart_info(&dt_uart_info);
+#if STM32MP_UART_PROGRAMMER
+	stm32_get_boot_interface(&boot_itf, &boot_instance);
 
+	if ((result > 0) && (dt_uart_info.status != 0U) &&
+	    !((boot_itf == BOOT_API_CTX_BOOT_INTERFACE_SEL_SERIAL_UART) &&
+	      (get_uart_address(boot_instance) == dt_uart_info.base))) {
+#else
 	if ((result > 0) && (dt_uart_info.status != 0U)) {
+#endif
 		unsigned int console_flags;
 
 		if (console_stm32_register(dt_uart_info.base, 0,

@@ -30,6 +30,10 @@
 #include <lib/utils.h>
 #include <plat/common/platform.h>
 
+#if STM32MP_UART_PROGRAMMER
+#include <drivers/st/io_uart.h>
+#endif
+
 /* IO devices */
 static const io_dev_connector_t *dummy_dev_con;
 static uintptr_t dummy_dev_handle;
@@ -94,6 +98,22 @@ static io_mtd_dev_spec_t spi_nand_dev_spec = {
 #if STM32MP_SPI_NAND || STM32MP_SPI_NOR
 static const io_dev_connector_t *spi_dev_con;
 #endif
+
+#if STM32MP_UART_PROGRAMMER
+/* uart*/
+static const io_dev_connector_t *uart_dev_con;
+
+static UART_HandleTypeDef uart_programmer = {
+	.Init.BaudRate			= STM32MP_UART_BAUDRATE,
+	.Init.StopBits			= UART_STOPBITS_1,
+	.Init.HwFlowCtl			= UART_HWCONTROL_NONE,
+	.Init.Mode			= UART_MODE_TX_RX,
+	.Init.OverSampling		= UART_OVERSAMPLING_16,
+	.Init.FIFOMode			= UART_FIFOMODE_ENABLE,
+	.AdvancedInit.AdvFeatureInit	= UART_ADVFEATURE_AUTOBAUDRATE_INIT,
+	.AdvancedInit.AutoBaudRateEnable = UART_ADVFEATURE_AUTOBAUDRATE_DISABLE,
+};
+#endif /* STM32MP_UART_PROGRAMMER */
 
 #ifdef AARCH32_SP_OPTEE
 static const struct stm32image_part_info optee_header_partition_spec = {
@@ -256,6 +276,9 @@ static void print_boot_device(boot_api_context_t *boot_context)
 		break;
 	case BOOT_API_CTX_BOOT_INTERFACE_SEL_FLASH_NAND_QSPI:
 		INFO("Using SPI NAND\n");
+		break;
+	case BOOT_API_CTX_BOOT_INTERFACE_SEL_SERIAL_UART:
+		INFO("Using UART\n");
 		break;
 	default:
 		ERROR("Boot interface not found\n");
@@ -616,6 +639,34 @@ static void boot_spi_nand(boot_api_context_t *boot_context)
 }
 #endif /* STM32MP_SPI_NAND */
 
+#if STM32MP_UART_PROGRAMMER
+static void flash_uart(uint16_t boot_interface_instance)
+{
+	int io_result __unused;
+	uintptr_t uart_addr;
+
+	/* Register the IO devices on this platform */
+	io_result = register_io_dev_uart(&uart_dev_con);
+	assert(io_result == 0);
+
+	uart_programmer.Init.WordLength = UART_WORDLENGTH_9B;
+	uart_programmer.Init.Parity = UART_PARITY_EVEN;
+	uart_addr = get_uart_address(boot_interface_instance);
+
+	if (uart_addr != 0U) {
+		uart_programmer.Instance = (USART_TypeDef *)uart_addr;
+	} else {
+		WARN("UART instance not found, using default\n");
+		uart_programmer.Instance = (USART_TypeDef *)USART2_BASE;
+	}
+
+	/* Open connections to devices */
+	io_result = io_dev_open(uart_dev_con, (uintptr_t)&uart_programmer,
+				&image_dev_handle);
+	assert(!io_result);
+}
+#endif
+
 void stm32mp_io_setup(void)
 {
 	int io_result __unused;
@@ -668,6 +719,12 @@ void stm32mp_io_setup(void)
 	case BOOT_API_CTX_BOOT_INTERFACE_SEL_FLASH_NAND_QSPI:
 		dmbsy();
 		boot_spi_nand(boot_context);
+		break;
+#endif
+#if STM32MP_UART_PROGRAMMER
+	case BOOT_API_CTX_BOOT_INTERFACE_SEL_SERIAL_UART:
+		dmbsy();
+		flash_uart(boot_context->boot_interface_instance);
 		break;
 #endif
 

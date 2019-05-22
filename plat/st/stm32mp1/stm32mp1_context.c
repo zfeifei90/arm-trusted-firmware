@@ -186,6 +186,24 @@ int stm32_save_boot_interface(uint32_t interface, uint32_t instance)
 	return 0;
 }
 
+int stm32_get_boot_interface(uint32_t *interface, uint32_t *instance)
+{
+	uint32_t backup_reg_itf;
+	uint32_t bkpr_itf_idx = tamp_bkpr(TAMP_BOOT_ITF_BACKUP_REG_ID);
+
+	stm32mp_clk_enable(RTCAPB);
+
+	backup_reg_itf = (mmio_read_32(bkpr_itf_idx) &
+			  TAMP_BOOT_ITF_MASK) >> TAMP_BOOT_ITF_SHIFT;
+
+	stm32mp_clk_disable(RTCAPB);
+
+	*interface = backup_reg_itf >> 4;
+	*instance = backup_reg_itf & 0xFU;
+
+	return 0;
+}
+
 #if defined(IMAGE_BL32)
 /*
  * When returning from STANDBY, the 64 first bytes of DDR will be overwritten

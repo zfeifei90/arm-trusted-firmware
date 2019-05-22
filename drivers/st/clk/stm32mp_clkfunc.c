@@ -14,6 +14,7 @@
 #include <drivers/st/stm32mp_clkfunc.h>
 
 #define DT_STGEN_COMPAT		"st,stm32-stgen"
+#define DT_UART_COMPAT		"st,stm32h7-uart"
 
 /*
  * Get the frequency of an oscillator from its name in device tree.
@@ -383,4 +384,48 @@ int fdt_get_clock_id(int node)
 
 	cuint++;
 	return (int)fdt32_to_cpu(*cuint);
+}
+
+/*******************************************************************************
+ * This function gets the frequency of the specified uart instance.
+ * From this instance, all the uarts nodes in DT are parsed, and the register
+ * base is compared to the instance. If match between these two values, then
+ * the clock source is read from the DT and we deduce the frequency.
+ * Returns clock frequency on success, 0 value on failure.
+ ******************************************************************************/
+unsigned long fdt_get_uart_clock_freq(uintptr_t instance)
+{
+	int node;
+	void *fdt;
+
+	if (fdt_get_address(&fdt) == 0) {
+		return 0;
+	}
+
+	/* Check for UART nodes */
+	node = fdt_node_offset_by_compatible(fdt, -1, DT_UART_COMPAT);
+	while (node != -FDT_ERR_NOTFOUND) {
+		const fdt32_t *cuint;
+
+		cuint = fdt_getprop(fdt, node, "reg", NULL);
+		if (cuint == NULL)
+			goto next;
+
+		if ((uintptr_t)fdt32_to_cpu(*cuint) == instance) {
+			unsigned long clk_id;
+
+			cuint = fdt_getprop(fdt, node, "clocks", NULL);
+			if (cuint == NULL)
+				goto next;
+
+			cuint++;
+			clk_id = (unsigned long)(fdt32_to_cpu(*cuint));
+
+			return stm32mp_clk_get_rate(clk_id);
+		}
+next:
+		node = fdt_node_offset_by_compatible(fdt, node, DT_UART_COMPAT);
+	}
+
+	return 0;
 }
