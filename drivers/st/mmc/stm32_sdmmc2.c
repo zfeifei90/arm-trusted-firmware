@@ -172,10 +172,15 @@ static void dump_registers(void)
 static void stm32_sdmmc2_init(void)
 {
 	uint32_t clock_div;
+	uint32_t freq = STM32MP_MMC_INIT_FREQ;
 	uintptr_t base = sdmmc2_params.reg_base;
 
+	if (sdmmc2_params.max_freq != 0U) {
+		freq = MIN(sdmmc2_params.max_freq, STM32MP_MMC_INIT_FREQ);
+	}
+
 	clock_div = div_round_up(sdmmc2_params.clk_rate,
-				 STM32MP_MMC_INIT_FREQ * 2);
+				 freq * 2);
 
 	mmio_write_32(base + SDMMC_CLKCR, SDMMC_CLKCR_HWFC_EN | clock_div |
 		      sdmmc2_params.negedge |
@@ -426,7 +431,7 @@ static int stm32_sdmmc2_set_ios(unsigned int clk, unsigned int width)
 {
 	uintptr_t base = sdmmc2_params.reg_base;
 	uint32_t bus_cfg = 0;
-	uint32_t clock_div, max_freq;
+	uint32_t clock_div, max_freq, freq;
 	uint32_t clk_rate = sdmmc2_params.clk_rate;
 	uint32_t max_bus_freq = sdmmc2_params.device_info->max_bus_freq;
 
@@ -458,7 +463,13 @@ static int stm32_sdmmc2_set_ios(unsigned int clk, unsigned int width)
 		}
 	}
 
-	clock_div = div_round_up(clk_rate, max_freq * 2);
+	if (sdmmc2_params.max_freq != 0U) {
+		freq = MIN(sdmmc2_params.max_freq, max_freq);
+	} else {
+		freq = max_freq;
+	}
+
+	clock_div = div_round_up(clk_rate, freq * 2);
 
 	mmio_write_32(base + SDMMC_CLKCR,
 		      SDMMC_CLKCR_HWFC_EN | clock_div | bus_cfg |
@@ -712,6 +723,11 @@ static int stm32_sdmmc2_dt_get_config(void)
 		default:
 			break;
 		}
+	}
+
+	cuint = fdt_getprop(fdt, sdmmc_node, "max-frequency", NULL);
+	if (cuint != NULL) {
+		sdmmc2_params.max_freq = fdt32_to_cpu(*cuint);
 	}
 
 	return 0;
