@@ -125,6 +125,13 @@ static uint32_t otp_bank_offset(uint32_t otp)
 	       sizeof(uint32_t);
 }
 
+/*
+ * bsec_check_error: check BSEC error status.
+ * otp: OTP number.
+ * check_disturbed: check only error (false),
+ *	or error and disturbed status (true).
+ * return value: BSEC_OK if no error.
+ */
 static uint32_t bsec_check_error(uint32_t otp, bool check_disturbed)
 {
 	uint32_t bit = BIT(otp & BSEC_OTP_MASK);
@@ -493,7 +500,7 @@ uint32_t bsec_permanent_lock_otp(uint32_t otp)
 }
 
 /*
- * bsec_write_debug_conf: write value in debug feature
+ * bsec_write_debug_conf: write value in debug feature.
  *	to enable/disable debug service.
  * val: value to write.
  * return value: BSEC_OK if no error.
@@ -517,7 +524,7 @@ uint32_t bsec_write_debug_conf(uint32_t val)
 }
 
 /*
- * bsec_read_debug_conf: read debug configuration.
+ * bsec_read_debug_conf: return debug configuration register value.
  */
 uint32_t bsec_read_debug_conf(void)
 {
@@ -533,7 +540,7 @@ uint32_t bsec_get_status(void)
 }
 
 /*
- * bsec_get_hw_conf: return hardware configuration.
+ * bsec_get_hw_conf: return hardware configuration register value.
  */
 uint32_t bsec_get_hw_conf(void)
 {
@@ -541,7 +548,7 @@ uint32_t bsec_get_hw_conf(void)
 }
 
 /*
- * bsec_get_version: return BSEC version.
+ * bsec_get_version: return BSEC version register value.
  */
 uint32_t bsec_get_version(void)
 {
@@ -549,7 +556,7 @@ uint32_t bsec_get_version(void)
 }
 
 /*
- * bsec_get_id: return BSEC ID.
+ * bsec_get_id: return BSEC ID register value.
  */
 uint32_t bsec_get_id(void)
 {
@@ -557,7 +564,7 @@ uint32_t bsec_get_id(void)
 }
 
 /*
- * bsec_get_magic_id: return BSEC magic number.
+ * bsec_get_magic_id: return BSEC magic number register value.
  */
 uint32_t bsec_get_magic_id(void)
 {
@@ -774,9 +781,9 @@ uint32_t bsec_read_permanent_lock(uint32_t otp, bool *value)
 }
 
 /*
- * bsec_otp_lock: Lock Upper OTP or Global programming or debug enable
- * service: Service to lock see header file.
- * return: BSEC_OK if succeed.
+ * bsec_otp_lock: Lock Upper OTP or Global Programming or Debug Enable.
+ * service: Service to lock, see header file.
+ * return value: BSEC_OK if no error.
  */
 uint32_t bsec_otp_lock(uint32_t service)
 {
@@ -802,7 +809,7 @@ uint32_t bsec_otp_lock(uint32_t service)
 /*
  * bsec_power_safmem: Activate or deactivate SAFMEM power.
  * power: true to power up, false to power down.
- * return: BSEC_OK if succeed.
+ * return value: BSEC_OK if no error.
  */
 static uint32_t bsec_power_safmem(bool power)
 {
@@ -844,7 +851,7 @@ static uint32_t bsec_power_safmem(bool power)
 
 /*
  * bsec_mode_is_closed_device: read OTP secure sub-mode.
- * return: false if open_device and true of closed_device.
+ * return value: false if open_device and true if closed_device.
  */
 bool bsec_mode_is_closed_device(void)
 {
@@ -859,7 +866,7 @@ bool bsec_mode_is_closed_device(void)
 }
 
 /*
- * bsec_shadow_read_otp: Load OTP from SAFMEM and provide its value
+ * bsec_shadow_read_otp: Load OTP from SAFMEM and provide its value.
  * otp_value: read value.
  * word: OTP number.
  * return value: BSEC_OK if no error.
@@ -885,7 +892,7 @@ uint32_t bsec_shadow_read_otp(uint32_t *otp_value, uint32_t word)
 /*
  * bsec_check_nsec_access_rights: check non-secure access rights to target OTP.
  * otp: OTP number.
- * return: BSEC_OK if authorized access.
+ * return value: BSEC_OK if authorized access.
  */
 uint32_t bsec_check_nsec_access_rights(uint32_t otp)
 {
