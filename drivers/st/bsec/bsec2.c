@@ -580,9 +580,7 @@ uint32_t bsec_get_magic_id(void)
  */
 uint32_t bsec_set_sr_lock(uint32_t otp)
 {
-	uint32_t result = BSEC_ERROR;
 	uint32_t bank = otp_bank_offset(otp);
-	uint32_t bank_value;
 	uint32_t otp_mask = BIT(otp & BSEC_OTP_MASK);
 
 	if (otp > STM32MP1_OTP_MAX_ID) {
@@ -590,26 +588,10 @@ uint32_t bsec_set_sr_lock(uint32_t otp)
 	}
 
 	bsec_lock();
-
-	bank_value = mmio_read_32(bsec_base + BSEC_SRLOCK_OFF + bank);
-
-	if ((bank_value & otp_mask) != 0U) {
-		/* The lock is already set */
-		result = BSEC_OK;
-	} else {
-		bank_value = bank_value | otp_mask;
-
-		/*
-		 * We can write 0 in all other OTP bits with no effect,
-		 * even if the lock is activated.
-		 */
-		mmio_write_32(bsec_base + BSEC_SRLOCK_OFF + bank, bank_value);
-		result = BSEC_OK;
-	}
-
+	mmio_write_32(bsec_base + BSEC_SRLOCK_OFF + bank, otp_mask);
 	bsec_unlock();
 
-	return result;
+	return BSEC_OK;
 }
 
 /*
@@ -642,36 +624,18 @@ uint32_t bsec_read_sr_lock(uint32_t otp, bool *value)
  */
 uint32_t bsec_set_sw_lock(uint32_t otp)
 {
-	uint32_t result = BSEC_ERROR;
 	uint32_t bank = otp_bank_offset(otp);
 	uint32_t otp_mask = BIT(otp & BSEC_OTP_MASK);
-	uint32_t bank_value;
 
 	if (otp > STM32MP1_OTP_MAX_ID) {
 		return BSEC_INVALID_PARAM;
 	}
 
 	bsec_lock();
-
-	bank_value = mmio_read_32(bsec_base + BSEC_SWLOCK_OFF + bank);
-
-	if ((bank_value & otp_mask) != 0U) {
-		/* The lock is already set */
-		result = BSEC_OK;
-	} else {
-		bank_value = bank_value | otp_mask;
-
-		/*
-		 * We can write 0 in all other OTP bits with no effect,
-		 * even if the lock is activated.
-		 */
-		mmio_write_32(bsec_base + BSEC_SWLOCK_OFF + bank, bank_value);
-		result = BSEC_OK;
-	}
-
+	mmio_write_32(bsec_base + BSEC_SWLOCK_OFF + bank, otp_mask);
 	bsec_unlock();
 
-	return result;
+	return BSEC_OK;
 }
 
 /*
@@ -704,9 +668,7 @@ uint32_t bsec_read_sw_lock(uint32_t otp, bool *value)
  */
 uint32_t bsec_set_sp_lock(uint32_t otp)
 {
-	uint32_t result = BSEC_ERROR;
 	uint32_t bank = otp_bank_offset(otp);
-	uint32_t bank_value;
 	uint32_t otp_mask = BIT(otp & BSEC_OTP_MASK);
 
 	if (otp > STM32MP1_OTP_MAX_ID) {
@@ -714,26 +676,10 @@ uint32_t bsec_set_sp_lock(uint32_t otp)
 	}
 
 	bsec_lock();
-
-	bank_value = mmio_read_32(bsec_base + BSEC_SPLOCK_OFF + bank);
-
-	if ((bank_value & otp_mask) != 0U) {
-		/* The lock is already set */
-		result = BSEC_OK;
-	} else {
-		bank_value = bank_value | otp_mask;
-
-		/*
-		 * We can write 0 in all other OTP bits with no effect,
-		 * even if the lock is activated.
-		 */
-		mmio_write_32(bsec_base + BSEC_SPLOCK_OFF + bank, bank_value);
-		result = BSEC_OK;
-	}
-
+	mmio_write_32(bsec_base + BSEC_SPLOCK_OFF + bank, otp_mask);
 	bsec_unlock();
 
-	return result;
+	return BSEC_OK;
 }
 
 /*
