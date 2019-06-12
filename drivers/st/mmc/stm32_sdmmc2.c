@@ -137,6 +137,8 @@ static const struct mmc_ops stm32_sdmmc2_ops = {
 
 static struct stm32_sdmmc2_params sdmmc2_params;
 
+static bool next_cmd_is_acmd;
+
 #pragma weak plat_sdmmc2_use_dma
 bool plat_sdmmc2_use_dma(unsigned int instance, unsigned int memory)
 {
@@ -241,6 +243,20 @@ static int stm32_sdmmc2_send_cmd_req(struct mmc_cmd *cmd)
 	case MMC_CMD(1):
 		arg_reg |= OCR_POWERUP;
 		break;
+	case MMC_CMD(6):
+		if ((sdmmc2_params.device_info->mmc_dev_type == MMC_IS_SD_HC) &&
+		    (!next_cmd_is_acmd)) {
+			cmd_reg |= SDMMC_CMDR_CMDTRANS;
+			if (sdmmc2_params.use_dma) {
+				flags_data |= SDMMC_STAR_DCRCFAIL |
+					SDMMC_STAR_DTIMEOUT |
+					SDMMC_STAR_DATAEND |
+					SDMMC_STAR_RXOVERR |
+					SDMMC_STAR_IDMATE |
+					SDMMC_STAR_DBCKEND;
+			}
+		}
+		break;
 	case MMC_CMD(8):
 		if (sdmmc2_params.device_info->mmc_dev_type == MMC_IS_EMMC) {
 			cmd_reg |= SDMMC_CMDR_CMDTRANS;
@@ -277,6 +293,8 @@ static int stm32_sdmmc2_send_cmd_req(struct mmc_cmd *cmd)
 	default:
 		break;
 	}
+
+	next_cmd_is_acmd = (cmd->cmd_idx == MMC_CMD(55));
 
 	if ((cmd->resp_type & MMC_RSP_BUSY) != 0U) {
 		mmio_write_32(base + SDMMC_DTIMER, UINT32_MAX);
