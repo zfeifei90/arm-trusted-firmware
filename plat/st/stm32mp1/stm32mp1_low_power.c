@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -186,7 +186,6 @@ static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
 	mmio_write_32(bkpr_core1_magic, 0);
 
 	if (mode == STM32_PM_CSTOP_ALLOW_STANDBY_DDR_SR) {
-
 		/*
 		 * Save non-secure world entrypoint after standby in Backup
 		 * register
@@ -197,6 +196,14 @@ static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
 
 		if (stm32_save_context(zq0cr0_zdata) != 0) {
 			panic();
+		}
+
+		/* Keep retention and backup RAM content in standby */
+		mmio_setbits_32(pwr_base + PWR_CR2, PWR_CR2_BREN |
+				PWR_CR2_RREN);
+		while ((mmio_read_32(pwr_base + PWR_CR2) &
+			(PWR_CR2_BRRDY | PWR_CR2_RRRDY)) == 0U) {
+			;
 		}
 	}
 
@@ -212,6 +219,7 @@ static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
  */
 void stm32_exit_cstop(void)
 {
+	uintptr_t pwr_base = stm32mp_pwr_base();
 	uintptr_t rcc_base = stm32mp_rcc_base();
 
 	if (!enter_cstop_done) {
@@ -235,6 +243,9 @@ void stm32_exit_cstop(void)
 
 	dsb();
 	isb();
+
+	/* Disable retention and backup RAM content after stop */
+	mmio_clrbits_32(pwr_base + PWR_CR2, PWR_CR2_BREN | PWR_CR2_RREN);
 
 	/* Update STGEN counter with low power mode duration */
 	stm32_rtc_get_calendar(&current_calendar);

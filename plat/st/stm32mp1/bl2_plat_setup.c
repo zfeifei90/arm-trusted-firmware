@@ -282,9 +282,8 @@ void bl2_el3_plat_arch_setup(void)
 			   RCC_PWRLPDLYCR_PWRLP_DLY_MASK,
 			   PWRLP_TEMPO_5_HSI);
 
-	/* Keep retention and backup ram content in standby */
-	mmio_setbits_32(pwr_base + PWR_CR2, PWR_CR2_BREN);
-	mmio_setbits_32(pwr_base + PWR_CR2, PWR_CR2_RREN);
+	/* Disable retention and backup RAM content after standby */
+	mmio_clrbits_32(pwr_base + PWR_CR2, PWR_CR2_BREN | PWR_CR2_RREN);
 
 	/* Disable MCKPROT */
 	mmio_clrbits_32(rcc_base + RCC_TZCR, RCC_TZCR_MCKPROT);
