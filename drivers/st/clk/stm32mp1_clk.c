@@ -644,7 +644,7 @@ static struct stm32mp1_clk_cal stm32mp1_clk_cal_hsi = {
 	.trim_max = 63,
 	.trim_min = -64,
 	.ref_freq = 0,
-	.freq_margin = 2,
+	.freq_margin = 5,
 	.set_trim = hsi_set_trim,
 	.get_trim = hsi_get_trimed_cal,
 };
@@ -654,7 +654,7 @@ static struct stm32mp1_clk_cal stm32mp1_clk_cal_csi = {
 	.trim_max = 15,
 	.trim_min = -16,
 	.ref_freq = 0,
-	.freq_margin = 5,
+	.freq_margin = 8,
 	.set_trim = csi_set_trim,
 	.get_trim = csi_get_trimed_cal,
 };
@@ -2321,7 +2321,6 @@ static void stm32mp1_rcc_calibration(struct stm32mp1_clk_cal *clk_cal)
 		      "HSI" : "CSI", clk_cal->get_freq(),
 		      new_trim);
 #endif
-		panic();
 	}
 }
 
