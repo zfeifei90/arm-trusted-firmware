@@ -14,6 +14,7 @@
 #include <dt-bindings/reset/stm32mp1-resets.h>
 #include <dt-bindings/soc/st,stm32-etzpc.h>
 #include <etzpc.h>
+#include <stm32mp1_calib.h>
 #include <stm32mp1_clkfunc.h>
 #include <stm32mp1_clk.h>
 #include <stm32mp1_context.h>

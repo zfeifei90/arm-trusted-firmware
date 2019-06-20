@@ -104,7 +104,7 @@ void sp_min_plat_fiq_handler(uint32_t id)
 	case ARM_IRQ_SEC_PHY_TIMER:
 	case STM32MP1_IRQ_MCU_SEV:
 	case STM32MP1_IRQ_RCC_WAKEUP:
-		stm32mp1_rcc_it_handler(id);
+		stm32mp1_calib_it_handler(id);
 		break;
 	case STM32MP1_IRQ_TZC400:
 		tzc400_init(STM32MP1_TZC_BASE);
@@ -319,7 +319,7 @@ void stm32mp1_sp_min_security_setup(void)
 	}
 
 	if (stm32_timer_init() == 0) {
-		stm32mp1_cal_init();
+		stm32mp1_calib_init();
 	}
 }
 

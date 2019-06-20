@@ -310,10 +310,10 @@ void stm32_pwr_down_wfi(void)
 {
 	uint32_t interrupt = GIC_SPURIOUS_INTERRUPT;
 
-	stm32mp1_rcc_set_wakeup(false);
+	stm32mp1_calib_set_wakeup(false);
 
 	while (interrupt == GIC_SPURIOUS_INTERRUPT &&
-	       !stm32mp1_rcc_get_wakeup()) {
+	       !stm32mp1_calib_get_wakeup()) {
 		wfi_svc_int_enable((uintptr_t)&int_stack[0]);
 
 		interrupt = gicv2_acknowledge_interrupt();
