@@ -48,6 +48,7 @@
 
 #define STM32MP1_REV_A		U(0x1000)
 #define STM32MP1_REV_B		U(0x2000)
+#define STM32MP1_REV_Z		U(0x2001)
 
 /*******************************************************************************
  * PACKAGE ID
