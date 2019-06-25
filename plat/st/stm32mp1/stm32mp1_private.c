@@ -380,6 +380,9 @@ void stm32mp_print_cpuinfo(void)
 	case STM32MP1_REV_B:
 		cpu_r = "B";
 		break;
+	case STM32MP1_REV_Z:
+		cpu_r = "Z";
+		break;
 	default:
 		cpu_r = "?";
 		break;
