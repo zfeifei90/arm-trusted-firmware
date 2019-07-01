@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -56,6 +56,10 @@ int fdt_osc_read_freq(const char *name, uint32_t *freq)
 		if (strncmp(cchar, name, (size_t)ret) == 0) {
 			const fdt32_t *cuint;
 
+			if (fdt_get_status(subnode) == DT_DISABLED) {
+				goto exit;
+			}
+
 			cuint = fdt_getprop(fdt, subnode, "clock-frequency",
 					    &ret);
 			if (cuint == NULL) {
@@ -68,7 +72,8 @@ int fdt_osc_read_freq(const char *name, uint32_t *freq)
 		}
 	}
 
-	/* Oscillator not found, freq=0 */
+exit:
+	/* Oscillator not found or disabled, freq=0 */
 	*freq = 0;
 	return 0;
 }
