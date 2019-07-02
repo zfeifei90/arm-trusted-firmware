@@ -369,12 +369,9 @@ static uint32_t bsec_write_all_bsec(struct otp_exchange *exchange,
 		(uint8_t)(exchange->general_lock & GPLOCK_LOCK_MASK) >>
 		GPLOCK_LOCK_SHIFT;
 
-	if (!bsec_mode_is_closed_device()) {
-		config_param.upper_otp_lock =
-			(uint8_t)(exchange->general_lock &
-				  UPPER_OTP_LOCK_MASK) >>
-				 UPPER_OTP_LOCK_SHIFT;
-	}
+	config_param.upper_otp_lock =
+		(uint8_t)(exchange->general_lock & UPPER_OTP_LOCK_MASK) >>
+		 UPPER_OTP_LOCK_SHIFT;
 
 	ret = bsec_set_config(&config_param);
 	if (ret != BSEC_OK) {
