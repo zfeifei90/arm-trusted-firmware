@@ -834,11 +834,8 @@ uint32_t bsec_check_nsec_access_rights(uint32_t otp)
 	}
 
 	if (otp >= STM32MP1_UPPER_OTP_START) {
-		/* Check if BSEC is in OTP-SECURED closed_device state. */
-		if (stm32mp_is_closed_device()) {
-			if (!non_secure_can_access(otp)) {
-				return BSEC_ERROR;
-			}
+		if (!non_secure_can_access(otp)) {
+			return BSEC_ERROR;
 		}
 	}
 #endif
