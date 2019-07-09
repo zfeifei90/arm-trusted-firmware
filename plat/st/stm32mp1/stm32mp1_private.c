@@ -15,6 +15,7 @@
 #include <stm32_iwdg.h>
 #include <stm32mp_common.h>
 #include <stm32mp_dt.h>
+#include <stm32mp_dummy_regulator.h>
 #include <stm32mp_pmic.h>
 #include <stm32mp_regulator.h>
 #include <stm32mp_reset.h>
@@ -554,6 +555,8 @@ int plat_bind_regulator(struct stm32mp_regulator *regu)
 {
 	if ((dt_pmic_status() > 0) && is_pmic_regulator(regu)) {
 		bind_pmic_regulator(regu);
+	} else {
+		bind_dummy_regulator(regu);
 	}
 
 	return 0;

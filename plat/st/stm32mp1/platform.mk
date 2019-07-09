@@ -134,6 +134,7 @@ PLAT_BL_COMMON_SOURCES	+=	${LIBFDT_SRCS}						\
 				drivers/st/iwdg/stm32_iwdg.c				\
 				drivers/st/pmic/stm32mp_pmic.c				\
 				drivers/st/pmic/stpmic1.c				\
+				drivers/st/regulator/stm32mp_dummy_regulator.c		\
 				drivers/st/regulator/stm32mp_regulator.c		\
 				drivers/st/reset/stm32mp1_reset.c			\
 				plat/st/common/stm32mp_dt.c				\
