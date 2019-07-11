@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -224,6 +224,22 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 
 	bl_params_node_t *bl_params = params_from_bl2->head;
 
+	mmap_add_region(BL_CODE_BASE, BL_CODE_BASE,
+			BL_CODE_END - BL_CODE_BASE,
+			MT_CODE | MT_SECURE);
+
+#if SEPARATE_CODE_AND_RODATA
+	mmap_add_region(BL_RO_DATA_BASE, BL_RO_DATA_BASE,
+			BL_RO_DATA_LIMIT - BL_RO_DATA_BASE,
+			MT_RO_DATA | MT_SECURE);
+#endif
+
+	mmap_add_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,
+			dt_get_ddr_size() - STM32MP_DDR_S_SIZE,
+			MT_MEMORY | MT_RW | MT_NS);
+
+	configure_mmu();
+
 	/*
 	 * Copy BL33 entry point information.
 	 * They are stored in Secure RAM, in BL2's address space.
@@ -320,22 +336,6 @@ void stm32mp1_sp_min_security_setup(void)
  ******************************************************************************/
 void sp_min_platform_setup(void)
 {
-	mmap_add_region(BL_CODE_BASE, BL_CODE_BASE,
-			BL_CODE_END - BL_CODE_BASE,
-			MT_CODE | MT_SECURE);
-
-#if SEPARATE_CODE_AND_RODATA
-	mmap_add_region(BL_RO_DATA_BASE, BL_RO_DATA_BASE,
-			BL_RO_DATA_LIMIT - BL_RO_DATA_BASE,
-			MT_RO_DATA | MT_SECURE);
-#endif
-
-	mmap_add_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,
-			dt_get_ddr_size() - STM32MP_DDR_S_SIZE,
-			MT_MEMORY | MT_RW | MT_NS);
-
-	configure_mmu();
-
 	/* Initialize tzc400 after DDR initialization */
 	stm32mp1_security_setup();
 
