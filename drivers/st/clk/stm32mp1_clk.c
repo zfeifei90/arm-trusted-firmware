@@ -2432,24 +2432,6 @@ static void sync_earlyboot_clocks_state(void)
 	}
 }
 
-void stm32mp1_rcc_init_late(void)
-{
-#if defined(IMAGE_BL32)
-	int irq_num;
-
-	if (!stm32mp1_rcc_is_secure()) {
-		return;
-	}
-
-	irq_num = fdt_rcc_enable_it("wakeup");
-	if (irq_num < 0) {
-		panic();
-	}
-
-	plat_ic_set_interrupt_priority(irq_num, STM32MP1_IRQ_RCC_SEC_PRIO);
-#endif
-}
-
 int stm32mp1_clk_probe(void)
 {
 	stm32mp1_osc_init();

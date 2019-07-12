@@ -85,6 +85,18 @@ static void stm32_sgi1_it_handler(void)
 	stm32mp_wait_cpu_reset();
 }
 
+static void configure_wakeup_interrupt(void)
+{
+	int irq_num = fdt_rcc_enable_it("wakeup");
+
+	if (irq_num < 0) {
+		ERROR("irq_num = %d\n", irq_num);
+		panic();
+	}
+
+	plat_ic_set_interrupt_priority(irq_num, STM32MP1_IRQ_RCC_SEC_PRIO);
+}
+
 /*******************************************************************************
  * Interrupt handler for FIQ (secure IRQ)
  ******************************************************************************/
@@ -349,6 +361,8 @@ void sp_min_platform_setup(void)
 	if (stm32_iwdg_init() < 0) {
 		panic();
 	}
+
+	configure_wakeup_interrupt();
 
 	stm32mp1_driver_init_late();
 }

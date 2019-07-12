@@ -61,8 +61,6 @@ void stm32mp1_clk_mpu_suspend(void);
 void stm32mp1_clk_mpu_resume(void);
 #endif
 
-void stm32mp1_rcc_init_late(void);
-
 void stm32mp1_register_clock_parents_secure(unsigned long id);
 
 void stm32mp1_update_earlyboot_clocks_state(void);
