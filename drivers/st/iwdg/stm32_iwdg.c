@@ -182,6 +182,10 @@ void stm32_iwdg_refresh(uint32_t instance)
 
 	assert(iwdg);
 
+	if (iwdg->base == 0U) {
+		return;
+        }
+
 	stm32mp_clk_enable(iwdg->clock);
 
 	mmio_write_32(iwdg->base + IWDG_KR_OFFSET, IWDG_KR_RELOAD_KEY);
