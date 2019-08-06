@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -15,7 +15,7 @@
 #include <lib/utils.h>
 #include <plat/common/platform.h>
 
-struct stm32_gic_instance {
+struct stm32mp_gic_instance {
 	uint32_t cells;
 	uint32_t phandle_node;
 };
@@ -24,7 +24,7 @@ struct stm32_gic_instance {
  * On a GICv2 system, the Group 1 secure interrupts are treated as Group 0
  * interrupts.
  *****************************************************************************/
-static const interrupt_prop_t stm32mp1_interrupt_props[] = {
+static const interrupt_prop_t stm32mp_interrupt_props[] = {
 	PLATFORM_G1S_PROPS(GICV2_INTR_GROUP0),
 	PLATFORM_G0_PROPS(GICV2_INTR_GROUP0)
 };
@@ -33,15 +33,15 @@ static const interrupt_prop_t stm32mp1_interrupt_props[] = {
 static unsigned int target_mask_array[PLATFORM_CORE_COUNT] = {1, 2};
 
 static gicv2_driver_data_t platform_gic_data = {
-	.interrupt_props = stm32mp1_interrupt_props,
-	.interrupt_props_num = ARRAY_SIZE(stm32mp1_interrupt_props),
+	.interrupt_props = stm32mp_interrupt_props,
+	.interrupt_props_num = ARRAY_SIZE(stm32mp_interrupt_props),
 	.target_masks = target_mask_array,
 	.target_masks_num = ARRAY_SIZE(target_mask_array),
 };
 
-static struct stm32_gic_instance stm32_gic;
+static struct stm32mp_gic_instance stm32mp_gic;
 
-void stm32mp1_gic_init(void)
+void stm32mp_gic_init(void)
 {
 	int node;
 	void *fdt;
@@ -71,20 +71,20 @@ void stm32mp1_gic_init(void)
 		panic();
 	}
 
-	stm32_gic.cells = fdt32_to_cpu(*cuint);
+	stm32mp_gic.cells = fdt32_to_cpu(*cuint);
 
-	stm32_gic.phandle_node = fdt_get_phandle(fdt, node);
-	if (stm32_gic.phandle_node == 0U) {
+	stm32mp_gic.phandle_node = fdt_get_phandle(fdt, node);
+	if (stm32mp_gic.phandle_node == 0U) {
 		panic();
 	}
 
 	gicv2_driver_init(&platform_gic_data);
 	gicv2_distif_init();
 
-	stm32mp1_gic_pcpu_init();
+	stm32mp_gic_pcpu_init();
 }
 
-void stm32mp1_gic_pcpu_init(void)
+void stm32mp_gic_pcpu_init(void)
 {
 	gicv2_pcpu_distif_init();
 	gicv2_set_pe_target_mask(plat_my_core_pos());
