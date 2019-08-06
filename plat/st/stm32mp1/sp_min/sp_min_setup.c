@@ -364,7 +364,7 @@ void sp_min_platform_setup(void)
 
 	generic_delay_timer_init();
 
-	stm32mp1_gic_init();
+	stm32_gic_init();
 
 	init_sec_peripherals();
 
