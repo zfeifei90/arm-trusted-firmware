@@ -17,6 +17,11 @@
 
 	.globl	platform_mem_init
 	.globl	plat_report_exception
+#if AARCH32_EXCEPTION_DEBUG
+	.globl	plat_report_undef_inst
+	.globl	plat_report_prefetch_abort
+	.globl	plat_report_data_abort
+#endif
 	.globl	plat_get_my_entrypoint
 	.globl	plat_secondary_cold_boot_setup
 	.globl	plat_reset_handler
@@ -34,8 +39,137 @@ func platform_mem_init
 endfunc platform_mem_init
 
 func plat_report_exception
+#if DEBUG
+	mov	r8, lr
+
+	/* Test if an abort occurred */
+	cmp	r0, #MODE32_abt
+	bne	undef_inst_lbl
+	ldr	r4, =abort_str
+	bl	asm_print_str
+	b	print_excpetion_info
+
+undef_inst_lbl:
+	/* Test for an undefined instruction */
+	cmp	r0, #MODE32_und
+	bne	other_excpetion_lbl
+	ldr	r4, =undefined_str
+	bl	asm_print_str
+	b	print_excpetion_info
+
+other_excpetion_lbl:
+	/* Other exceptions */
+	mov	r9, r0
+	ldr	r4, =exception_start_str
+	bl	asm_print_str
+	mov	r4, r9
+	bl	asm_print_hex
+	ldr	r4, =exception_end_str
+	bl	asm_print_str
+
+print_excpetion_info:
+	mrs	r4, lr_svc
+	sub	r4, r4, #4
+	bl	asm_print_hex
+
+	ldr	r4, =end_error_str
+	bl	asm_print_str
+
+	bx	r8
+#else
 	bx	lr
+#endif
 endfunc plat_report_exception
+
+#if AARCH32_EXCEPTION_DEBUG
+func plat_report_undef_inst
+#if DEBUG
+	mov	r8, lr
+
+	mov	r9, r0
+
+	ldr	r4, =undefined_str
+	bl	asm_print_str
+
+	mov	r4, r9
+	sub	r4, r4, #4
+	bl	asm_print_hex
+
+	ldr	r4, =end_error_str
+	bl	asm_print_str
+
+	bx	r8
+#else
+	bx	lr
+#endif
+endfunc plat_report_undef_inst
+
+func plat_report_prefetch_abort
+#if DEBUG
+	mov	r8, lr
+	mov	r9, r0
+
+	ldr	r4, =prefetch_abort_str
+	bl	asm_print_str
+
+	mov	r4, r9
+	sub	r4, r4, #4
+	bl	asm_print_hex
+
+	ldr	r4, =ifsr_str
+	bl	asm_print_str
+
+	ldcopr	r4, IFSR
+	bl	asm_print_hex
+
+	ldr	r4, =ifar_str
+	bl	asm_print_str
+
+	ldcopr	r4, IFAR
+	bl	asm_print_hex
+
+	ldr	r4, =end_error_str
+	bl	asm_print_str
+
+	bx	r8
+#else
+	bx	lr
+#endif
+endfunc plat_report_prefetch_abort
+
+func plat_report_data_abort
+#if DEBUG
+	mov	r8, lr
+	mov	r9, r0
+
+	ldr	r4, =data_abort_str
+	bl	asm_print_str
+
+	mov	r4, r9
+	sub	r4, r4, #8
+	bl	asm_print_hex
+
+	ldr	r4, =dfsr_str
+	bl	asm_print_str
+
+	ldcopr	r4, DFSR
+	bl	asm_print_hex
+
+	ldr	r4, =dfar_str
+	bl	asm_print_str
+
+	ldcopr	r4, DFAR
+	bl	asm_print_hex
+
+	ldr	r4, =end_error_str
+	bl	asm_print_str
+
+	bx	r8
+#else
+	bx	lr
+#endif
+endfunc plat_report_data_abort
+#endif
 
 func plat_reset_handler
 	bx	lr
@@ -176,6 +310,53 @@ func plat_crash_console_putc
 	ldr	r1, =STM32MP_DEBUG_USART_BASE
 	b	console_stm32_core_putc
 endfunc plat_crash_console_putc
+
+	/* ----------------------------------------------------------
+	 * void plat_panic_handler(void) __dead2;
+	 * Report exception + endless loop.
+	 *
+	 * r6 holds the address where the fault occurred.
+	 * Filling lr with this value allows debuggers to reconstruct
+	 * the backtrace.
+	 * ----------------------------------------------------------
+	 */
+func plat_panic_handler
+	mrs	r0, cpsr
+	and	r0, #MODE32_MASK
+	bl	plat_report_exception
+	mov	lr, r6
+	b	.
+endfunc plat_panic_handler
+
+#if DEBUG
+.section .rodata.rev_err_str, "aS"
+abort_str:
+	.asciz "\nAbort at: 0x"
+#if AARCH32_EXCEPTION_DEBUG
+prefetch_abort_str:
+	.asciz "\nPrefetch Abort at: 0x"
+data_abort_str:
+	.asciz "\nData Abort at: 0x"
+#endif
+undefined_str:
+	.asciz "\nUndefined instruction at: 0x"
+exception_start_str:
+	.asciz "\nException mode=0x"
+exception_end_str:
+	.asciz " at: 0x"
+#if AARCH32_EXCEPTION_DEBUG
+dfsr_str:
+	.asciz " DFSR = 0x"
+dfar_str:
+	.asciz " DFAR = 0x"
+ifsr_str:
+	.asciz " IFSR = 0x"
+ifar_str:
+	.asciz " IFAR = 0x"
+#endif
+end_error_str:
+	.asciz "\n\r"
+#endif
 
 func wfi_svc_int_enable
 	push	{r4,r8,lr}

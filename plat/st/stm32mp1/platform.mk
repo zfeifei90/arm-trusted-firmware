@@ -17,6 +17,8 @@ $(eval $(call add_define_val,STM32_TF_VERSION,${STM32_TF_VERSION}))
 # Not needed for Cortex-A7
 WORKAROUND_CVE_2017_5715:=	0
 
+AARCH32_EXCEPTION_DEBUG	:=	1
+
 # Number of TF-A copies in the device
 STM32_TF_A_COPIES		:=	2
 $(eval $(call add_define,STM32_TF_A_COPIES))
