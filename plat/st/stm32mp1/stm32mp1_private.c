@@ -456,12 +456,12 @@ uint32_t stm32_iwdg_get_otp_config(uintptr_t base)
 		iwdg_cfg |= IWDG_HW_ENABLED;
 	}
 
-	if ((otp_value & BIT(idx + IWDG_FZ_STOP_POS)) == 0U) {
-		iwdg_cfg |= IWDG_ENABLE_ON_STOP;
+	if ((otp_value & BIT(idx + IWDG_FZ_STOP_POS)) != 0U) {
+		iwdg_cfg |= IWDG_DISABLE_ON_STOP;
 	}
 
-	if ((otp_value & BIT(idx + IWDG_FZ_STANDBY_POS)) == 0U) {
-		iwdg_cfg |= IWDG_ENABLE_ON_STANDBY;
+	if ((otp_value & BIT(idx + IWDG_FZ_STANDBY_POS)) != 0U) {
+		iwdg_cfg |= IWDG_DISABLE_ON_STANDBY;
 	}
 
 	return iwdg_cfg;
@@ -480,11 +480,11 @@ uint32_t stm32_iwdg_shadow_update(uintptr_t base, uint32_t flags)
 
 	idx = stm32_iwdg_get_instance(base);
 
-	if ((flags & IWDG_ENABLE_ON_STOP) != 0) {
+	if ((flags & IWDG_DISABLE_ON_STOP) != 0) {
 		otp |= BIT(idx + IWDG_FZ_STOP_POS);
 	}
 
-	if ((flags & IWDG_ENABLE_ON_STANDBY) != 0) {
+	if ((flags & IWDG_DISABLE_ON_STANDBY) != 0) {
 		otp |= BIT(idx + IWDG_FZ_STANDBY_POS);
 	}
 
