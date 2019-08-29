@@ -332,6 +332,10 @@
 	>;
 };
 
+&iwdg2 {
+	secure-status = "okay";
+};
+
 &pwr {
 	system_suspend_supported_soc_modes = <
 		STM32_PM_CSLEEP_RUN
