@@ -2415,10 +2415,7 @@ static void sync_earlyboot_clocks_state(void)
 	stm32mp1_register_clock_parents_secure(BKPSRAM);
 
 	stm32mp1_register_clock_parents_secure(RTCAPB);
-
-	if (!stm32mp_is_single_core()) {
-		stm32mp1_clk_enable_secure(RTCAPB);
-	}
+	stm32mp1_clk_enable_secure(RTCAPB);
 }
 
 int stm32mp1_clk_probe(void)
