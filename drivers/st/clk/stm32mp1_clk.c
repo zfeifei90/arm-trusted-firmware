@@ -2364,7 +2364,6 @@ void stm32mp1_update_earlyboot_clocks_state(void)
 static void sync_earlyboot_clocks_state(void)
 {
 	unsigned int idx;
-	int res;
 
 	for (idx = 0U; idx < NB_GATES; idx++) {
 		assert(gate_refcounts[idx] == 0);
@@ -2421,15 +2420,7 @@ static void sync_earlyboot_clocks_state(void)
 	stm32mp1_register_clock_parents_secure(BKPSRAM);
 
 	stm32mp1_register_clock_parents_secure(RTCAPB);
-
-	res = stm32mp_is_single_core();
-	if (res < 0) {
-		panic();
-	}
-
-	if (res == 0) {
-		stm32mp1_clk_enable_secure(RTCAPB);
-	}
+	stm32mp1_clk_enable_secure(RTCAPB);
 }
 
 int stm32mp1_clk_probe(void)
