@@ -434,31 +434,6 @@ int dt_match_instance_by_compatible(const char *compatible, uintptr_t address)
 	return -FDT_ERR_NOTFOUND;
 }
 
-/*******************************************************************************
- * This function returns the peripheral base address information from the
- * compatible string in the DT. It is only valid for single instance
- * peripherals (RCC, PWR, STGEN, SYSCFG...).
- * Returns value on success, and 0 on failure.
- ******************************************************************************/
-uintptr_t dt_get_peripheral_base(const char *compatible)
-{
-	int node;
-	const fdt32_t *cuint;
-
-	node = dt_get_node_by_compatible(compatible);
-	if (node < 0) {
-		return 0;
-	}
-
-	assert(fdt_get_node_parent_address_cells(node) == 1);
-
-	cuint = fdt_getprop(fdt, node, "reg", NULL);
-	if (cuint == NULL) {
-		return 0;
-	}
-
-	return fdt32_to_cpu(*cuint);
-}
 
 /*******************************************************************************
  * This function gets DDR size information from the DT.
@@ -474,72 +449,6 @@ uint32_t dt_get_ddr_size(void)
 	}
 
 	return fdt_read_uint32_default(node, "st,mem-size", 0);
-}
-
-/*******************************************************************************
- * This function gets DDRCTRL base address information from the DT.
- * Returns value on success, and 0 on failure.
- ******************************************************************************/
-uintptr_t dt_get_ddrctrl_base(void)
-{
-	int node;
-	uint32_t array[4];
-
-	node = dt_get_node_by_compatible(DT_DDR_COMPAT);
-	if (node < 0) {
-		return 0;
-	}
-
-	assert((fdt_get_node_parent_address_cells(node) == 1) &&
-	       (fdt_get_node_parent_size_cells(node) == 1));
-
-	if (fdt_read_uint32_array(node, "reg", array, 4) < 0) {
-		return 0;
-	}
-
-	return array[0];
-}
-
-/*******************************************************************************
- * This function gets DDRPHYC base address information from the DT.
- * Returns value on success, and 0 on failure.
- ******************************************************************************/
-uintptr_t dt_get_ddrphyc_base(void)
-{
-	int node;
-	uint32_t array[4];
-
-	node = dt_get_node_by_compatible(DT_DDR_COMPAT);
-	if (node < 0) {
-		return 0;
-	}
-
-	assert((fdt_get_node_parent_address_cells(node) == 1) &&
-	       (fdt_get_node_parent_size_cells(node) == 1));
-
-	if (fdt_read_uint32_array(node, "reg", array, 4) < 0) {
-		return 0;
-	}
-
-	return array[2];
-}
-
-/*******************************************************************************
- * This function gets RCC base address information from the DT.
- * Returns value on success, and 0 on failure.
- ******************************************************************************/
-uintptr_t dt_get_rcc_base(void)
-{
-	return dt_get_peripheral_base(DT_RCC_CLK_COMPAT);
-}
-
-/*******************************************************************************
- * This function gets PWR base address information from the DT.
- * Returns value on success, and 0 on failure.
- ******************************************************************************/
-uintptr_t dt_get_pwr_base(void)
-{
-	return dt_get_peripheral_base(DT_PWR_COMPAT);
 }
 
 /*******************************************************************************
@@ -743,15 +652,6 @@ uint32_t dt_get_pwr_vdd_voltage(void)
 	}
 
 	return fdt32_to_cpu(*cuint);
-}
-
-/*******************************************************************************
- * This function gets SYSCFG base address information from the DT.
- * Returns value on success, and 0 on failure.
- ******************************************************************************/
-uintptr_t dt_get_syscfg_base(void)
-{
-	return dt_get_peripheral_base(DT_SYSCFG_COMPAT);
 }
 
 /*******************************************************************************

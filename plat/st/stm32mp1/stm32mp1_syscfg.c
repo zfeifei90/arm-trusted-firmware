@@ -65,19 +65,18 @@ void stm32mp1_syscfg_init(void)
 	uint32_t bootr;
 	uint32_t otp_value;
 	uint32_t vdd_voltage;
-	uintptr_t syscfg_base = dt_get_syscfg_base();
 	bool product_below_2v5;
 
 	/*
 	 * Interconnect update : select master using the port 1.
 	 * LTDC = AXI_M9.
 	 */
-	mmio_write_32(syscfg_base + SYSCFG_ICNR, SYSCFG_ICNR_AXI_M9);
+	mmio_write_32(SYSCFG_BASE + SYSCFG_ICNR, SYSCFG_ICNR_AXI_M9);
 
 	/* Disable Pull-Down for boot pin connected to VDD */
-	bootr = mmio_read_32(syscfg_base + SYSCFG_BOOTR) &
+	bootr = mmio_read_32(SYSCFG_BASE + SYSCFG_BOOTR) &
 		SYSCFG_BOOTR_BOOT_MASK;
-	mmio_clrsetbits_32(syscfg_base + SYSCFG_BOOTR, SYSCFG_BOOTR_BOOTPD_MASK,
+	mmio_clrsetbits_32(SYSCFG_BASE + SYSCFG_BOOTR, SYSCFG_BOOTR_BOOTPD_MASK,
 			   bootr << SYSCFG_BOOTR_BOOTPD_SHIFT);
 
 	/*
@@ -108,7 +107,7 @@ void stm32mp1_syscfg_init(void)
 	if (vdd_voltage == 0U) {
 		WARN("VDD unknown");
 	} else if (vdd_voltage < 2700000U) {
-		mmio_write_32(syscfg_base + SYSCFG_IOCTRLSETR,
+		mmio_write_32(SYSCFG_BASE + SYSCFG_IOCTRLSETR,
 			      SYSCFG_IOCTRLSETR_HSLVEN_TRACE |
 			      SYSCFG_IOCTRLSETR_HSLVEN_QUADSPI |
 			      SYSCFG_IOCTRLSETR_HSLVEN_ETH |
@@ -132,7 +131,6 @@ void stm32mp1_syscfg_init(void)
 
 void stm32mp1_syscfg_enable_io_compensation(void)
 {
-	uintptr_t syscfg_base = dt_get_syscfg_base();
 	uint64_t start;
 
 	/*
@@ -142,12 +140,12 @@ void stm32mp1_syscfg_enable_io_compensation(void)
 	 */
 	stm32mp1_clk_enable_non_secure(SYSCFG);
 
-	mmio_setbits_32(syscfg_base + SYSCFG_CMPENSETR,
+	mmio_setbits_32(SYSCFG_BASE + SYSCFG_CMPENSETR,
 			SYSCFG_CMPENSETR_MPU_EN);
 
 	start = timeout_init_us(SYSCFG_CMPCR_READY_TIMEOUT_US);
 
-	while ((mmio_read_32(syscfg_base + SYSCFG_CMPCR) &
+	while ((mmio_read_32(SYSCFG_BASE + SYSCFG_CMPCR) &
 		SYSCFG_CMPCR_READY) == 0U) {
 		if (timeout_elapsed(start)) {
 			/*
@@ -159,12 +157,11 @@ void stm32mp1_syscfg_enable_io_compensation(void)
 		}
 	}
 
-	mmio_clrbits_32(syscfg_base + SYSCFG_CMPCR, SYSCFG_CMPCR_SW_CTRL);
+	mmio_clrbits_32(SYSCFG_BASE + SYSCFG_CMPCR, SYSCFG_CMPCR_SW_CTRL);
 }
 
 void stm32mp1_syscfg_disable_io_compensation(void)
 {
-	uintptr_t syscfg_base = dt_get_syscfg_base();
 	uint32_t value;
 
 	/*
@@ -173,18 +170,18 @@ void stm32mp1_syscfg_disable_io_compensation(void)
 	 * requested for other usages and always OFF in STANDBY.
 	 * Disable non-secure SYSCFG clock, we assume non-secure is suspended.
 	 */
-	value = mmio_read_32(syscfg_base + SYSCFG_CMPCR) >>
+	value = mmio_read_32(SYSCFG_BASE + SYSCFG_CMPCR) >>
 	      SYSCFG_CMPCR_ANSRC_SHIFT;
 
-	mmio_clrbits_32(syscfg_base + SYSCFG_CMPCR,
+	mmio_clrbits_32(SYSCFG_BASE + SYSCFG_CMPCR,
 			SYSCFG_CMPCR_RANSRC | SYSCFG_CMPCR_RAPSRC);
 
-	value = mmio_read_32(syscfg_base + SYSCFG_CMPCR) |
+	value = mmio_read_32(SYSCFG_BASE + SYSCFG_CMPCR) |
 		(value << SYSCFG_CMPCR_RANSRC_SHIFT);
 
-	mmio_write_32(syscfg_base + SYSCFG_CMPCR, value | SYSCFG_CMPCR_SW_CTRL);
+	mmio_write_32(SYSCFG_BASE + SYSCFG_CMPCR, value | SYSCFG_CMPCR_SW_CTRL);
 
-	mmio_clrbits_32(syscfg_base + SYSCFG_CMPENSETR,
+	mmio_clrbits_32(SYSCFG_BASE + SYSCFG_CMPENSETR,
 			SYSCFG_CMPENSETR_MPU_EN);
 
 	stm32mp1_clk_disable_non_secure(SYSCFG);

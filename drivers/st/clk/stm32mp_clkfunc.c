@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -16,7 +16,6 @@
 #include <drivers/st/stm32mp_clkfunc.h>
 #include <lib/mmio.h>
 
-#define DT_STGEN_COMPAT		"st,stm32-stgen"
 #define DT_UART_COMPAT		"st,stm32h7-uart"
 
 /*
@@ -298,15 +297,6 @@ int fdt_rcc_enable_it(const char *name)
 }
 
 /*
- * Get the stgen base address.
- * @return: address of stgen on success, and NULL value on failure.
- */
-uintptr_t fdt_get_stgen_base(void)
-{
-	return dt_get_peripheral_base(DT_STGEN_COMPAT);
-}
-
-/*
  * Get the clock ID of the given node in device tree.
  * @param node: node offset
  * @return: Clock ID on success, and a negative FDT/ERRNO error code on failure.
@@ -408,26 +398,22 @@ bool fdt_is_pll1_predefined(void)
  ******************************************************************************/
 void stm32mp_stgen_config(unsigned long rate)
 {
-	uintptr_t stgen;
 	uint32_t cntfid0;
 	unsigned long long counter;
 
-	stgen = fdt_get_stgen_base();
-	cntfid0 = mmio_read_32(stgen + CNTFID_OFF);
+	cntfid0 = mmio_read_32(STGEN_BASE + CNTFID_OFF);
 
 	if (cntfid0 == rate) {
 		return;
 	}
 
-	mmio_clrbits_32(stgen + CNTCR_OFF, CNTCR_EN);
-	counter = (unsigned long long)mmio_read_32(stgen + CNTCVL_OFF);
-	counter |= ((unsigned long long)mmio_read_32(stgen + CNTCVU_OFF)) << 32;
-	counter = (counter * rate / cntfid0);
+	mmio_clrbits_32(STGEN_BASE + CNTCR_OFF, CNTCR_EN);
+	counter = stm32mp_stgen_get_counter() * rate / cntfid0;
 
-	mmio_write_32(stgen + CNTCVL_OFF, (uint32_t)counter);
-	mmio_write_32(stgen + CNTCVU_OFF, (uint32_t)(counter >> 32));
-	mmio_write_32(stgen + CNTFID_OFF, rate);
-	mmio_setbits_32(stgen + CNTCR_OFF, CNTCR_EN);
+	mmio_write_32(STGEN_BASE + CNTCVL_OFF, (uint32_t)counter);
+	mmio_write_32(STGEN_BASE + CNTCVU_OFF, (uint32_t)(counter >> 32));
+	mmio_write_32(STGEN_BASE + CNTFID_OFF, rate);
+	mmio_setbits_32(STGEN_BASE + CNTCR_OFF, CNTCR_EN);
 
 	write_cntfrq_el0((u_register_t)rate);
 
@@ -440,12 +426,13 @@ void stm32mp_stgen_config(unsigned long rate)
  ******************************************************************************/
 unsigned long long stm32mp_stgen_get_counter(void)
 {
-	uintptr_t stgen;
+	unsigned long long cnt;
 
-	stgen = fdt_get_stgen_base();
+	cnt = mmio_read_32(STGEN_BASE + CNTCVU_OFF);
+	cnt <<= 32;
+	cnt |= mmio_read_32(STGEN_BASE + CNTCVL_OFF);
 
-	return (((unsigned long long)mmio_read_32(stgen + CNTCVU_OFF) << 32) |
-		mmio_read_32(stgen + CNTCVL_OFF));
+	return cnt;
 }
 
 /*******************************************************************************
@@ -456,16 +443,12 @@ unsigned long long stm32mp_stgen_get_counter(void)
 void stm32mp_stgen_restore_counter(unsigned long long value,
 				   unsigned long long offset_in_ms)
 {
-	uintptr_t stgen;
-	unsigned long long cnt;
+	unsigned long long cnt = value;
 
-	stgen = fdt_get_stgen_base();
+	cnt += (offset_in_ms * mmio_read_32(STGEN_BASE + CNTFID_OFF)) / 1000U;
 
-	cnt = value + ((offset_in_ms *
-			mmio_read_32(stgen + CNTFID_OFF)) / 1000U);
-
-	mmio_clrbits_32(stgen + CNTCR_OFF, CNTCR_EN);
-	mmio_write_32(stgen + CNTCVL_OFF, (uint32_t)cnt);
-	mmio_write_32(stgen + CNTCVU_OFF, (uint32_t)(cnt >> 32));
-	mmio_setbits_32(stgen + CNTCR_OFF, CNTCR_EN);
+	mmio_clrbits_32(STGEN_BASE + CNTCR_OFF, CNTCR_EN);
+	mmio_write_32(STGEN_BASE + CNTCVL_OFF, (uint32_t)cnt);
+	mmio_write_32(STGEN_BASE + CNTCVU_OFF, (uint32_t)(cnt >> 32));
+	mmio_setbits_32(STGEN_BASE + CNTCR_OFF, CNTCR_EN);
 }

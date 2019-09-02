@@ -29,7 +29,6 @@ const fdt32_t *fdt_rcc_read_prop(const char *prop_name, int *lenp);
 bool fdt_get_rcc_secure_status(void);
 int fdt_rcc_enable_it(const char *name);
 
-uintptr_t fdt_get_stgen_base(void);
 int fdt_get_clock_id(int node);
 int fdt_get_clock_id_by_name(int node, const char *name);
 unsigned long fdt_get_uart_clock_freq(uintptr_t instance);
