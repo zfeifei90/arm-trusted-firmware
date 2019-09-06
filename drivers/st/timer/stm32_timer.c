@@ -285,7 +285,7 @@ int stm32_timer_init(void)
 				}
 			}
 
-			cuint = fdt_getprop(fdt, node, "st,csi_cal-input",
+			cuint = fdt_getprop(fdt, node, "st,csi-cal-input",
 					    NULL);
 			if (cuint != NULL) {
 				timer = &stm32_timer[CSI_CAL];
