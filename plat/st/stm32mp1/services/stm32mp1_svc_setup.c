@@ -13,6 +13,7 @@
 #include <lib/psci/psci.h>
 #include <tools_share/uuid.h>
 
+#include <stm32mp1_low_power.h>
 #include <stm32mp1_smc.h>
 
 #include "bsec_svc.h"
@@ -70,6 +71,11 @@ static uintptr_t stm32mp1_svc_smc_handler(uint32_t smc_fid, u_register_t x1,
 		ret1 = rcc_cal_scv_handler(x1);
 		break;
 
+
+	case STM32_SMC_AUTO_STOP:
+		stm32_auto_stop();
+		ret1 = STM32_SMC_OK;
+		break;
 
 	case STM32_SIP_SMC_SCMI_AGENT0:
 		scmi_smt_fastcall_smc_entry(0);
