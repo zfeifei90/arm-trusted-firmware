@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
  * Copyright (c) 2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -82,33 +82,41 @@ static int bsec_dt_otp_nsec_access(void *fdt, int bsec_node)
 
 	fdt_for_each_subnode(bsec_subnode, fdt, bsec_node) {
 		const fdt32_t *cuint;
-		uint32_t reg;
+		uint32_t otp;
 		uint32_t i;
 		uint32_t size;
-		uint8_t status;
+		uint32_t offset;
+		uint32_t length;
 
 		cuint = fdt_getprop(fdt, bsec_subnode, "reg", NULL);
 		if (cuint == NULL) {
 			panic();
 		}
 
-		reg = fdt32_to_cpu(*cuint) / sizeof(uint32_t);
-		if (reg < STM32MP1_UPPER_OTP_START) {
+		offset = fdt32_to_cpu(*cuint);
+		cuint++;
+		length = fdt32_to_cpu(*cuint);
+
+		otp = offset / sizeof(uint32_t);
+
+		if (otp < STM32MP1_UPPER_OTP_START) {
 			continue;
 		}
 
-		status = fdt_get_status(bsec_subnode);
-		if ((status & DT_NON_SECURE) == 0U)  {
+		if ((fdt_getprop(fdt, bsec_subnode,
+				 "st,non-secure-otp", NULL)) == NULL) {
 			continue;
 		}
 
-		size = fdt32_to_cpu(*(cuint + 1)) / sizeof(uint32_t);
-
-		if ((fdt32_to_cpu(*(cuint + 1)) % sizeof(uint32_t)) != 0) {
-			size++;
+		if (((offset % sizeof(uint32_t)) != 0) ||
+		    ((length % sizeof(uint32_t)) != 0)) {
+			ERROR("Unaligned non-secure OTP\n");
+			panic();
 		}
 
-		for (i = reg; i < (reg + size); i++) {
+		size = length / sizeof(uint32_t);
+
+		for (i = otp; i < (otp + size); i++) {
 			enable_non_secure_access(i);
 		}
 	}
