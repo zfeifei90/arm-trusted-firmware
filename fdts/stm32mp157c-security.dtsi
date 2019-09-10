@@ -1,5 +1,5 @@
 /*
- * Copyright : STMicroelectronics 2017
+ * Copyright : STMicroelectronics 2017-2019
  *
  * SPDX-License-Identifier:	GPL-2.0+	BSD-3-Clause
  */
@@ -35,11 +35,8 @@
 
 &bsec {
 	mac_addr: mac_addr@e4 {
-		reg = <0xe4 0x6>;
-	};
-	/* Spare field to align on 32-bit OTP granularity  */
-	spare_ns_ea: spare_ns_ea@ea {
-		reg = <0xea 0x2>;
+		reg = <0xe4 0x8>;
+		st,non-secure-otp;
 	};
 };
 
