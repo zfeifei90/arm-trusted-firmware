@@ -36,15 +36,8 @@
 
 &bsec {
 	mac_addr: mac_addr@e4 {
-		reg = <0xe4 0x6>;
-		status = "okay";
-		secure-status = "okay";
-	};
-	/* Spare field to align on 32-bit OTP granularity  */
-	spare_ns_ea: spare_ns_ea@ea {
-		reg = <0xea 0x2>;
-		status = "okay";
-		secure-status = "okay";
+		reg = <0xe4 0x8>;
+		st,non-secure-otp;
 	};
 };
 
