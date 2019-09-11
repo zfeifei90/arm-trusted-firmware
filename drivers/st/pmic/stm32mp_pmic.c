@@ -269,7 +269,7 @@ static int dt_pmic_i2c_config(struct dt_node_info *i2c_info,
 	const fdt32_t *cuint;
 
 	if (fdt_get_address(&fdt) == 0) {
-		return -ENOENT;
+		return -FDT_ERR_NOTFOUND;
 	}
 
 	pmic_node = dt_get_pmic_node();
@@ -284,7 +284,7 @@ static int dt_pmic_i2c_config(struct dt_node_info *i2c_info,
 
 	pmic_i2c_addr = fdt32_to_cpu(*cuint) << 1;
 	if (pmic_i2c_addr > UINT16_MAX) {
-		return -EINVAL;
+		return -FDT_ERR_BADVALUE;
 	}
 
 	i2c_node = fdt_parent_offset(fdt, pmic_node);
