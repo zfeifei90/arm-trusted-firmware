@@ -337,6 +337,74 @@ int dt_get_stdout_uart_info(struct dt_node_info *info)
 }
 
 /*******************************************************************************
+ * This function returns the node offset matching compatible string in the DT.
+ * It is only valid for single instance peripherals (DDR, RCC, PWR, STGEN,
+ * SYSCFG...).
+ * Returns value on success, and error value on failure.
+ ******************************************************************************/
+int dt_get_node_by_compatible(const char *compatible)
+{
+	int node = fdt_node_offset_by_compatible(fdt, -1, compatible);
+
+	if (node < 0) {
+		INFO("Cannot find %s node in DT\n", compatible);
+	}
+
+	return node;
+}
+
+/*******************************************************************************
+ * This function returns the node offset matching compatible string in the DT,
+ * and also matching the reg property with the given address.
+ * Returns value on success, and error value on failure.
+ ******************************************************************************/
+int dt_match_instance_by_compatible(const char *compatible, uintptr_t address)
+{
+	int node;
+
+	for (node = fdt_node_offset_by_compatible(fdt, -1, compatible);
+	     node != -FDT_ERR_NOTFOUND;
+	     node = fdt_node_offset_by_compatible(fdt, node, compatible)) {
+		const fdt32_t *cuint;
+
+		cuint = fdt_getprop(fdt, node, "reg", NULL);
+		if (cuint == NULL) {
+			continue;
+		}
+
+		if ((uintptr_t)fdt32_to_cpu(*cuint) == address) {
+			return node;
+		}
+	}
+
+	return -FDT_ERR_NOTFOUND;
+}
+
+/*******************************************************************************
+ * This function returns the peripheral base address information from the
+ * compatible string in the DT. It is only valid for single instance
+ * peripherals (RCC, PWR, STGEN, SYSCFG...).
+ * Returns value on success, and 0 on failure.
+ ******************************************************************************/
+uintptr_t dt_get_peripheral_base(const char *compatible)
+{
+	int node;
+	const fdt32_t *cuint;
+
+	node = dt_get_node_by_compatible(compatible);
+	if (node < 0) {
+		return 0;
+	}
+
+	cuint = fdt_getprop(fdt, node, "reg", NULL);
+	if (cuint == NULL) {
+		return 0;
+	}
+
+	return fdt32_to_cpu(*cuint);
+}
+
+/*******************************************************************************
  * This function gets DDR size information from the DT.
  * Returns value in bytes on success, and 0 on failure.
  ******************************************************************************/
@@ -344,9 +412,8 @@ uint32_t dt_get_ddr_size(void)
 {
 	int node;
 
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_DDR_COMPAT);
+	node = dt_get_node_by_compatible(DT_DDR_COMPAT);
 	if (node < 0) {
-		INFO("%s: Cannot read DDR node in DT\n", __func__);
 		return 0;
 	}
 
@@ -362,9 +429,8 @@ uintptr_t dt_get_ddrctrl_base(void)
 	int node;
 	uint32_t array[4];
 
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_DDR_COMPAT);
+	node = dt_get_node_by_compatible(DT_DDR_COMPAT);
 	if (node < 0) {
-		INFO("%s: Cannot read DDR node in DT\n", __func__);
 		return 0;
 	}
 
@@ -384,9 +450,8 @@ uintptr_t dt_get_ddrphyc_base(void)
 	int node;
 	uint32_t array[4];
 
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_DDR_COMPAT);
+	node = dt_get_node_by_compatible(DT_DDR_COMPAT);
 	if (node < 0) {
-		INFO("%s: Cannot read DDR node in DT\n", __func__);
 		return 0;
 	}
 
@@ -398,26 +463,21 @@ uintptr_t dt_get_ddrphyc_base(void)
 }
 
 /*******************************************************************************
+ * This function gets RCC base address information from the DT.
+ * Returns value on success, and 0 on failure.
+ ******************************************************************************/
+uintptr_t dt_get_rcc_base(void)
+{
+	return dt_get_peripheral_base(DT_RCC_CLK_COMPAT);
+}
+
+/*******************************************************************************
  * This function gets PWR base address information from the DT.
  * Returns value on success, and 0 on failure.
  ******************************************************************************/
 uintptr_t dt_get_pwr_base(void)
 {
-	int node;
-	const fdt32_t *cuint;
-
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_PWR_COMPAT);
-	if (node < 0) {
-		INFO("%s: Cannot read PWR node in DT\n", __func__);
-		return 0;
-	}
-
-	cuint = fdt_getprop(fdt, node, "reg", NULL);
-	if (cuint == NULL) {
-		return 0;
-	}
-
-	return fdt32_to_cpu(*cuint);
+	return dt_get_peripheral_base(DT_PWR_COMPAT);
 }
 
 /*******************************************************************************
@@ -429,9 +489,8 @@ uint32_t dt_get_pwr_vdd_voltage(void)
 	int node, pwr_regulators_node;
 	const fdt32_t *cuint;
 
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_PWR_COMPAT);
+	node = dt_get_node_by_compatible(DT_PWR_COMPAT);
 	if (node < 0) {
-		INFO("%s: Cannot read PWR node in DT\n", __func__);
 		return 0;
 	}
 
@@ -465,21 +524,7 @@ uint32_t dt_get_pwr_vdd_voltage(void)
  ******************************************************************************/
 uintptr_t dt_get_syscfg_base(void)
 {
-	int node;
-	const fdt32_t *cuint;
-
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_SYSCFG_COMPAT);
-	if (node < 0) {
-		INFO("%s: Cannot read SYSCFG node in DT\n", __func__);
-		return 0;
-	}
-
-	cuint = fdt_getprop(fdt, node, "reg", NULL);
-	if (cuint == NULL) {
-		return 0;
-	}
-
-	return fdt32_to_cpu(*cuint);
+	return dt_get_peripheral_base(DT_SYSCFG_COMPAT);
 }
 
 /*******************************************************************************

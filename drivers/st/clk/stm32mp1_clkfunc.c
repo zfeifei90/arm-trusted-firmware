@@ -175,11 +175,11 @@ uint32_t fdt_osc_read_uint32_default(enum stm32mp_osc_id osc_id,
  ******************************************************************************/
 int fdt_rcc_enable_it(const char *name)
 {
-	void *fdt;
+	int node = fdt_get_rcc_node();
 
-	if (fdt_get_address(&fdt) == 0) {
-		return -ENOENT;
+	if (node < 0) {
+		return -ENODEV;
 	}
 
-	return stm32_gic_enable_spi(fdt_get_rcc_node(fdt), name);
+	return stm32_gic_enable_spi(node, name);
 }

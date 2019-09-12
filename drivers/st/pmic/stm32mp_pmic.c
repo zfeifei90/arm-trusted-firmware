@@ -31,21 +31,16 @@
 static struct i2c_handle_s i2c_handle;
 static uint32_t pmic_i2c_addr;
 
-static int dt_get_pmic_node(void *fdt)
+static int dt_get_pmic_node(void)
 {
-	return fdt_node_offset_by_compatible(fdt, -1, "st,stpmic1");
+	return dt_get_node_by_compatible("st,stpmic1");
 }
 
 int dt_pmic_status(void)
 {
 	int node;
-	void *fdt;
 
-	if (fdt_get_address(&fdt) == 0) {
-		return -ENOENT;
-	}
-
-	node = dt_get_pmic_node(fdt);
+	node = dt_get_pmic_node();
 	if (node <= 0) {
 		return -FDT_ERR_NOTFOUND;
 	}
@@ -77,7 +72,7 @@ static int dt_pmic_i2c_config(struct dt_node_info *i2c_info,
 		return -ENOENT;
 	}
 
-	pmic_node = dt_get_pmic_node(fdt);
+	pmic_node = dt_get_pmic_node();
 	if (pmic_node < 0) {
 		return 1;
 	}
@@ -114,7 +109,7 @@ int dt_pmic_configure_boot_on_regulators(void)
 		return -ENOENT;
 	}
 
-	pmic_node = dt_get_pmic_node(fdt);
+	pmic_node = dt_get_pmic_node();
 	if (pmic_node < 0) {
 		return -FDT_ERR_NOTFOUND;
 	}
@@ -196,7 +191,7 @@ int dt_pmic_set_lp_config(const char *node_name)
 		return -ENOENT;
 	}
 
-	pmic_node = dt_get_pmic_node(fdt);
+	pmic_node = dt_get_pmic_node();
 	if (pmic_node < 0) {
 		return -FDT_ERR_NOTFOUND;
 	}
