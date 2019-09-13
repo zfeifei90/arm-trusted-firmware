@@ -749,7 +749,7 @@ static Std_ReturnType Nand_ReadParameterPage(NAND_HandleTypeDef *hNand)
 static Std_ReturnType Nand_DetectAndInit(NAND_HandleTypeDef *hNand)
 {
 	NAND_IDTypeDef pNAND_ID;
-	uint32_t nand_param_in_otp, result;
+	uint32_t nand_param_in_otp;
 
 	assert(hNand);
 
@@ -759,9 +759,7 @@ static Std_ReturnType Nand_DetectAndInit(NAND_HandleTypeDef *hNand)
 	Nand_ReadIDCode(hNand, &pNAND_ID);
 
 	/* Check if NAND parameters are stored in OTP */
-	result = bsec_shadow_read_otp(&nand_param_in_otp, NAND_OTP);
-	if (result != BSEC_OK) {
-		ERROR("BSEC: NAND_OTP Error %i\n", result);
+	if (stm32_get_otp_value(NAND_OTP, &nand_param_in_otp) != 0) {
 		return STD_NOT_OK;
 	}
 

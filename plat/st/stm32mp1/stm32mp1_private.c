@@ -269,6 +269,46 @@ void __dead2 stm32mp_plat_reset(int cpu)
 	stm32mp_wait_cpu_reset();
 }
 
+int stm32_get_otp_index(const char *otp_name, uint32_t *otp_idx,
+			uint32_t *otp_len)
+{
+	assert(otp_name != NULL);
+	assert(otp_idx != NULL);
+
+	if (bsec_find_otp_name_in_dt(otp_name, otp_idx, otp_len) != BSEC_OK) {
+		ERROR("BSEC: Get %s number Error\n", otp_name);
+		return -1;
+	}
+
+	return 0;
+}
+
+int stm32_get_otp_value(const char *otp_name, uint32_t *otp_val)
+{
+	uint32_t otp;
+
+	assert(otp_name != NULL);
+	assert(otp_val != NULL);
+
+	if (stm32_get_otp_index(otp_name, &otp, NULL) != 0) {
+		return -1;
+	}
+
+#if defined(IMAGE_BL2)
+	if (bsec_shadow_read_otp(otp_val, otp) != BSEC_OK) {
+		ERROR("BSEC: %s Read Error\n", otp_name);
+		return -1;
+	}
+#elif defined(IMAGE_BL32)
+	if (bsec_read_otp(otp_val, otp) != BSEC_OK) {
+		ERROR("BSEC: %s Read Error\n", otp_name);
+		return -1;
+	}
+#endif
+
+	return 0;
+}
+
 static int get_part_number(uint32_t *part_nb)
 {
 	uint32_t part_number;
@@ -280,8 +320,7 @@ static int get_part_number(uint32_t *part_nb)
 		return -1;
 	}
 
-	if (bsec_shadow_read_otp(&part_number, PART_NUMBER_OTP) != BSEC_OK) {
-		ERROR("BSEC: PART_NUMBER_OTP Error\n");
+	if (stm32_get_otp_value(PART_NUMBER_OTP, &part_number) != 0) {
 		return -1;
 	}
 
@@ -298,8 +337,7 @@ static int get_cpu_package(uint32_t *cpu_package)
 
 	assert(cpu_package != NULL);
 
-	if (bsec_shadow_read_otp(&package, PACKAGE_OTP) != BSEC_OK) {
-		ERROR("BSEC: PART_NUMBER_OTP Error\n");
+	if (stm32_get_otp_value(PACKAGE_OTP, &package) != 0) {
 		return -1;
 	}
 
@@ -418,35 +456,8 @@ void stm32mp_print_cpuinfo(void)
 void stm32mp_print_boardinfo(void)
 {
 	uint32_t board_id = 0;
-	uint32_t board_otp;
-	int bsec_node, bsec_board_id_node;
-	void *fdt;
-	const fdt32_t *cuint;
 
-	if (fdt_get_address(&fdt) == 0) {
-		panic();
-	}
-
-	bsec_node = dt_get_node_by_compatible(DT_BSEC_COMPAT);
-	if (bsec_node < 0) {
-		return;
-	}
-
-	bsec_board_id_node = fdt_subnode_offset(fdt, bsec_node, "board_id");
-	if (bsec_board_id_node <= 0) {
-		return;
-	}
-
-	cuint = fdt_getprop(fdt, bsec_board_id_node, "reg", NULL);
-	if (cuint == NULL) {
-		ERROR("board_id node without reg property\n");
-		panic();
-	}
-
-	board_otp = fdt32_to_cpu(*cuint) / sizeof(uint32_t);
-
-	if (bsec_shadow_read_otp(&board_id, board_otp) != BSEC_OK) {
-		ERROR("BSEC: PART_NUMBER_OTP Error\n");
+	if (stm32_get_otp_value(BOARD_ID_OTP, &board_id) != 0) {
 		return;
 	}
 
@@ -503,15 +514,9 @@ uint32_t stm32_iwdg_get_otp_config(uintptr_t base)
 	uint32_t iwdg_cfg = 0;
 	uint32_t otp_value;
 
-#if defined(IMAGE_BL2)
-	if (bsec_shadow_read_otp(&otp_value, HW2_OTP) != BSEC_OK) {
+	if (stm32_get_otp_value(HW2_OTP, &otp_value) != 0) {
 		panic();
 	}
-#elif defined(IMAGE_BL32)
-	if (bsec_read_otp(&otp_value, HW2_OTP) != BSEC_OK) {
-		panic();
-	}
-#endif
 
 	idx = stm32_iwdg_get_instance(base);
 
@@ -534,31 +539,36 @@ uint32_t stm32_iwdg_get_otp_config(uintptr_t base)
 uint32_t stm32_iwdg_shadow_update(uintptr_t base, uint32_t flags)
 {
 	uint32_t idx;
+	uint32_t otp_value;
 	uint32_t otp;
 	uint32_t result;
 
-	if (bsec_shadow_read_otp(&otp, HW2_OTP) != BSEC_OK) {
+	if (stm32_get_otp_index(HW2_OTP, &otp, NULL) != 0) {
+		panic();
+	}
+
+	if (stm32_get_otp_value(HW2_OTP, &otp_value) != 0) {
 		panic();
 	}
 
 	idx = stm32_iwdg_get_instance(base);
 
 	if ((flags & IWDG_DISABLE_ON_STOP) != 0) {
-		otp |= BIT(idx + IWDG_FZ_STOP_POS);
+		otp_value |= BIT(idx + IWDG_FZ_STOP_POS);
 	}
 
 	if ((flags & IWDG_DISABLE_ON_STANDBY) != 0) {
-		otp |= BIT(idx + IWDG_FZ_STANDBY_POS);
+		otp_value |= BIT(idx + IWDG_FZ_STANDBY_POS);
 	}
 
-	result = bsec_write_otp(otp, HW2_OTP);
+	result = bsec_write_otp(otp_value, otp);
 	if (result != BSEC_OK) {
 		return result;
 	}
 
 	/* Sticky lock OTP_IWDG (read and write) */
-	if ((bsec_set_sr_lock(HW2_OTP) != BSEC_OK) ||
-	    (bsec_set_sw_lock(HW2_OTP) != BSEC_OK)) {
+	if ((bsec_set_sr_lock(otp) != BSEC_OK) ||
+	    (bsec_set_sw_lock(otp) != BSEC_OK)) {
 		return BSEC_LOCK_FAIL;
 	}
 

@@ -24,6 +24,9 @@ uintptr_t stm32mp_rcc_base(void);
 
 int stm32_gic_enable_spi(int node, const char *name);
 
+int stm32_get_otp_index(const char *otp_name, uint32_t *otp_idx,
+			uint32_t *otp_len);
+int stm32_get_otp_value(const char *otp_name, uint32_t *otp_val);
 uint32_t stm32_read_otp_status(uint32_t *otp_value, uint32_t word);
 uint8_t stm32_iwdg_get_instance(uintptr_t base);
 uint32_t stm32_iwdg_get_otp_config(uintptr_t base);
