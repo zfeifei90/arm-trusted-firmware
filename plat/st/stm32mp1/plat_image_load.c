@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,7 +7,6 @@
 #include <bl_common.h>
 #include <boot_api.h>
 #include <bsec.h>
-#include <cassert.h>
 #include <debug.h>
 #include <desc_image_load.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
@@ -28,37 +27,7 @@
  ******************************************************************************/
 void plat_flush_next_bl_params(void)
 {
-	uint32_t version;
-
 	flush_bl_params_desc();
-
-	CASSERT(STM32_TF_VERSION <= MAX_MONOTONIC_VALUE,
-		assert_stm32mp1_monotonic_counter_reach_max);
-
-	/* Check if monotonic counter need to be incremented */
-	;
-	if (bsec_shadow_read_otp(&version, MONOTONIC_OTP) != BSEC_OK) {
-		ERROR("BSEC: MONOTONIC_OTP Error\n");
-		panic();
-	}
-
-	INFO("read version %i current version %i\n", version, STM32_TF_VERSION);
-
-	if ((version + 1U) < BIT(STM32_TF_VERSION)) {
-		uint32_t result;
-
-		/* need to increment the monotonic counter */
-		version = BIT(STM32_TF_VERSION) - 1U;
-
-		result = bsec_program_otp(version, MONOTONIC_OTP);
-		if (result != BSEC_OK) {
-			ERROR("BSEC: MONOTONIC_OTP program Error %i\n",
-			      result);
-			panic();
-		}
-		INFO("Monotonic counter has been incremented value 0x%x\n",
-		     version);
-	}
 }
 
 #ifdef AARCH32_SP_OPTEE
