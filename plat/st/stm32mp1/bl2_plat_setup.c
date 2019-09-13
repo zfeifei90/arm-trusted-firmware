@@ -158,7 +158,7 @@ void bl2_platform_setup(void)
 #endif
 }
 
-static void check_monotonic_counter(void)
+static void update_monotonic_counter(void)
 {
 	uint32_t version;
 
@@ -425,7 +425,7 @@ skip_console_init:
 
 	print_reset_reason();
 
-	check_monotonic_counter();
+	update_monotonic_counter();
 
 	if (dt_pmic_status() > 0) {
 		initialize_pmic();
