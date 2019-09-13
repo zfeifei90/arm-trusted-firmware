@@ -51,9 +51,9 @@ uintptr_t stm32mp_get_boot_ctx_address(void)
  */
 #pragma weak stm32mp_is_single_core
 
-int stm32mp_is_single_core(void)
+bool stm32mp_is_single_core(void)
 {
-	return 0;
+	return false;
 }
 
 uintptr_t stm32mp_ddrctrl_base(void)

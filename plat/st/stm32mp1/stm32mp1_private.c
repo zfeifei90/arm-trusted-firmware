@@ -246,7 +246,7 @@ void __dead2 stm32mp_plat_reset(int cpu)
 		}
 	}
 
-	if (stm32mp_is_single_core() == 0) {
+	if (!stm32mp_is_single_core()) {
 		unsigned int sec_cpu = (cpu == STM32MP_PRIMARY_CPU) ?
 			STM32MP_SECONDARY_CPU : STM32MP_PRIMARY_CPU;
 
@@ -463,29 +463,26 @@ void stm32mp_print_boardinfo(void)
 	}
 }
 
-/*
- * This function determines if one single core is presently running. This is
- * done by OTP read.
- * Returns 1 if yes, 0 if more that one core is running, -1 if error.
- */
-int stm32mp_is_single_core(void)
+/* Return true when SoC provides a single Cortex-A7 core, and false otherwise */
+bool stm32mp_is_single_core(void)
 {
-	uint32_t part_number = 0U;
+	uint32_t part_number;
 
 	if (get_part_number(&part_number) < 0) {
 		ERROR("Invalid part number, assume single core chip");
-		return 1;
+		return true;
 	}
 
-	/* STM32MP151x is a single core */
-	if ((part_number == STM32MP151A_PART_NB) ||
-	    (part_number == STM32MP151C_PART_NB) ||
-	    (part_number == STM32MP151D_PART_NB) ||
-	    (part_number == STM32MP151F_PART_NB)) {
-		return 1;
-	}
+	switch (part_number) {
+	case STM32MP151A_PART_NB:
+	case STM32MP151C_PART_NB:
+	case STM32MP151D_PART_NB:
+	case STM32MP151F_PART_NB:
+		return true;
 
-	return 0;
+	default:
+		return false;
+	}
 }
 
 uint8_t stm32_iwdg_get_instance(uintptr_t base)

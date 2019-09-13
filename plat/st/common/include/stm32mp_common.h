@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -15,7 +15,7 @@ void __dead2 stm32mp_plat_reset(int cpu);
 void stm32mp_save_boot_ctx_address(uintptr_t address);
 uintptr_t stm32mp_get_boot_ctx_address(void);
 
-int stm32mp_is_single_core(void);
+bool stm32mp_is_single_core(void);
 
 uintptr_t stm32mp_ddrctrl_base(void);
 uintptr_t stm32mp_ddrphyc_base(void);
