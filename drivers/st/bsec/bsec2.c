@@ -277,6 +277,76 @@ uint32_t bsec_get_config(struct bsec_config *cfg)
 }
 
 /*
+ * bsec_find_otp_name_in_dt: get OTP ID and length in DT.
+ * name: sub-node name to look up.
+ * otp: pointer to read OTP number or NULL.
+ * otp_len: pointer to read OTP length in bits or NULL.
+ * return value: BSEC_OK if no error.
+ */
+uint32_t bsec_find_otp_name_in_dt(const char *name, uint32_t *otp,
+				  uint32_t *otp_len)
+{
+	void *fdt;
+	int node;
+	int index, len;
+	const fdt32_t *cuint;
+
+	if ((name == NULL) || (otp == NULL)) {
+		return BSEC_INVALID_PARAM;
+	}
+
+	if (fdt_get_address(&fdt) == 0) {
+		panic();
+	}
+
+	node = dt_get_node_by_compatible(DT_NVMEM_LAYOUT_COMPAT);
+	if (node < 0) {
+		return BSEC_ERROR;
+	}
+
+	index = fdt_stringlist_search(fdt, node, "nvmem-cell-names", name);
+	if (index < 0) {
+		return BSEC_ERROR;
+	}
+
+	cuint = fdt_getprop(fdt, node, "nvmem-cells", &len);
+	if (cuint == NULL) {
+		return BSEC_ERROR;
+	}
+
+	if ((index * (int)sizeof(uint32_t)) > len) {
+		return BSEC_ERROR;
+	}
+
+	cuint += index;
+
+	node = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*cuint));
+	if (node < 0) {
+		return BSEC_ERROR;
+	}
+
+	cuint = fdt_getprop(fdt, node, "reg", &len);
+	if (cuint == NULL) {
+		return BSEC_ERROR;
+	}
+
+	if (len != (2 * (int)sizeof(uint32_t))) {
+		return BSEC_ERROR;
+	}
+
+	if (otp != NULL) {
+		*otp = fdt32_to_cpu(*cuint) / sizeof(uint32_t);
+	}
+
+	if (otp_len != NULL) {
+		cuint++;
+		*otp_len = fdt32_to_cpu(*cuint) * CHAR_BIT;
+	}
+
+	return BSEC_OK;
+}
+
+/*
  * bsec_shadow_register: copy SAFMEM OTP to BSEC data.
  * otp: OTP number.
  * return value: BSEC_OK if no error.
