@@ -13,8 +13,8 @@
 #include <stm32mp_regulator.h>
 
 int dt_pmic_status(void);
-int dt_pmic_configure_boot_on_regulators(void);
-int dt_pmic_set_lp_config(const char *node_name);
+int pmic_configure_boot_on_regulators(void);
+int pmic_set_lp_config(const char *node_name);
 bool initialize_pmic_i2c(void);
 bool is_pmic_regulator(struct stm32mp_regulator *regu);
 void bind_pmic_regulator(struct stm32mp_regulator *regu);
