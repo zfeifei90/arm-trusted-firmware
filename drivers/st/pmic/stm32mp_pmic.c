@@ -175,7 +175,7 @@ int dt_pmic_configure_boot_on_regulators(void)
 			return status;
 		}
 
-		if (stpmic1_is_regulator_enabled(node_name) == 0U) {
+		if (!stpmic1_is_regulator_enabled(node_name)) {
 			status = stpmic1_regulator_enable(node_name);
 			if (status != 0) {
 				return status;
