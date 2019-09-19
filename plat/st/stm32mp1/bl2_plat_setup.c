@@ -409,7 +409,7 @@ skip_console_init:
 #if STM32MP1_DEBUG_ENABLE
 		/* Program PMIC to keep debug ON */
 		if ((stm32mp1_dbgmcu_boot_debug_info() == 1) &&
-		    (stm32mp1_dbgmcu_is_debug_on() != 0)) {
+		    (stm32mp1_dbgmcu_is_debug_on())) {
 			VERBOSE("Program PMIC to keep debug ON\n");
 			if (pmic_keep_debug_unit() != 0) {
 				ERROR("PMIC not properly set for debug\n");

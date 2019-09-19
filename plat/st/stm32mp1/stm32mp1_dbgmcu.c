@@ -55,6 +55,10 @@ static int stm32mp1_dbgmcu_init(void)
 }
 
 #if STM32MP1_DEBUG_ENABLE
+/*
+ * @brief  Get debug mode information from backup registers.
+ * @retval 1 if debug mode is enabled, 0 otherwise.
+ */
 int stm32mp1_dbgmcu_boot_debug_info(void)
 {
 	uint32_t backup_reg_dbg;
@@ -73,7 +77,11 @@ int stm32mp1_dbgmcu_boot_debug_info(void)
 	return 0;
 }
 
-int stm32mp1_dbgmcu_clear_boot_info(void)
+/*
+ * @brief  Clear debug mode information in backup registers.
+ * @retval None.
+ */
+void stm32mp1_dbgmcu_clear_boot_info(void)
 {
 	stm32mp_clk_enable(RTCAPB);
 
@@ -81,20 +89,28 @@ int stm32mp1_dbgmcu_clear_boot_info(void)
 			TAMP_DBG_DEBUG);
 
 	stm32mp_clk_disable(RTCAPB);
-
-	return 0;
 }
 
-uint32_t stm32mp1_dbgmcu_is_debug_on(void)
+/*
+ * @brief  Get DBGMCU debug mode in BSEC registers.
+ * @retval True if debug mode enabled, false otherwise.
+ */
+bool stm32mp1_dbgmcu_is_debug_on(void)
 {
 	uint32_t dbg_conf;
 
 	dbg_conf = bsec_read_debug_conf();
 
-	return (dbg_conf & (BSEC_SPIDEN | BSEC_SPINDEN));
+	return (dbg_conf & (BSEC_SPIDEN | BSEC_SPINDEN)) != 0U;
 }
 
 #if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+/*
+ * @brief  Dump 8-bits buffer content in hexadecimal.
+ * @param  buf: Pointer to the 8-bits buffer.
+ * @parma  len: Length in bytes of the dump.
+ * @retval None.
+ */
 void stm32mp1_dbgmcu_hexdump8(uint8_t *buf, uint32_t len)
 {
 	uint32_t i;
@@ -116,15 +132,23 @@ void stm32mp1_dbgmcu_hexdump8(uint8_t *buf, uint32_t len)
 #endif
 #endif
 
+/*
+ * @brief  Get silicon revision from DBGMCU registers.
+ * @retval Read value on success, 0 on failure.
+ */
 uint32_t stm32mp1_dbgmcu_get_chip_version(void)
 {
 	if (stm32mp1_dbgmcu_init() == 0) {
 		return (mmio_read_32(DBGMCU_BASE + DBGMCU_IDC) >> 16);
 	}
 
-	return 0;
+	return 0U;
 }
 
+/*
+ * @brief  Get device ID from DBGMCU registers.
+ * @retval Read value on success, 0 on failure.
+ */
 uint32_t stm32mp1_dbgmcu_get_chip_dev_id(void)
 {
 	if (stm32mp1_dbgmcu_init() == 0) {
@@ -132,9 +156,13 @@ uint32_t stm32mp1_dbgmcu_get_chip_dev_id(void)
 			IDC_DEV_ID_MASK);
 	}
 
-	return 0;
+	return 0U;
 }
 
+/*
+ * @brief  Freeze IWDG2 in debug mode.
+ * @retval None.
+ */
 int stm32mp1_dbgmcu_freeze_iwdg2(void)
 {
 	if (stm32mp1_dbgmcu_init() == 0) {

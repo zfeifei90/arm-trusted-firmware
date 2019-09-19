@@ -19,8 +19,8 @@ uint32_t stm32mp1_dbgmcu_get_chip_version(void);
 uint32_t stm32mp1_dbgmcu_get_chip_dev_id(void);
 int stm32mp1_dbgmcu_freeze_iwdg2(void);
 int stm32mp1_dbgmcu_boot_debug_info(void);
-int stm32mp1_dbgmcu_clear_boot_info(void);
-uint32_t stm32mp1_dbgmcu_is_debug_on(void);
+void stm32mp1_dbgmcu_clear_boot_info(void);
+bool stm32mp1_dbgmcu_is_debug_on(void);
 void stm32mp1_dbgmcu_hexdump8(uint8_t *buf, uint32_t len);
 
 #endif /* __PLAT_DBGMCU_H__ */
