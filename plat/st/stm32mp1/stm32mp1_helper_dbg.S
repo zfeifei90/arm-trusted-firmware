@@ -10,6 +10,9 @@
  * fixes the limitation. Anyway, this source code identifies the Soc revision
  * and is only executed if it corresponds, so it can be kept on other
  * revisions without any consequence.
+ * The revisions that need the workaround have ID values:
+ * - 0x2000X500
+ * - 0x2001X500
  ****************************************************************************/
 
 /*****************************************************************************
@@ -27,7 +30,7 @@
 
 #define DBGMCU_BASE			0x50081000
 #define DBGMCU_IDC			0x00
-#define DBGMCU_IDC_REV_ID_DEV_ID_MSK	0xFFFF0FFF
+#define DBGMCU_IDC_REV_ID_DEV_ID_MSK	0xFFFE0FFF
 #define DBGMCU_IDC_REV_ID_DEV_ID_VALUE	0x20000500
 
 #define RCC_BASE			0x50000000
