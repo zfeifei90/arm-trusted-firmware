@@ -21,6 +21,8 @@
  * other pieces of software.
  ****************************************************************************/
 
+#include <asm_macros.S>
+
 #define BIT_(nr)			((1) << (nr))
 
 #define BSEC_BASE			0x5C005000
@@ -56,7 +58,7 @@
 	.globl	plat_dbg_attach_loop
 
 
-plat_dbg_attach_loop:
+func plat_dbg_attach_loop
 	/*
 	 * This function is the first call of FSBL_ENTRYPOINT.
 	 * Boot rom parameters are stored in r0..r3, so we mustn't use them
@@ -228,3 +230,4 @@ msb_incr:
 	bmi	loop
 func_exit:
 	bx	lr
+endfunc plat_dbg_attach_loop
