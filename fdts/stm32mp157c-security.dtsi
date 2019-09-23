@@ -40,16 +40,14 @@
 				      <&nand_otp>,
 				      <&uid_otp>,
 				      <&package_otp>,
-				      <&hw2_otp>,
-				      <&board_id>;
+				      <&hw2_otp>;
 
 			nvmem-cell-names = "part_number_otp",
 					   "monotonic_otp",
 					   "nand_otp",
 					   "uid_otp",
 					   "package_otp",
-					   "hw2_otp",
-					   "board_id";
+					   "hw2_otp";
 		};
 	};
 };

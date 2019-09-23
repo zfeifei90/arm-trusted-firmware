@@ -331,6 +331,24 @@
 	secure-status = "okay";
 };
 
+&nvmem_layout {
+	nvmem-cells = <&part_number_otp>,
+		      <&monotonic_otp>,
+		      <&nand_otp>,
+		      <&uid_otp>,
+		      <&package_otp>,
+		      <&hw2_otp>,
+		      <&board_id>;
+
+	nvmem-cell-names = "part_number_otp",
+			   "monotonic_otp",
+			   "nand_otp",
+			   "uid_otp",
+			   "package_otp",
+			   "hw2_otp",
+			   "board_id";
+};
+
 &pwr {
 	system_suspend_supported_soc_modes = <
 		STM32_PM_CSLEEP_RUN
