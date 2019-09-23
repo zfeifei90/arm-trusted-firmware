@@ -269,9 +269,16 @@ void __dead2 stm32mp_plat_reset(int cpu)
 	stm32mp_wait_cpu_reset();
 }
 
-static uint32_t get_part_number(void)
+static int get_part_number(uint32_t *part_nb)
 {
-	uint32_t part_number = 0;
+	uint32_t part_number;
+	uint32_t dev_id;
+
+	assert(part_nb != NULL);
+
+	if (stm32mp1_dbgmcu_get_chip_dev_id(&dev_id) < 0) {
+		return -1;
+	}
 
 	if (bsec_shadow_read_otp(&part_number, PART_NUMBER_OTP) != BSEC_OK) {
 		ERROR("BSEC: PART_NUMBER_OTP Error\n");
@@ -280,27 +287,43 @@ static uint32_t get_part_number(void)
 
 	part_number = (part_number & PART_MASK) >> PART_SHIFT;
 
-	return (part_number | (stm32mp1_dbgmcu_get_chip_dev_id() << 16));
+	*part_nb = part_number | (dev_id << 16);
+
+	return 0;
 }
 
-static uint32_t get_cpu_package(void)
+static int get_cpu_package(uint32_t *cpu_package)
 {
-	uint32_t package = 0;
+	uint32_t package;
+
+	assert(cpu_package != NULL);
 
 	if (bsec_shadow_read_otp(&package, PACKAGE_OTP) != BSEC_OK) {
 		ERROR("BSEC: PART_NUMBER_OTP Error\n");
 		return -1;
 	}
 
-	return ((package & PKG_MASK) >> PKG_SHIFT);
+	*cpu_package = (package & PKG_MASK) >> PKG_SHIFT;
+
+	return 0;
 }
 
 void stm32mp_print_cpuinfo(void)
 {
 	const char *cpu_s, *cpu_r, *pkg;
+	uint32_t part_number;
+	uint32_t cpu_package;
+	uint32_t chip_dev_id;
+	int ret;
 
 	/* MPUs Part Numbers */
-	switch (get_part_number()) {
+	ret = get_part_number(&part_number);
+	if (ret < 0) {
+		WARN("Cannot get part number\n");
+		return;
+	}
+
+	switch (part_number) {
 	case STM32MP157C_PART_NB:
 		cpu_s = "157C";
 		break;
@@ -343,7 +366,13 @@ void stm32mp_print_cpuinfo(void)
 	}
 
 	/* Package */
-	switch (get_cpu_package()) {
+	ret = get_cpu_package(&cpu_package);
+	if (ret < 0) {
+		WARN("Cannot get CPU package\n");
+		return;
+	}
+
+	switch (cpu_package) {
 	case PKG_AA_LBGA448:
 		pkg = "AA";
 		break;
@@ -362,7 +391,13 @@ void stm32mp_print_cpuinfo(void)
 	}
 
 	/* REVISION */
-	switch (stm32mp1_dbgmcu_get_chip_version()) {
+	ret = stm32mp1_dbgmcu_get_chip_version(&chip_dev_id);
+	if (ret < 0) {
+		WARN("Cannot get CPU version\n");
+		return;
+	}
+
+	switch (chip_dev_id) {
 	case STM32MP1_REV_A:
 		cpu_r = "A";
 		break;
@@ -435,7 +470,12 @@ void stm32mp_print_boardinfo(void)
  */
 int stm32mp_is_single_core(void)
 {
-	uint32_t part_number = get_part_number();
+	uint32_t part_number = 0U;
+
+	if (get_part_number(&part_number) < 0) {
+		ERROR("Invalid part number, assume single core chip");
+		return 1;
+	}
 
 	/* STM32MP151x is a single core */
 	if ((part_number == STM32MP151A_PART_NB) ||

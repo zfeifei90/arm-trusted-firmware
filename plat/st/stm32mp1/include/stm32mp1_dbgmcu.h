@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -15,8 +15,8 @@
 #define VERBOSE_HEXDUMP8(buf, len)
 #endif
 
-uint32_t stm32mp1_dbgmcu_get_chip_version(void);
-uint32_t stm32mp1_dbgmcu_get_chip_dev_id(void);
+int stm32mp1_dbgmcu_get_chip_version(uint32_t *chip_version);
+int stm32mp1_dbgmcu_get_chip_dev_id(uint32_t *chip_dev_id);
 int stm32mp1_dbgmcu_freeze_iwdg2(void);
 int stm32mp1_dbgmcu_boot_debug_info(void);
 void stm32mp1_dbgmcu_clear_boot_info(void);

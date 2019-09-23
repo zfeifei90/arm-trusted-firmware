@@ -1,9 +1,10 @@
 /*
- * Copyright (c) 2016-2018, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2016-2019, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <assert.h>
 #include <bsec.h>
 #include <debug.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
@@ -16,8 +17,12 @@
 #include <utils_def.h>
 
 #define DBGMCU_IDC		0x0U
-#define IDC_DEV_ID_MASK		GENMASK(11, 0)
 #define DBGMCU_APB4FZ1		0x2CU
+
+#define DBGMCU_IDC_DEV_ID_MASK	GENMASK(11, 0)
+#define DBGMCU_IDC_REV_ID_MASK	GENMASK(31, 16)
+#define DBGMCU_IDC_REV_ID_SHIFT	16
+
 #define DBGMCU_APB4FZ1_IWDG2	BIT(2)
 
 #define TAMP_DBG_BACKUP_REG_ID	20
@@ -134,29 +139,40 @@ void stm32mp1_dbgmcu_hexdump8(uint8_t *buf, uint32_t len)
 
 /*
  * @brief  Get silicon revision from DBGMCU registers.
- * @retval Read value on success, 0 on failure.
+ * @param  chip_version: pointer to the read value.
+ * @retval 0 on success, negative value on failure.
  */
-uint32_t stm32mp1_dbgmcu_get_chip_version(void)
+int stm32mp1_dbgmcu_get_chip_version(uint32_t *chip_version)
 {
-	if (stm32mp1_dbgmcu_init() == 0) {
-		return (mmio_read_32(DBGMCU_BASE + DBGMCU_IDC) >> 16);
+	assert(chip_version != NULL);
+
+	if (stm32mp1_dbgmcu_init() != 0) {
+		return -EPERM;
 	}
 
-	return 0U;
+	*chip_version = (mmio_read_32(DBGMCU_BASE + DBGMCU_IDC) &
+			 DBGMCU_IDC_REV_ID_MASK) >> DBGMCU_IDC_REV_ID_SHIFT;
+
+	return 0;
 }
 
 /*
  * @brief  Get device ID from DBGMCU registers.
- * @retval Read value on success, 0 on failure.
+ * @param  chip_version: pointer to the read value.
+ * @retval 0 on success, negative value on failure.
  */
-uint32_t stm32mp1_dbgmcu_get_chip_dev_id(void)
+int stm32mp1_dbgmcu_get_chip_dev_id(uint32_t *chip_dev_id)
 {
-	if (stm32mp1_dbgmcu_init() == 0) {
-		return (mmio_read_32(DBGMCU_BASE + DBGMCU_IDC) &
-			IDC_DEV_ID_MASK);
+	assert(chip_dev_id != NULL);
+
+	if (stm32mp1_dbgmcu_init() != 0) {
+		return -EPERM;
 	}
 
-	return 0U;
+	*chip_dev_id = mmio_read_32(DBGMCU_BASE + DBGMCU_IDC) &
+		       DBGMCU_IDC_DEV_ID_MASK;
+
+	return 0;
 }
 
 /*
