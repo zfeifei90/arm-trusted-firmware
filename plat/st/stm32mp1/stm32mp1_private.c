@@ -478,7 +478,6 @@ void stm32mp_print_boardinfo(void)
 bool stm32mp_is_single_core(void)
 {
 	uint32_t part_number;
-	bool ret = false;
 
 	if (get_part_number(&part_number) < 0) {
 		ERROR("Invalid part number, assume single core chip");
@@ -490,14 +489,11 @@ bool stm32mp_is_single_core(void)
 	case STM32MP151C_PART_NB:
 	case STM32MP151D_PART_NB:
 	case STM32MP151F_PART_NB:
-		ret = true;
-		break;
+		return true;
 
 	default:
-		break;
+		return false;
 	}
-
-	return ret;
 }
 
 /* Return true when device is in closed state */
