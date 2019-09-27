@@ -223,9 +223,9 @@ void bl2_el3_plat_arch_setup(void)
 #ifdef AARCH32_SP_OPTEE
 	/* OP-TEE image needs post load processing: keep RAM read/write */
 	mmap_add_region(STM32MP_DDR_BASE + dt_get_ddr_size() -
-			STM32MP_DDR_S_SIZE,
+			STM32MP_DDR_S_SIZE - STM32MP_DDR_SHMEM_SIZE,
 			STM32MP_DDR_BASE + dt_get_ddr_size() -
-			STM32MP_DDR_S_SIZE,
+			STM32MP_DDR_S_SIZE - STM32MP_DDR_SHMEM_SIZE,
 			STM32MP_DDR_S_SIZE,
 			MT_MEMORY | MT_RW | MT_SECURE);
 
@@ -474,11 +474,12 @@ static void set_mem_params_info(entry_point_info_t *ep_info,
 		unpaged->image_max_size = STM32MP_OPTEE_SIZE;
 	} else {
 		unpaged->image_base = STM32MP_DDR_BASE + dt_get_ddr_size() -
-				      STM32MP_DDR_S_SIZE;
+				      STM32MP_DDR_S_SIZE -
+				      STM32MP_DDR_SHMEM_SIZE;
 		unpaged->image_max_size = STM32MP_DDR_S_SIZE;
 	}
 	paged->image_base = STM32MP_DDR_BASE + dt_get_ddr_size() -
-			    STM32MP_DDR_S_SIZE;
+			    STM32MP_DDR_S_SIZE - STM32MP_DDR_SHMEM_SIZE;
 	paged->image_max_size = STM32MP_DDR_S_SIZE;
 }
 #endif
