@@ -190,10 +190,10 @@ static void nand_calc_timing(NAND_HandleTypeDef *hNand)
 	 * tHOLD_ATT > tWC - (tSETUP_ATT + tWAIT)
 	 */
 	thold_att = MAX(hclkp, FMC_TALH_MIN);
-	thold_att = MAX(hclkp, FMC_TCH_MIN);
-	thold_att = MAX(hclkp, FMC_TCLH_MIN);
-	thold_att = MAX(hclkp, FMC_TCOH_MIN);
-	thold_att = MAX(hclkp, FMC_TDH_MIN);
+	thold_att = MAX(thold_att, FMC_TCH_MIN);
+	thold_att = MAX(thold_att, FMC_TCLH_MIN);
+	thold_att = MAX(thold_att, FMC_TCOH_MIN);
+	thold_att = MAX(thold_att, FMC_TDH_MIN);
 	if ((FMC_TWB_MAX + FMC_TIO + FMC_TSYNC > tset_mem) &&
 	    (thold_att < FMC_TWB_MAX + FMC_TIO + FMC_TSYNC - tset_mem)) {
 		thold_att = FMC_TWB_MAX + FMC_TIO + FMC_TSYNC - tset_mem;
