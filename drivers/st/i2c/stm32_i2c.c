@@ -13,6 +13,7 @@
 #include <platform_def.h>
 
 #include <common/debug.h>
+#include <common/fdt_wrappers.h>
 #include <drivers/clk.h>
 #include <drivers/delay_timer.h>
 #include <drivers/st/stm32_gpio.h>
@@ -97,40 +98,31 @@ static int i2c_config_analog_filter(struct i2c_handle_s *hi2c,
 int stm32_i2c_get_setup_from_fdt(void *fdt, int node,
 				 struct stm32_i2c_init_s *init)
 {
-	const fdt32_t *cuint;
+	uint32_t read_val;
 
-	cuint = fdt_getprop(fdt, node, "i2c-scl-rising-time-ns", NULL);
-	if (cuint == NULL) {
-		init->rise_time = STM32_I2C_RISE_TIME_DEFAULT;
-	} else {
-		init->rise_time = fdt32_to_cpu(*cuint);
-	}
+	init->rise_time = fdt_read_uint32_default(fdt, node,
+						  "i2c-scl-rising-time-ns",
+						  STM32_I2C_RISE_TIME_DEFAULT);
 
-	cuint = fdt_getprop(fdt, node, "i2c-scl-falling-time-ns", NULL);
-	if (cuint == NULL) {
-		init->fall_time = STM32_I2C_FALL_TIME_DEFAULT;
-	} else {
-		init->fall_time = fdt32_to_cpu(*cuint);
-	}
+	init->fall_time = fdt_read_uint32_default(fdt, node,
+						  "i2c-scl-falling-time-ns",
+						  STM32_I2C_FALL_TIME_DEFAULT);
 
-	cuint = fdt_getprop(fdt, node, "clock-frequency", NULL);
-	if (cuint == NULL) {
+	read_val = fdt_read_uint32_default(fdt, node, "clock-frequency",
+					   STANDARD_RATE);
+	switch (read_val) {
+	case STANDARD_RATE:
+		init->speed_mode = I2C_SPEED_STANDARD;
+		break;
+	case FAST_RATE:
+		init->speed_mode = I2C_SPEED_FAST;
+		break;
+	case FAST_PLUS_RATE:
+		init->speed_mode = I2C_SPEED_FAST_PLUS;
+		break;
+	default:
 		init->speed_mode = STM32_I2C_SPEED_DEFAULT;
-	} else {
-		switch (fdt32_to_cpu(*cuint)) {
-		case STANDARD_RATE:
-			init->speed_mode = I2C_SPEED_STANDARD;
-			break;
-		case FAST_RATE:
-			init->speed_mode = I2C_SPEED_FAST;
-			break;
-		case FAST_PLUS_RATE:
-			init->speed_mode = I2C_SPEED_FAST_PLUS;
-			break;
-		default:
-			init->speed_mode = STM32_I2C_SPEED_DEFAULT;
-			break;
-		}
+		break;
 	}
 
 	return dt_set_pinctrl_config(node);
