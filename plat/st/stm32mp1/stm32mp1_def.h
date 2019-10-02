@@ -156,17 +156,8 @@ enum ddr_type {
 #define STM32MP_BL2_BASE		(STM32MP_BL32_BASE - \
 					 STM32MP_BL2_SIZE)
 
-#if defined(STM32MP_USB) || defined(AARCH32_SP_OPTEE)
-/*
- * USB requires an extra table to map MCU SRAM. OPTEE specific needs lead also
- * to the same extra table requirement. Both cases (USB and OPTEE) don't
- * co-exist, so a logical OR can be implemented in the condition above.
- */
+/* BL2 and BL32/sp_min require 4 finer granularity tables */
 #define MAX_XLAT_TABLES			U(4)		/* 16 Ko for mapping */
-#else
-/* BL2 and BL32/sp_min require 3 finer granularity tables */
-#define MAX_XLAT_TABLES			U(3)		/* 12 Ko for mapping */
-#endif
 
 /*
  * MAX_MMAP_REGIONS is usually:
