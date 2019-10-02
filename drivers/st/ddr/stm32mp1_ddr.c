@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2018-2019, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
  */
@@ -13,8 +13,6 @@
 #include <platform.h>
 #include <platform_def.h>
 #include <stddef.h>
-#include <stm32mp_common.h>
-#include <stm32mp_dt.h>
 #include <stm32mp_pmic.h>
 
 struct reg_desc {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2018-2019, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,7 +12,6 @@
 #include <spinlock.h>
 #include <stm32_rtc.h>
 #include <stm32mp_clkfunc.h>
-#include <stm32mp_dt.h>
 
 #define RTC_COMPAT		"st,stm32mp1-rtc"
 

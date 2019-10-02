@@ -16,18 +16,14 @@
 #include <limits.h>
 #include <mmio.h>
 #include <platform.h>
+#include <platform_def.h>
 #include <spinlock.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stm32mp_clkfunc.h>
-#include <stm32mp_common.h>
-#include <stm32mp_dt.h>
-#include <stm32mp_shres_helpers.h>
 #include <stm32mp1_clk.h>
 #include <stm32mp1_clkfunc.h>
-#include <stm32mp1_private.h>
 #include <stm32mp1_rcc.h>
-#include <stm32mp1_shared_resources.h>
 #include <utils_def.h>
 
 #define MAX_HSI_HZ	64000000

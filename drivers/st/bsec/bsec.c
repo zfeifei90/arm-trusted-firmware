@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
- * Copyright (c) 2017, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,9 +11,9 @@
 #include <debug.h>
 #include <limits.h>
 #include <mmio.h>
+#include <platform_def.h>
 #include <spinlock.h>
 #include <stdint.h>
-#include <stm32mp_dt.h>
 
 #define BSEC_IP_VERSION_1_0	0x10
 #define BSEC_COMPAT		"st,stm32mp15-bsec"

@@ -5,14 +5,11 @@
  */
 
 #include <arch_helpers.h>
-#include <boot_api.h>
 #include <debug.h>
 #include <errno.h>
 #include <libfdt.h>
 #include <mmio.h>
 #include <platform_def.h>
-#include <stm32mp_common.h>
-#include <stm32mp_dt.h>
 
 #define DDR_PATTERN	0xAAAAAAAAU
 #define DDR_ANTIPATTERN	0x55555555U

@@ -17,8 +17,6 @@
 #include <platform_def.h>
 #include <stm32_gpio.h>
 #include <stm32_sdmmc2.h>
-#include <stm32mp_common.h>
-#include <stm32mp_dt.h>
 #include <stm32mp_reset.h>
 #include <string.h>
 #include <utils.h>

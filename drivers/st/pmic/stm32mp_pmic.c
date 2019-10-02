@@ -11,7 +11,6 @@
 #include <mmio.h>
 #include <platform_def.h>
 #include <stm32_i2c.h>
-#include <stm32mp_dt.h>
 #include <stm32mp_pmic.h>
 #include <stpmic1.h>
 #include <utils_def.h>

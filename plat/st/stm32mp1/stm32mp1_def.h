@@ -8,12 +8,17 @@
 #define STM32MP1_DEF_H
 
 #ifndef __ASSEMBLY__
+#include <boot_api.h>
 #include <bsec.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <dt-bindings/clock/stm32mp1-clksrc.h>
 #include <dt-bindings/reset/stm32mp1-resets.h>
 #include <dt-bindings/soc/st,stm32-etzpc.h>
 #include <etzpc.h>
+#include <stm32mp_auth.h>
+#include <stm32mp_common.h>
+#include <stm32mp_dt.h>
+#include <stm32mp_shres_helpers.h>
 #include <stm32mp1_calib.h>
 #include <stm32mp1_clkfunc.h>
 #include <stm32mp1_clk.h>
@@ -29,6 +34,7 @@
 #include <stm32mp1_shared_resources.h>
 #include <stm32mp1_usb_desc.h>
 #include <stm32mp1xx_hal_uart.h>
+#include <usb_ctx.h>
 #endif
 #include <tbbr_img_def.h>
 #include <utils_def.h>

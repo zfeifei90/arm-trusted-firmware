@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,7 +10,6 @@
 #include <mmio.h>
 #include <platform.h>
 #include <platform_def.h>
-#include <stm32mp_common.h>
 
 #define TIMEOUT_500US	us2tick(500)
 

@@ -23,7 +23,6 @@
 #include <platform.h>
 #include <platform_def.h>
 #include <stdint.h>
-#include <stm32mp_common.h>
 #include <utils_def.h>
 
 /* Other internal NAND driver definitions */

@@ -10,8 +10,6 @@
 #include <platform_def.h>
 #include <stm32_gpio.h>
 #include <stm32mp_clkfunc.h>
-#include <stm32mp_common.h>
-#include <stm32mp_dt.h>
 #include <stm32mp1_clk.h>
 #include <stm32mp1_clkfunc.h>
 

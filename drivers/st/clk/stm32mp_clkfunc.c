@@ -9,8 +9,6 @@
 #include <platform_def.h>
 #include <stm32_gpio.h>
 #include <stm32mp_clkfunc.h>
-#include <stm32mp_common.h>
-#include <stm32mp_dt.h>
 
 #define DT_STGEN_COMPAT		"st,stm32-stgen"
 #define DT_UART_COMPAT		"st,stm32h7-uart"
