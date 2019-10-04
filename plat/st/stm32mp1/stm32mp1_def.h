@@ -129,9 +129,9 @@ enum ddr_type {
 					 STM32MP_OPTEE_BASE)
 #else
 #if STACK_PROTECTOR_ENABLED
-#define STM32MP_BL32_SIZE		U(0x00011000)	/* 68 Ko for BL32 */
+#define STM32MP_BL32_SIZE		U(0x00012000)	/* 72 Ko for BL32 */
 #else
-#define STM32MP_BL32_SIZE		U(0x00010000)	/* 64 Ko for BL32 */
+#define STM32MP_BL32_SIZE		U(0x00011000)	/* 68 Ko for BL32 */
 #endif
 #endif
 
