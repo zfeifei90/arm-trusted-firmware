@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <limits.h>
 #include <string.h>
 
 #include <platform_def.h>
@@ -13,6 +14,7 @@
 #include <lib/usb/usb_core.h>
 #include <lib/usb/usb_st_dfu.h>
 
+#include <stm32mp_common.h>
 #include <stm32mp1_usb_desc.h>
 
 /* USB Standard Device Descriptor */
@@ -151,10 +153,22 @@ static void update_serial_num_string(void)
 {
 	/* serial number is set to 0*/
 	uint8_t i;
-	uint32_t deviceserial[3] = {0, 0, 0};
+	uint32_t deviceserial[UID_WORD_NB] = {0U, 0U, 0U};
+	uint32_t otp;
+	uint32_t len;
 
-	for (i = 0; i < 3; i++) {
-		if (bsec_shadow_read_otp(&deviceserial[i], i + UID0_OTP) !=
+	if (stm32_get_otp_index(UID_OTP, &otp, &len) != 0) {
+		ERROR("BSEC: Get UID_OTP number Error\n");
+		return;
+	}
+
+	if ((len / __WORD_BIT) != UID_WORD_NB) {
+		ERROR("BSEC: Get UID_OTP length Error\n");
+		return;
+	}
+
+	for (i = 0; i < UID_WORD_NB; i++) {
+		if (bsec_shadow_read_otp(&deviceserial[i], i + otp) !=
 		    BSEC_OK) {
 			ERROR("BSEC: UID%d Error\n", i);
 			return;
