@@ -160,39 +160,11 @@ uint32_t fdt_osc_read_uint32_default(enum stm32mp_osc_id osc_id,
 
 /*
  * Get the RCC node offset from the device tree
- * @param fdt: Device tree reference
  * @return: Node offset or a negative value on error
  */
-int fdt_get_rcc_node(void *fdt)
+int fdt_get_rcc_node(void)
 {
-	return fdt_node_offset_by_compatible(fdt, -1, DT_RCC_CLK_COMPAT);
-}
-
-/*
- * Get the RCC base address from the device tree
- * @return: RCC address or 0 on error
- */
-uint32_t fdt_rcc_read_addr(void)
-{
-	int node;
-	void *fdt;
-	const fdt32_t *cuint;
-
-	if (fdt_get_address(&fdt) == 0) {
-		return 0;
-	}
-
-	node = fdt_get_rcc_node(fdt);
-	if (node < 0) {
-		return 0;
-	}
-
-	cuint = fdt_getprop(fdt, node, "reg", NULL);
-	if (cuint == NULL) {
-		return 0;
-	}
-
-	return fdt32_to_cpu(*cuint);
+	return dt_get_node_by_compatible(DT_RCC_CLK_COMPAT);
 }
 
 /*
@@ -206,13 +178,8 @@ int fdt_rcc_read_uint32_array(const char *prop_name,
 			      uint32_t *array, uint32_t count)
 {
 	int node;
-	void *fdt;
 
-	if (fdt_get_address(&fdt) == 0) {
-		return -ENOENT;
-	}
-
-	node = fdt_get_rcc_node(fdt);
+	node = fdt_get_rcc_node();
 	if (node < 0) {
 		return -FDT_ERR_NOTFOUND;
 	}
@@ -229,13 +196,8 @@ int fdt_rcc_read_uint32_array(const char *prop_name,
 uint32_t fdt_rcc_read_uint32_default(const char *prop_name, uint32_t dflt_value)
 {
 	int node;
-	void *fdt;
 
-	if (fdt_get_address(&fdt) == 0) {
-		return dflt_value;
-	}
-
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_RCC_CLK_COMPAT);
+	node = fdt_get_rcc_node();
 	if (node < 0) {
 		return dflt_value;
 	}
@@ -257,7 +219,7 @@ int fdt_rcc_subnode_offset(const char *name)
 		return -ENOENT;
 	}
 
-	node = fdt_get_rcc_node(fdt);
+	node = fdt_get_rcc_node();
 	if (node < 0) {
 		return -FDT_ERR_NOTFOUND;
 	}
@@ -286,7 +248,7 @@ const fdt32_t *fdt_rcc_read_prop(const char *prop_name, int *lenp)
 		return NULL;
 	}
 
-	node = fdt_get_rcc_node(fdt);
+	node = fdt_get_rcc_node();
 	if (node < 0) {
 		return NULL;
 	}
@@ -307,13 +269,8 @@ const fdt32_t *fdt_rcc_read_prop(const char *prop_name, int *lenp)
 bool fdt_get_rcc_secure_status(void)
 {
 	int node;
-	void *fdt;
 
-	if (fdt_get_address(&fdt) == 0) {
-		return false;
-	}
-
-	node = fdt_get_rcc_node(fdt);
+	node = fdt_get_rcc_node();
 	if (node < 0) {
 		return false;
 	}
@@ -328,13 +285,13 @@ bool fdt_get_rcc_secure_status(void)
  */
 int fdt_rcc_enable_it(const char *name)
 {
-	void *fdt;
+	int node = fdt_get_rcc_node();
 
-	if (fdt_get_address(&fdt) == 0) {
-		return -ENOENT;
+	if (node < 0) {
+		return -ENODEV;
 	}
 
-	return stm32_gic_enable_spi(fdt_get_rcc_node(fdt), name);
+	return stm32_gic_enable_spi(node, name);
 }
 
 /*
@@ -343,25 +300,7 @@ int fdt_rcc_enable_it(const char *name)
  */
 uintptr_t fdt_get_stgen_base(void)
 {
-	int node;
-	const fdt32_t *cuint;
-	void *fdt;
-
-	if (fdt_get_address(&fdt) == 0) {
-		return 0;
-	}
-
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_STGEN_COMPAT);
-	if (node < 0) {
-		return 0;
-	}
-
-	cuint = fdt_getprop(fdt, node, "reg", NULL);
-	if (cuint == NULL) {
-		return 0;
-	}
-
-	return fdt32_to_cpu(*cuint);
+	return dt_get_peripheral_base(DT_STGEN_COMPAT);
 }
 
 /*
@@ -429,37 +368,24 @@ int fdt_get_clock_id_by_name(int node, const char *name)
  ******************************************************************************/
 unsigned long fdt_get_uart_clock_freq(uintptr_t instance)
 {
-	int node;
 	void *fdt;
+	int node;
+	int clk_id;
 
 	if (fdt_get_address(&fdt) == 0) {
 		return 0;
 	}
 
 	/* Check for UART nodes */
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_UART_COMPAT);
-	while (node != -FDT_ERR_NOTFOUND) {
-		const fdt32_t *cuint;
-
-		cuint = fdt_getprop(fdt, node, "reg", NULL);
-		if (cuint == NULL)
-			goto next;
-
-		if ((uintptr_t)fdt32_to_cpu(*cuint) == instance) {
-			unsigned long clk_id;
-
-			cuint = fdt_getprop(fdt, node, "clocks", NULL);
-			if (cuint == NULL)
-				goto next;
-
-			cuint++;
-			clk_id = (unsigned long)(fdt32_to_cpu(*cuint));
-
-			return stm32mp_clk_get_rate(clk_id);
-		}
-next:
-		node = fdt_node_offset_by_compatible(fdt, node, DT_UART_COMPAT);
+	node = dt_match_instance_by_compatible(DT_UART_COMPAT, instance);
+	if (node < 0) {
+		return 0UL;
 	}
 
-	return 0;
+	clk_id = fdt_get_clock_id(node);
+	if (clk_id < 0) {
+		return 0UL;
+	}
+
+	return stm32mp_clk_get_rate((unsigned long)clk_id);
 }

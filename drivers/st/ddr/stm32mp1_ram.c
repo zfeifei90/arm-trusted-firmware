@@ -223,9 +223,8 @@ static int stm32mp1_ddr_setup(void)
 		return -ENOENT;
 	}
 
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_DDR_COMPAT);
+	node = dt_get_node_by_compatible(DT_DDR_COMPAT);
 	if (node < 0) {
-		ERROR("%s: Cannot read DDR node in DT\n", __func__);
 		return -EINVAL;
 	}
 

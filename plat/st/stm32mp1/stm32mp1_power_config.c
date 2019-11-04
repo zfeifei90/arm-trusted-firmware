@@ -16,7 +16,6 @@
 #include <stm32mp_dt.h>
 #include <stm32mp1_power_config.h>
 
-#define DT_PWR_COMPAT			"st,stm32mp1-pwr"
 #define SYSTEM_SUSPEND_SUPPORTED_MODES	"system_suspend_supported_soc_modes"
 #define SYSTEM_OFF_MODE			"system_off_soc_mode"
 
@@ -24,9 +23,9 @@ static uint32_t deepest_system_suspend_mode;
 static uint32_t system_off_mode;
 static uint8_t stm32mp1_supported_soc_modes[STM32_PM_MAX_SOC_MODE];
 
-static int dt_get_pwr_node(void *fdt)
+static int dt_get_pwr_node(void)
 {
-	return fdt_node_offset_by_compatible(fdt, -1, DT_PWR_COMPAT);
+	return dt_get_node_by_compatible(DT_PWR_COMPAT);
 }
 
 static void save_supported_mode(void *fdt, int pwr_node)
@@ -80,7 +79,7 @@ static int dt_fill_lp_state(uint32_t *lp_state_config, const char *lp_state)
 		return -ENOENT;
 	}
 
-	pwr_node = dt_get_pwr_node(fdt);
+	pwr_node = dt_get_pwr_node();
 	if (pwr_node < 0) {
 		return -FDT_ERR_NOTFOUND;
 	}

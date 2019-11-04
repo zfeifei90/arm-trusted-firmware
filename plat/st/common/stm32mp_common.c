@@ -89,7 +89,7 @@ uintptr_t stm32mp_rcc_base(void)
 	static uintptr_t rcc_base;
 
 	if (rcc_base == 0) {
-		rcc_base = fdt_rcc_read_addr();
+		rcc_base = dt_get_rcc_base();
 
 		assert(rcc_base == RCC_BASE);
 	}

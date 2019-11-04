@@ -424,7 +424,7 @@ void stm32mp_print_boardinfo(void)
 		panic();
 	}
 
-	bsec_node = fdt_node_offset_by_compatible(fdt, -1, DT_BSEC_COMPAT);
+	bsec_node = dt_get_node_by_compatible(DT_BSEC_COMPAT);
 	if (bsec_node < 0) {
 		return;
 	}
