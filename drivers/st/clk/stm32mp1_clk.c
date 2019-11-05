@@ -1810,6 +1810,7 @@ int stm32mp1_clk_init(void)
 	int ret, len;
 	enum stm32mp1_pll_id i;
 	bool pllcsg_set[_PLL_NB];
+	bool pllcfg_valid[_PLL_NB];
 	bool lse_css = false;
 	bool pll3_preserve = false;
 	bool pll4_preserve = false;
@@ -1841,7 +1842,8 @@ int stm32mp1_clk_init(void)
 		snprintf(name, sizeof(name), "st,pll@%d", i);
 		plloff[i] = fdt_rcc_subnode_offset(name);
 
-		if (!fdt_check_node(plloff[i])) {
+		pllcfg_valid[i] = fdt_check_node(plloff[i]);
+		if (!pllcfg_valid[i]) {
 			continue;
 		}
 
@@ -2005,7 +2007,7 @@ int stm32mp1_clk_init(void)
 			continue;
 		}
 
-		if (!fdt_check_node(plloff[i])) {
+		if (!pllcfg_valid[i]) {
 			continue;
 		}
 
@@ -2028,7 +2030,7 @@ int stm32mp1_clk_init(void)
 	}
 	/* Wait and start PLLs ouptut when ready */
 	for (i = (enum stm32mp1_pll_id)0; i < _PLL_NB; i++) {
-		if (!fdt_check_node(plloff[i])) {
+		if (!pllcfg_valid[i]) {
 			continue;
 		}
 
