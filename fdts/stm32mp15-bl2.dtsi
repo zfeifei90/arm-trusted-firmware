@@ -115,3 +115,13 @@
 #endif
 #endif /* !STM32MP_USE_STM32IMAGE */
 };
+
+&rcc {
+	/* VCO = 1300.0 MHz => P = 650 (CPU) */
+	pll1: st,pll@0 {
+		compatible = "st,stm32mp1-pll";
+		reg = <0>;
+		cfg = <2 80 0 0 0 PQR(1,0,0)>;
+		frac = <0x800>;
+	};
+};
