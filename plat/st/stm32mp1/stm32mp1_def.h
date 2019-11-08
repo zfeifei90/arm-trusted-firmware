@@ -142,15 +142,15 @@ enum ddr_type {
 
 #ifdef AARCH32_SP_OPTEE
 #if STACK_PROTECTOR_ENABLED
-#define STM32MP_BL2_SIZE		U(0x0001A000)	/* 100 KB for BL2 */
+#define STM32MP_BL2_SIZE		U(0x0001A000)	/* 104 KB for BL2 */
 #else
-#define STM32MP_BL2_SIZE		U(0x00018000)	/* 92 KB for BL2 */
+#define STM32MP_BL2_SIZE		U(0x00018000)	/* 96 KB for BL2 */
 #endif
 #else
 #if STACK_PROTECTOR_ENABLED
-#define STM32MP_BL2_SIZE		U(0x00019000)	/* 96 KB for BL2 */
+#define STM32MP_BL2_SIZE		U(0x00019000)	/* 100 KB for BL2 */
 #else
-#define STM32MP_BL2_SIZE		U(0x00017000)	/* 88 KB for BL2 */
+#define STM32MP_BL2_SIZE		U(0x00017000)	/* 92 KB for BL2 */
 #endif
 #endif
 
