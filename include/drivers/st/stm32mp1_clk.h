@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2018-2019, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -64,6 +64,9 @@ void stm32mp1_clk_rcc_regs_lock(void);
 void stm32mp1_clk_rcc_regs_unlock(void);
 
 unsigned long stm32mp1_clk_rcc2id(unsigned int offset, unsigned int bit);
+
+int stm32mp1_set_opp_khz(uint32_t freq_khz);
+
 #if defined(IMAGE_BL32)
 void stm32mp1_clk_mpu_suspend(void);
 void stm32mp1_clk_mpu_resume(void);
