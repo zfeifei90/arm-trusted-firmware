@@ -117,9 +117,6 @@ static const struct i2c_spec_s i2c_specs[] = {
 	},
 };
 
-static uint32_t saved_timing;
-static uint32_t saved_frequency;
-
 static int i2c_request_memory_write(struct i2c_handle_s *hi2c,
 				    uint16_t dev_addr, uint16_t mem_addr,
 				    uint16_t mem_add_size,
@@ -408,8 +405,8 @@ static int i2c_setup_timing(struct i2c_handle_s *hi2c,
 	 * If the timing has already been computed, and the frequency is the
 	 * same as when it was computed, then use the saved timing.
 	 */
-	if (clock_src == saved_frequency) {
-		*timing = saved_timing;
+	if (clock_src == hi2c->saved_frequency) {
+		*timing = hi2c->saved_timing;
 		return 0;
 	}
 
@@ -440,8 +437,8 @@ static int i2c_setup_timing(struct i2c_handle_s *hi2c,
 		(init->analog_filter ? "On" : "Off"),
 		init->digital_filter_coef);
 
-	saved_timing = *timing;
-	saved_frequency = clock_src;
+	hi2c->saved_timing = *timing;
+	hi2c->saved_frequency = clock_src;
 
 	return 0;
 }
