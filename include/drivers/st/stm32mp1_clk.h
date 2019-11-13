@@ -72,6 +72,9 @@ void stm32mp1_clk_rcc_regs_unlock(void);
 void stm32mp1_stgen_increment(unsigned long long offset_in_ms);
 
 unsigned long stm32mp1_clk_rcc2id(unsigned int offset, unsigned int bit);
+
+int stm32mp1_set_opp_khz(uint32_t freq_khz);
+
 #if defined(IMAGE_BL32)
 void stm32mp1_clk_mpu_suspend(void);
 void stm32mp1_clk_mpu_resume(void);
