@@ -578,7 +578,13 @@ static void flash_usb(struct usb_ctx *usb_context)
 	usb_core_handle.dev_state = USBD_STATE_CONFIGURED;
 
 	usb_core_handle.class_data = &usb_dfu_handle;
+
 	usb_dfu_handle.dev_state = DFU_STATE_IDLE;
+	usb_dfu_handle.dev_status[1] = 0;
+	usb_dfu_handle.dev_status[2] = 0;
+	usb_dfu_handle.dev_status[3] = 0;
+	usb_dfu_handle.dev_status[4] = usb_dfu_handle.dev_state;
+	usb_dfu_handle.dev_status[5] = 0;
 
 	/* Register the IO devices on this platform */
 	io_result = register_io_dev_usb(&usb_dev_con);
