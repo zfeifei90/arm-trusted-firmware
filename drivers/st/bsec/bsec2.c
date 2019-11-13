@@ -340,15 +340,18 @@ uint32_t bsec_find_otp_name_in_dt(const char *name, uint32_t *otp,
 
 	node = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*cuint));
 	if (node < 0) {
+		ERROR("Malformed nvmem_layout node: ignored\n");
 		return BSEC_ERROR;
 	}
 
 	cuint = fdt_getprop(fdt, node, "reg", &len);
-	if (cuint == NULL) {
+	if ((cuint == NULL) || (len != (2 * (int)sizeof(uint32_t)))) {
+		ERROR("Malformed nvmem_layout node: ignored\n");
 		return BSEC_ERROR;
 	}
 
-	if (len != (2 * (int)sizeof(uint32_t))) {
+	if (fdt32_to_cpu(*cuint) % sizeof(uint32_t)) {
+		ERROR("Misaligned nvmem_layout element: ignored\n");
 		return BSEC_ERROR;
 	}
 
