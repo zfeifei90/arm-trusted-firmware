@@ -30,6 +30,7 @@
 #include <drivers/st/stm32mp_reset.h>
 #include <drivers/st/stm32mp1_clk.h>
 #include <drivers/st/stm32mp1_ddr_helpers.h>
+#include <drivers/st/stpmic1.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <lib/el3_runtime/context_mgmt.h>
 #include <lib/mmio.h>
@@ -89,6 +90,61 @@ static void stm32_sgi1_it_handler(void)
 	} while (id <= MAX_SPI_ID);
 
 	stm32mp_wait_cpu_reset();
+}
+
+static void initialize_pll1_settings(void)
+{
+	uint32_t cpu_voltage = 0U;
+
+	if (stm32_are_pll1_settings_valid_in_context()) {
+		return;
+	}
+
+	if (dt_pmic_status() > 0) {
+		uint32_t voltage_mv = 0U;
+		uint32_t freq_khz = 0U;
+		struct rdev *regul;
+		int ret;
+
+		regul = dt_get_cpu_regulator();
+		if (regul == NULL) {
+			panic();
+		}
+
+		ret = regulator_get_voltage(regul);
+		if (ret < 0) {
+			panic();
+		}
+
+		cpu_voltage = (uint32_t)ret;
+
+		if (stm32mp1_clk_compute_all_pll1_settings(cpu_voltage) != 0) {
+			panic();
+		}
+
+		ret = dt_get_max_opp_freqvolt(&freq_khz, &voltage_mv);
+		if (ret != 0) {
+			panic();
+		}
+
+		if (voltage_mv != cpu_voltage) {
+			if (regulator_set_voltage(regul, (uint16_t)voltage_mv) != 0) {
+				panic();
+			}
+
+			ret = stm32mp1_set_opp_khz(freq_khz);
+			if (ret != 0) {
+				ERROR("Cannot set OPP freq %ukHz (%d)\n", freq_khz, ret);
+				panic();
+			}
+
+			cpu_voltage = voltage_mv;
+		}
+	}
+
+	if (stm32mp1_clk_compute_all_pll1_settings(cpu_voltage) != 0) {
+		panic();
+	}
 }
 
 static void disable_usb_phy_regulator(void)
@@ -326,6 +382,8 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	}
 
 	disable_usb_phy_regulator();
+
+	initialize_pll1_settings();
 
 	stm32mp1_init_lp_states();
 }
