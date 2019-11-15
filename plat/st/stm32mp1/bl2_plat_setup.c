@@ -345,6 +345,11 @@ void bl2_el3_plat_arch_setup(void)
 		panic();
 	}
 
+	if (dt_pmic_status() > 0) {
+		initialize_pmic();
+		configure_pmic();
+	}
+
 	if (stm32mp1_clk_init() < 0) {
 		panic();
 	}
@@ -440,6 +445,7 @@ skip_console_init:
 
 	if (dt_pmic_status() > 0) {
 		initialize_pmic();
+		print_pmic_info_and_debug();
 #if STM32MP1_DEBUG_ENABLE
 		/* Program PMIC to keep debug ON */
 		if ((stm32mp1_dbgmcu_boot_debug_info() == 1) &&

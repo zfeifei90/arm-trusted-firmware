@@ -19,8 +19,16 @@ bool initialize_pmic_i2c(void);
 bool is_pmic_regulator(struct stm32mp_regulator *regu);
 void bind_pmic_regulator(struct stm32mp_regulator *regu);
 void initialize_pmic(void);
+void configure_pmic(void);
 #if STM32MP1_DEBUG_ENABLE
 int pmic_keep_debug_unit(void);
+#endif
+#if DEBUG
+void print_pmic_info_and_debug(void);
+#else
+void print_pmic_info_and_debug(void)
+{
+}
 #endif
 int pmic_ddr_power_init(enum ddr_type ddr_type);
 
