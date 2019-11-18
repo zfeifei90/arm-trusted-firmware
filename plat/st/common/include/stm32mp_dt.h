@@ -40,6 +40,9 @@ int dt_get_node(struct dt_node_info *info, int offset, const char *compat);
 int dt_get_stdout_uart_info(struct dt_node_info *info);
 int dt_match_instance_by_compatible(const char *compatible, uintptr_t address);
 uint32_t dt_get_ddr_size(void);
+int dt_get_max_opp_freqvolt(uint32_t *freq_khz, uint32_t *voltage_mv);
+int dt_get_all_opp_freqvolt(uint32_t *count, uint32_t *freq_khz_array,
+			    uint32_t *voltage_mv_array);
 uint32_t dt_get_pwr_vdd_voltage(void);
 struct rdev *dt_get_vdd_regulator(void);
 struct rdev *dt_get_cpu_regulator(void);
