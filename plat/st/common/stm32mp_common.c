@@ -15,6 +15,8 @@
 #include <lib/spinlock.h>
 #include <plat/common/platform.h>
 
+#define HEADER_VERSION_MAJOR_MASK	GENMASK(23, 16)
+
 static struct spinlock lock;
 
 uintptr_t plat_get_ns_image_entrypoint(void)
@@ -157,7 +159,8 @@ int stm32mp_check_header(boot_api_image_header_t *header, uintptr_t buffer)
 		return -EINVAL;
 	}
 
-	if (header->header_version != BOOT_API_HEADER_VERSION) {
+	if ((header->header_version & HEADER_VERSION_MAJOR_MASK) !=
+	    (BOOT_API_HEADER_VERSION & HEADER_VERSION_MAJOR_MASK)) {
 		ERROR("Header version\n");
 		return -EINVAL;
 	}
