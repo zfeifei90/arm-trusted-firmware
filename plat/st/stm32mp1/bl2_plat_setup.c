@@ -338,6 +338,11 @@ void bl2_el3_plat_arch_setup(void)
 		panic();
 	}
 
+	if (dt_pmic_status() > 0) {
+		initialize_pmic();
+		configure_pmic();
+	}
+
 	if (stm32mp1_clk_init() < 0) {
 		panic();
 	}
@@ -442,6 +447,7 @@ skip_console_init:
 
 	if (dt_pmic_status() > 0) {
 		initialize_pmic();
+		print_pmic_info_and_debug();
 	}
 
 	stm32mp_io_setup();
