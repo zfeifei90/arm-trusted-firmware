@@ -145,6 +145,12 @@ static int ddr_sw_self_refresh_in(void)
 	/* Disable PZQ cell (PUBL register) */
 	mmio_setbits_32(ddrphyc_base + DDRPHYC_ZQ0CR0, DDRPHYC_ZQ0CRN_ZQPD);
 
+	/* Set latch */
+	mmio_clrbits_32(ddrphyc_base + DDRPHYC_DSGCR, DDRPHYC_DSGCR_CKOE);
+
+	/* Additional delay to avoid early latch */
+	udelay(10);
+
 	/* Activate sw retention in PWRCTRL */
 	stm32mp_pwr_regs_lock();
 	mmio_setbits_32(pwr_base + PWR_CR3, PWR_CR3_DDRRETEN);
@@ -303,6 +309,9 @@ int ddr_sw_self_refresh_exit(void)
 	mmio_clrbits_32(ddrphyc_base + DDRPHYC_DXCCR, DDRPHYC_DXCCR_DXPDD);
 
 	mmio_clrbits_32(ddrphyc_base + DDRPHYC_DXCCR, DDRPHYC_DXCCR_DXPDR);
+
+	/* Release latch */
+	mmio_setbits_32(ddrphyc_base + DDRPHYC_DSGCR, DDRPHYC_DSGCR_CKOE);
 
 	mmio_clrbits_32(ddrphyc_base + DDRPHYC_DSGCR,
 			DDRPHYC_DSGCR_ODTPDD_MASK);
