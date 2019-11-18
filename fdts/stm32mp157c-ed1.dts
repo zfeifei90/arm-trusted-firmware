@@ -6,7 +6,7 @@
 /dts-v1/;
 
 #include "stm32mp157c.dtsi"
-#include "stm32mp157caa-pinctrl.dtsi"
+#include "stm32mp157xaa-pinctrl.dtsi"
 
 / {
 	model = "STMicroelectronics STM32MP157C eval daughter";
@@ -44,7 +44,6 @@
 
 		regulators {
 			compatible = "st,stpmic1-regulators";
-
 			ldo1-supply = <&v3v3>;
 			ldo2-supply = <&v3v3>;
 			ldo3-supply = <&vdd_ddr>;
@@ -136,15 +135,17 @@
 	};
 };
 
+&hash1 {
+	status = "okay";
+};
+
 &iwdg2 {
 	timeout-sec = <32>;
 	status = "okay";
 };
 
-&pwr {
-	pwr-regulators {
-		vdd-supply = <&vdd>;
-	};
+&pwr_regulators {
+	vdd-supply = <&vdd>;
 };
 
 &rng1 {
@@ -196,7 +197,6 @@
 #include <dt-bindings/clock/stm32mp1-clksrc.h>
 #include <dt-bindings/power/stm32mp1-power.h>
 #include "stm32mp15-ddr3-2x4Gb-1066-binG.dtsi"
-#include "stm32mp157c-security.dtsi"
 
 / {
 	aliases {
@@ -361,7 +361,7 @@
 			   "board_id";
 };
 
-&pwr {
+&pwr_regulators {
 	system_suspend_supported_soc_modes = <
 		STM32_PM_CSLEEP_RUN
 		STM32_PM_CSTOP_ALLOW_LP_STOP

@@ -10,7 +10,7 @@
 /dts-v1/;
 
 #include "stm32mp157c.dtsi"
-#include "stm32mp157cac-pinctrl.dtsi"
+#include "stm32mp157xac-pinctrl.dtsi"
 
 / {
 	model = "Arrow Electronics STM32MP157A Avenger96 board";
@@ -41,13 +41,8 @@
 		#interrupt-cells = <2>;
 		status = "okay";
 
-		st,main-control-register = <0x04>;
-		st,vin-control-register = <0xc0>;
-		st,usb-control-register = <0x20>;
-
 		regulators {
 			compatible = "st,stpmic1-regulators";
-
 			ldo1-supply = <&v3v3>;
 			ldo2-supply = <&v3v3>;
 			ldo3-supply = <&vdd_ddr>;
@@ -173,7 +168,6 @@
 /* ATF Specific */
 #include <dt-bindings/clock/stm32mp1-clksrc.h>
 #include "stm32mp15-ddr3-2x4Gb-1066-binG.dtsi"
-#include "stm32mp157c-security.dtsi"
 
 / {
 	aliases {
