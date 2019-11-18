@@ -15,7 +15,7 @@
 #include <stm32mp1_private.h>
 
 /*
- * SYSCFG REGISTER OFFSET (base relative)
+ * SYSCFG register offsets (base relative)
  */
 #define SYSCFG_BOOTR				0x00U
 #define SYSCFG_IOCTRLSETR			0x18U
@@ -52,6 +52,8 @@
 #define SYSCFG_CMPCR_RANSRC_SHIFT		16
 #define SYSCFG_CMPCR_RAPSRC			GENMASK(23, 20)
 #define SYSCFG_CMPCR_ANSRC_SHIFT		24
+
+#define SYSCFG_CMPCR_READY_TIMEOUT_US		10000U
 
 /*
  * SYSCFG_CMPENSETR Register
@@ -131,6 +133,7 @@ void stm32mp1_syscfg_init(void)
 void stm32mp1_syscfg_enable_io_compensation(void)
 {
 	uintptr_t syscfg_base = dt_get_syscfg_base();
+	uint64_t start;
 
 	/*
 	 * Activate automatic I/O compensation.
@@ -142,9 +145,18 @@ void stm32mp1_syscfg_enable_io_compensation(void)
 	mmio_setbits_32(syscfg_base + SYSCFG_CMPENSETR,
 			SYSCFG_CMPENSETR_MPU_EN);
 
+	start = timeout_init_us(SYSCFG_CMPCR_READY_TIMEOUT_US);
+
 	while ((mmio_read_32(syscfg_base + SYSCFG_CMPCR) &
 		SYSCFG_CMPCR_READY) == 0U) {
-		;
+		if (timeout_elapsed(start)) {
+			/*
+			 * Failure on IO compensation enable is not a issue:
+			 * warn only.
+			 */
+			WARN("IO compensation cell not ready\n");
+			break;
+		}
 	}
 
 	mmio_clrbits_32(syscfg_base + SYSCFG_CMPCR, SYSCFG_CMPCR_SW_CTRL);
@@ -170,9 +182,7 @@ void stm32mp1_syscfg_disable_io_compensation(void)
 	value = mmio_read_32(syscfg_base + SYSCFG_CMPCR) |
 		(value << SYSCFG_CMPCR_RANSRC_SHIFT);
 
-	mmio_write_32(syscfg_base + SYSCFG_CMPCR, value);
-
-	mmio_setbits_32(syscfg_base + SYSCFG_CMPCR, SYSCFG_CMPCR_SW_CTRL);
+	mmio_write_32(syscfg_base + SYSCFG_CMPCR, value | SYSCFG_CMPCR_SW_CTRL);
 
 	mmio_clrbits_32(syscfg_base + SYSCFG_CMPENSETR,
 			SYSCFG_CMPENSETR_MPU_EN);
