@@ -422,7 +422,7 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 					      MT_MEMORY | MT_RW | MT_NS);
 		assert(ret == 0);
 
-		if (!ddr_is_nonsecured_area(map_begin, map_begin + map_size)) {
+		if (!ddr_is_nonsecured_area(map_begin, map_size)) {
 			ret = mmap_remove_dynamic_region(map_begin, map_size);
 			assert(ret == 0);
 
