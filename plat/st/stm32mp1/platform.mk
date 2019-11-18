@@ -18,6 +18,10 @@ VERSION_STRING		:=	v${VERSION_MAJOR}.${VERSION_MINOR}-${ST_VERSION}(${BUILD_TYPE
 STM32_TF_VERSION	?=	0
 $(eval $(call add_define_val,STM32_TF_VERSION,${STM32_TF_VERSION}))
 
+# STM32 image header version v1.0
+STM32_HEADER_VERSION_MAJOR:=	1
+STM32_HEADER_VERSION_MINOR:=	0
+
 # Not needed for Cortex-A7
 WORKAROUND_CVE_2017_5715:=	0
 
@@ -256,8 +260,12 @@ ${STM32_TF_BINARY}:	${STM32_TF_ELF}
 
 ${STM32_TF_STM32}:	stm32image ${STM32_TF_BINARY}
 			@echo
-			@echo "Generated $@"
+			@echo "Generate $@"
 			$(eval LOADADDR =  $(shell cat ${STM32_TF_MAPFILE} | grep RAM | awk '{print $$2}'))
 			$(eval ENTRY =  $(shell cat ${STM32_TF_MAPFILE} | grep "__BL2_IMAGE_START" | awk '{print $$1}'))
-			${STM32IMAGE} -s ${STM32_TF_BINARY} -d $@ -l $(LOADADDR) -e ${ENTRY} -v ${STM32_TF_VERSION}
+			@${STM32IMAGE} -s ${STM32_TF_BINARY} -d $@ \
+				-l $(LOADADDR) -e ${ENTRY} \
+				-v ${STM32_TF_VERSION} \
+				-m ${STM32_HEADER_VERSION_MAJOR} \
+				-n ${STM32_HEADER_VERSION_MINOR}
 			@echo
