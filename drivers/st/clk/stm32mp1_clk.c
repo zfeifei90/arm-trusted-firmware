@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -48,6 +49,19 @@ const char *stm32mp_osc_node_label[NB_OSC] = {
 	[_CSI] = "clk-csi",
 	[_I2S_CKIN] = "i2s_ckin",
 };
+
+/* PLL settings computation related definitions */
+#define POST_DIVM_MIN	8000000
+#define POST_DIVM_MAX	16000000
+#define DIVM_MIN	0
+#define DIVM_MAX	63
+#define DIVN_MIN	24
+#define DIVN_MAX	99
+#define DIVP_MIN	0
+#define DIVP_MAX	127
+#define FRAC_MAX	8192
+#define VCO_MIN		800000000
+#define VCO_MAX		1600000000
 
 enum stm32mp1_parent_id {
 /* Oscillators are defined in enum stm32mp_osc_id */
@@ -264,6 +278,15 @@ struct stm32mp1_clk_pll {
 	uint16_t pllxcr;
 	uint16_t pllxcsgr;
 	enum stm32mp_osc_id refclk[REFCLK_SIZE];
+};
+
+/* Compact structure of 32bit cells, copied raw when suspending */
+struct stm32mp1_pll_settings {
+	uint32_t valid_id;
+	uint32_t freq[PLAT_MAX_OPP_NB];
+	uint32_t volt[PLAT_MAX_OPP_NB];
+	uint32_t cfg[PLAT_MAX_OPP_NB][PLAT_MAX_PLLCFG_NB];
+	uint32_t frac[PLAT_MAX_OPP_NB];
 };
 
 /* Clocks with selectable source and non set/clr register access */
@@ -535,7 +558,6 @@ static const struct stm32mp1_clk_sel stm32mp1_clk_sel[_PARENT_SEL_NB] = {
 };
 
 /* Define characteristic of PLL according type */
-#define DIVN_MIN	24
 static const struct stm32mp1_pll stm32mp1_pll[PLL_TYPE_NB] = {
 	[PLL_800] = {
 		.refclk_min = 4,
@@ -636,6 +658,8 @@ static unsigned long stm32mp1_osc[NB_OSC];
 static struct spinlock reg_lock;
 static unsigned int gate_refcounts[NB_GATES];
 static struct spinlock refcount_lock;
+static struct stm32mp1_pll_settings pll1_settings;
+static uint32_t current_opp_khz;
 
 static const struct stm32mp1_clk_gate *gate_ref(unsigned int idx)
 {
@@ -1609,11 +1633,8 @@ static int stm32mp1_pll_stop(enum stm32mp1_pll_id pll_id)
 	return 0;
 }
 
-static void stm32mp1_pll_config_output(enum stm32mp1_pll_id pll_id,
-				       uint32_t *pllcfg)
+static uint32_t stm32mp1_pll_compute_pllxcfgr2(uint32_t *pllcfg)
 {
-	const struct stm32mp1_clk_pll *pll = pll_ref(pll_id);
-	uintptr_t rcc_base = stm32mp_rcc_base();
 	uint32_t value;
 
 	value = (pllcfg[PLLCFG_P] << RCC_PLLNCFGR2_DIVP_SHIFT) &
@@ -1622,21 +1643,33 @@ static void stm32mp1_pll_config_output(enum stm32mp1_pll_id pll_id,
 		 RCC_PLLNCFGR2_DIVQ_MASK;
 	value |= (pllcfg[PLLCFG_R] << RCC_PLLNCFGR2_DIVR_SHIFT) &
 		 RCC_PLLNCFGR2_DIVR_MASK;
+
+	return value;
+}
+
+static void stm32mp1_pll_config_output(enum stm32mp1_pll_id pll_id,
+				       uint32_t *pllcfg)
+{
+	const struct stm32mp1_clk_pll *pll = pll_ref(pll_id);
+	uintptr_t rcc_base = stm32mp_rcc_base();
+	uint32_t value;
+
+	value = stm32mp1_pll_compute_pllxcfgr2(pllcfg);
+
 	mmio_write_32(rcc_base + pll->pllxcfgr2, value);
 }
 
-static int stm32mp1_pll_config(enum stm32mp1_pll_id pll_id,
-			       uint32_t *pllcfg, uint32_t fracv)
+static int stm32mp1_pll_compute_pllxcfgr1(const struct stm32mp1_clk_pll *pll,
+					  uint32_t *pllcfg, uint32_t *cfgr1)
 {
-	const struct stm32mp1_clk_pll *pll = pll_ref(pll_id);
 	uintptr_t rcc_base = stm32mp_rcc_base();
 	enum stm32mp1_plltype type = pll->plltype;
 	unsigned long refclk;
 	uint32_t ifrge = 0;
-	uint32_t src, value;
+	uint32_t src;
 
 	src = mmio_read_32(rcc_base + pll->rckxselr) &
-		RCC_SELR_REFCLK_SRC_MASK;
+	      RCC_SELR_REFCLK_SRC_MASK;
 
 	refclk = stm32mp1_clk_get_fixed(pll->refclk[src]) /
 		 (pllcfg[PLLCFG_M] + 1U);
@@ -1650,23 +1683,39 @@ static int stm32mp1_pll_config(enum stm32mp1_pll_id pll_id,
 		ifrge = 1U;
 	}
 
-	value = (pllcfg[PLLCFG_N] << RCC_PLLNCFGR1_DIVN_SHIFT) &
-		RCC_PLLNCFGR1_DIVN_MASK;
-	value |= (pllcfg[PLLCFG_M] << RCC_PLLNCFGR1_DIVM_SHIFT) &
-		 RCC_PLLNCFGR1_DIVM_MASK;
-	value |= (ifrge << RCC_PLLNCFGR1_IFRGE_SHIFT) &
-		 RCC_PLLNCFGR1_IFRGE_MASK;
+	*cfgr1 = (pllcfg[PLLCFG_N] << RCC_PLLNCFGR1_DIVN_SHIFT) &
+		 RCC_PLLNCFGR1_DIVN_MASK;
+	*cfgr1 |= (pllcfg[PLLCFG_M] << RCC_PLLNCFGR1_DIVM_SHIFT) &
+		  RCC_PLLNCFGR1_DIVM_MASK;
+	*cfgr1 |= (ifrge << RCC_PLLNCFGR1_IFRGE_SHIFT) &
+		  RCC_PLLNCFGR1_IFRGE_MASK;
+
+	return 0;
+}
+
+static int stm32mp1_pll_config(enum stm32mp1_pll_id pll_id,
+			       uint32_t *pllcfg, uint32_t fracv)
+{
+	const struct stm32mp1_clk_pll *pll = pll_ref(pll_id);
+	uintptr_t rcc_base = stm32mp_rcc_base();
+	uint32_t value;
+	int ret;
+
+	ret = stm32mp1_pll_compute_pllxcfgr1(pll, pllcfg, &value);
+	if (ret != 0) {
+		return ret;
+	}
+
 	mmio_write_32(rcc_base + pll->pllxcfgr1, value);
 
 	/* Fractional configuration */
 	value = 0;
 	mmio_write_32(rcc_base + pll->pllxfracr, value);
 
+	/*  Frac must be enabled only once its configuration is loaded */
 	value = fracv << RCC_PLLNFRACR_FRACV_SHIFT;
 	mmio_write_32(rcc_base + pll->pllxfracr, value);
-
-	value |= RCC_PLLNFRACR_FRACLE;
-	mmio_write_32(rcc_base + pll->pllxfracr, value);
+	mmio_setbits_32(rcc_base + pll->pllxfracr, RCC_PLLNFRACR_FRACLE);
 
 	stm32mp1_pll_config_output(pll_id, pllcfg);
 
@@ -1824,6 +1873,232 @@ static void stm32mp1_pkcs_config(uint32_t pkcs)
 	mmio_clrsetbits_32(address, mask, value);
 }
 
+static bool clk_pll1_settings_are_valid(void)
+{
+	return pll1_settings.valid_id == PLL1_SETTINGS_VALID_ID;
+}
+
+int stm32mp1_round_opp_khz(uint32_t *freq_khz)
+{
+	unsigned int i;
+	uint32_t round_opp = 0U;
+
+	if (!clk_pll1_settings_are_valid()) {
+		/*
+		 * No OPP table in DT, or an error occurred during PLL1
+		 * settings computation, system can only work on current
+		 * operating point, so return current CPU frequency.
+		 */
+		*freq_khz = current_opp_khz;
+
+		return 0;
+	}
+
+	for (i = 0; i < PLAT_MAX_OPP_NB; i++) {
+		if ((pll1_settings.freq[i] <= *freq_khz) &&
+		    (pll1_settings.freq[i] > round_opp)) {
+			round_opp = pll1_settings.freq[i];
+		}
+	}
+
+	*freq_khz = round_opp;
+
+	return 0;
+}
+
+/*
+ * Check if PLL1 can be configured on the fly.
+ * @result (-1) => config on the fly is not possible.
+ *         (0)  => config on the fly is possible.
+ *         (+1) => same parameters, no need to reconfigure.
+ * Return value is 0 if no error.
+ */
+static int stm32mp1_is_pll_config_on_the_fly(enum stm32mp1_pll_id pll_id,
+					     uint32_t *pllcfg, uint32_t fracv,
+					     int *result)
+{
+	const struct stm32mp1_clk_pll *pll = pll_ref(pll_id);
+	uintptr_t rcc_base = stm32mp_rcc_base();
+	uint32_t fracr;
+	uint32_t value;
+	int ret;
+
+	ret = stm32mp1_pll_compute_pllxcfgr1(pll, pllcfg, &value);
+	if (ret != 0) {
+		return ret;
+	}
+
+	if (mmio_read_32(rcc_base + pll->pllxcfgr1) != value) {
+		/* Different DIVN/DIVM, can't config on the fly */
+		*result = -1;
+		return 0;
+	}
+
+	*result = true;
+
+	fracr = fracv << RCC_PLLNFRACR_FRACV_SHIFT;
+	fracr |= RCC_PLLNFRACR_FRACLE;
+	value = stm32mp1_pll_compute_pllxcfgr2(pllcfg);
+
+	if ((mmio_read_32(rcc_base + pll->pllxfracr) == fracr) &&
+	    (mmio_read_32(rcc_base + pll->pllxcfgr2) == value)) {
+		/* Same parameters, no need to config */
+		*result = 1;
+	} else {
+		*result = 0;
+	}
+
+	return 0;
+}
+
+static int stm32mp1_get_mpu_div(uint32_t freq_khz)
+{
+	unsigned long freq_pll1_p;
+	unsigned long div;
+
+	freq_pll1_p = get_clock_rate(_PLL1_P) / 1000UL;
+	if ((freq_pll1_p % freq_khz) != 0U) {
+		return -1;
+	}
+
+	div = freq_pll1_p / freq_khz;
+
+	switch (div) {
+	case 1UL:
+	case 2UL:
+	case 4UL:
+	case 8UL:
+	case 16UL:
+		return __builtin_ffs(div) - 1;
+	default:
+		return -1;
+	}
+}
+
+static int stm32mp1_pll1_config_from_opp_khz(uint32_t freq_khz)
+{
+	unsigned int i;
+	int ret;
+	int div;
+	int config_on_the_fly = -1;
+
+	for (i = 0; i < PLAT_MAX_OPP_NB; i++) {
+		if (pll1_settings.freq[i] == freq_khz) {
+			break;
+		}
+	}
+
+	if (i == PLAT_MAX_OPP_NB) {
+		return -ENXIO;
+	}
+
+	div = stm32mp1_get_mpu_div(freq_khz);
+
+	switch (div) {
+	case -1:
+		break;
+	case 0:
+		return stm32mp1_set_clksrc(CLK_MPU_PLL1P);
+	default:
+		ret = stm32mp1_set_clkdiv(div, stm32mp_rcc_base() +
+					  RCC_MPCKDIVR);
+		if (ret == 0) {
+			ret = stm32mp1_set_clksrc(CLK_MPU_PLL1P_DIV);
+		}
+		return ret;
+	}
+
+	ret = stm32mp1_is_pll_config_on_the_fly(_PLL1, &pll1_settings.cfg[i][0],
+						pll1_settings.frac[i],
+						&config_on_the_fly);
+	if (ret != 0) {
+		return ret;
+	}
+
+	if (config_on_the_fly == 1) {
+		/*  No need to reconfigure, setup already OK */
+		return 0;
+	}
+
+	if (config_on_the_fly == -1) {
+		/* Switch to HSI and stop PLL1 before reconfiguration */
+		ret = stm32mp1_set_clksrc(CLK_MPU_HSI);
+		if (ret != 0) {
+			return ret;
+		}
+
+		ret = stm32mp1_pll_stop(_PLL1);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	ret = stm32mp1_pll_config(_PLL1, &pll1_settings.cfg[i][0],
+				  pll1_settings.frac[i]);
+	if (ret != 0) {
+		return ret;
+	}
+
+	if (config_on_the_fly == -1) {
+		/* Start PLL1 and switch back to after reconfiguration */
+		stm32mp1_pll_start(_PLL1);
+
+		ret = stm32mp1_pll_output(_PLL1,
+					  pll1_settings.cfg[i][PLLCFG_O]);
+		if (ret != 0) {
+			return ret;
+		}
+
+		ret = stm32mp1_set_clksrc(CLK_MPU_PLL1P);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
+int stm32mp1_set_opp_khz(uint32_t freq_khz)
+{
+	uintptr_t rcc_base = stm32mp_rcc_base();
+	uint32_t mpu_src;
+
+	if (freq_khz == current_opp_khz) {
+		/* OPP already set, nothing to do */
+		return 0;
+	}
+
+	if (!clk_pll1_settings_are_valid()) {
+		/*
+		 * No OPP table in DT or an error occurred during PLL1
+		 * settings computation, system can only work on current
+		 * operating point so return error.
+		 */
+		return -EACCES;
+	}
+
+	/* Check that PLL1 is MPU clock source */
+	mpu_src = mmio_read_32(rcc_base + RCC_MPCKSELR) & RCC_SELR_SRC_MASK;
+	if ((mpu_src != RCC_MPCKSELR_PLL) &&
+	    (mpu_src != RCC_MPCKSELR_PLL_MPUDIV)) {
+		return -EPERM;
+	}
+
+	if (stm32mp1_pll1_config_from_opp_khz(freq_khz) != 0) {
+		/* Restore original value */
+		if (stm32mp1_pll1_config_from_opp_khz(current_opp_khz) != 0) {
+			ERROR("No CPU operating point can be set\n");
+			panic();
+		}
+
+		return -EIO;
+	}
+
+	current_opp_khz = freq_khz;
+
+	return 0;
+}
+
 static int clk_get_pll_settings_from_dt(int plloff, unsigned int *pllcfg,
 					uint32_t *fracv, uint32_t *csg,
 					bool *csg_set)
@@ -1855,7 +2130,314 @@ static int clk_get_pll_settings_from_dt(int plloff, unsigned int *pllcfg,
 	return ret;
 }
 
-int stm32mp1_clk_init(void)
+static int clk_compute_pll1_settings(unsigned long input_freq,
+				     uint32_t freq_khz,
+				     uint32_t *pllcfg, uint32_t *fracv)
+{
+	unsigned long long output_freq = freq_khz * 1000U;
+	unsigned long long freq;
+	unsigned long long vco;
+	int divm;
+	int divn;
+	int divp;
+	int frac;
+	int i;
+	unsigned int diff;
+	unsigned int best_diff = UINT_MAX;
+
+	/* Following parameters have always the same value */
+	pllcfg[PLLCFG_Q] = 0;
+	pllcfg[PLLCFG_R] = 0;
+	pllcfg[PLLCFG_O] = PQR(1, 0, 0);
+
+	for (divm = DIVM_MAX; divm >= DIVM_MIN; divm--)	{
+		unsigned long post_divm = input_freq /
+					  (unsigned long)(divm + 1);
+
+		if ((post_divm < POST_DIVM_MIN) ||
+		    (post_divm > POST_DIVM_MAX)) {
+			continue;
+		}
+
+		for (divp = DIVP_MIN; divp <= DIVP_MAX; divp++) {
+
+			freq = output_freq * (divm + 1) * (divp + 1);
+
+			divn = (int)((freq / input_freq) - 1);
+			if ((divn < DIVN_MIN) || (divn > DIVN_MAX)) {
+				continue;
+			}
+
+			frac = (int)(((freq * FRAC_MAX) / input_freq) -
+				     ((divn + 1) * FRAC_MAX));
+
+			/* 2 loops to refine the fractional part */
+			for (i = 2; i != 0; i--) {
+				if (frac > FRAC_MAX) {
+					break;
+				}
+
+				vco = (post_divm * (divn + 1)) +
+				      ((post_divm * (unsigned long long)frac) /
+				       FRAC_MAX);
+
+				if ((vco < (VCO_MIN / 2)) ||
+				    (vco > (VCO_MAX / 2))) {
+					frac++;
+					continue;
+				}
+
+				freq = vco / (divp + 1);
+				if (output_freq < freq) {
+					diff = (unsigned int)(freq -
+							      output_freq);
+				} else {
+					diff = (unsigned int)(output_freq -
+							      freq);
+				}
+
+				if (diff < best_diff)  {
+					pllcfg[PLLCFG_M] = divm;
+					pllcfg[PLLCFG_N] = divn;
+					pllcfg[PLLCFG_P] = divp;
+					*fracv = frac;
+
+					if (diff == 0) {
+						return 0;
+					}
+
+					best_diff = diff;
+				}
+
+				frac++;
+			}
+		}
+	}
+
+	if (best_diff == UINT_MAX) {
+		return -1;
+	}
+
+	return 0;
+}
+
+static int clk_get_pll1_settings(uint32_t clksrc, uint32_t freq_khz,
+				 uint32_t *pllcfg, uint32_t *fracv)
+{
+	unsigned int i;
+
+	assert(pllcfg != NULL);
+	assert(fracv != NULL);
+
+	for (i = 0; i < PLAT_MAX_OPP_NB; i++) {
+		if (pll1_settings.freq[i] == freq_khz) {
+			break;
+		}
+	}
+
+	if (((i == PLAT_MAX_OPP_NB) && (pll1_settings.valid_id == 0U)) ||
+	    ((i < PLAT_MAX_OPP_NB) &&
+	     (pll1_settings.cfg[i][PLLCFG_O] == 0U))) {
+		unsigned long input_freq;
+
+		/*
+		 * Either PLL1 settings structure is completely empty,
+		 * or these settings are not yet computed: do it.
+		 */
+		switch (clksrc) {
+		case CLK_PLL12_HSI:
+			input_freq = stm32mp_clk_get_rate(CK_HSI);
+			break;
+		case CLK_PLL12_HSE:
+			input_freq = stm32mp_clk_get_rate(CK_HSE);
+			break;
+		default:
+			panic();
+		}
+
+		return clk_compute_pll1_settings(input_freq, freq_khz, pllcfg,
+						 fracv);
+	}
+
+	if ((i < PLAT_MAX_OPP_NB) &&
+	    (pll1_settings.cfg[i][PLLCFG_O] != 0U)) {
+		/*
+		 * Index is in range and PLL1 settings are computed:
+		 * use content to answer to the request.
+		 */
+		memcpy(pllcfg, &pll1_settings.cfg[i][0],
+		       sizeof(uint32_t) * PLAT_MAX_PLLCFG_NB);
+		*fracv = pll1_settings.frac[i];
+
+		return 0;
+	}
+
+	return -1;
+}
+
+int stm32mp1_clk_get_maxfreq_opp(uint32_t *freq_khz,
+				 uint32_t *voltage_mv)
+{
+	unsigned int i;
+	uint32_t freq = 0U;
+	uint32_t voltage = 0U;
+
+	assert(freq_khz != NULL);
+	assert(voltage_mv != NULL);
+
+	if (!clk_pll1_settings_are_valid()) {
+		return -1;
+	}
+
+	for (i = 0; i < PLAT_MAX_OPP_NB; i++) {
+		if (pll1_settings.freq[i] > freq) {
+			freq = pll1_settings.freq[i];
+			voltage = pll1_settings.volt[i];
+		}
+	}
+
+	if ((freq == 0U) || (voltage == 0U)) {
+		return -1;
+	}
+
+	*freq_khz = freq;
+	*voltage_mv = voltage;
+
+	return 0;
+}
+
+static int clk_save_current_pll1_settings(uint32_t buck1_voltage)
+{
+	const struct stm32mp1_clk_pll *pll = pll_ref(_PLL1);
+	uint32_t rcc_base = stm32mp_rcc_base();
+	uint32_t freq;
+	unsigned int i;
+
+	freq = udiv_round_nearest(stm32mp_clk_get_rate(CK_MPU), 1000L);
+
+	for (i = 0; i < PLAT_MAX_OPP_NB; i++) {
+		if (pll1_settings.freq[i] == freq) {
+			break;
+		}
+	}
+
+	if ((i == PLAT_MAX_OPP_NB) ||
+	    ((pll1_settings.volt[i] != buck1_voltage) &&
+	     (buck1_voltage != 0U))) {
+		return -1;
+	}
+
+	pll1_settings.cfg[i][PLLCFG_M] =
+		(mmio_read_32(rcc_base + pll->pllxcfgr1) &
+		 RCC_PLLNCFGR1_DIVM_MASK) >> RCC_PLLNCFGR1_DIVM_SHIFT;
+
+	pll1_settings.cfg[i][PLLCFG_N] =
+		(mmio_read_32(rcc_base + pll->pllxcfgr1) &
+		 RCC_PLLNCFGR1_DIVN_MASK) >> RCC_PLLNCFGR1_DIVN_SHIFT;
+
+	pll1_settings.cfg[i][PLLCFG_P] =
+		(mmio_read_32(rcc_base + pll->pllxcfgr2) &
+		 RCC_PLLNCFGR2_DIVP_MASK) >> RCC_PLLNCFGR2_DIVP_SHIFT;
+
+	pll1_settings.cfg[i][PLLCFG_Q] =
+		(mmio_read_32(rcc_base + pll->pllxcfgr2) &
+		 RCC_PLLNCFGR2_DIVQ_MASK) >> RCC_PLLNCFGR2_DIVQ_SHIFT;
+
+	pll1_settings.cfg[i][PLLCFG_R] =
+		(mmio_read_32(rcc_base + pll->pllxcfgr2) &
+		 RCC_PLLNCFGR2_DIVR_MASK) >> RCC_PLLNCFGR2_DIVR_SHIFT;
+
+	pll1_settings.cfg[i][PLLCFG_O] =
+		mmio_read_32(rcc_base + pll->pllxcr) >>
+		RCC_PLLNCR_DIVEN_SHIFT;
+
+	pll1_settings.frac[i] =
+		(mmio_read_32(rcc_base + pll->pllxfracr) &
+		 RCC_PLLNFRACR_FRACV_MASK) >> RCC_PLLNFRACR_FRACV_SHIFT;
+
+	return i;
+}
+
+static uint32_t stm32mp1_clk_get_pll1_current_clksrc(void)
+{
+	uint32_t value;
+	const struct stm32mp1_clk_pll *pll = pll_ref(_PLL1);
+	uint32_t rcc_base = stm32mp_rcc_base();
+
+	value = mmio_read_32(rcc_base + pll->rckxselr);
+
+	switch (value & RCC_SELR_REFCLK_SRC_MASK) {
+	case 0:
+		return CLK_PLL12_HSI;
+	case 1:
+		return CLK_PLL12_HSE;
+	default:
+		panic();
+	}
+}
+
+int stm32mp1_clk_compute_all_pll1_settings(uint32_t buck1_voltage)
+{
+	int i;
+	int ret;
+	int index;
+	uint32_t count = PLAT_MAX_OPP_NB;
+	uint32_t clksrc;
+
+	ret = dt_get_all_opp_freqvolt(&count, pll1_settings.freq,
+				      pll1_settings.volt);
+	switch (ret) {
+	case 0:
+		break;
+	case -FDT_ERR_NOTFOUND:
+		VERBOSE("Cannot find OPP table in DT, use default settings.\n");
+		return 0;
+	default:
+		ERROR("Inconsistent OPP settings found in DT, ignored.\n");
+		return 0;
+	}
+
+	index = clk_save_current_pll1_settings(buck1_voltage);
+
+	clksrc = stm32mp1_clk_get_pll1_current_clksrc();
+
+	for (i = 0; i < (int)count; i++) {
+		if (i == index) {
+			continue;
+		}
+
+		ret = clk_get_pll1_settings(clksrc, pll1_settings.freq[i],
+					    &pll1_settings.cfg[i][0],
+					    &pll1_settings.frac[i]);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	pll1_settings.valid_id = PLL1_SETTINGS_VALID_ID;
+
+	return 0;
+}
+
+void stm32mp1_clk_lp_save_opp_pll1_settings(uint8_t *data, size_t size)
+{
+	if (size != sizeof(pll1_settings) || !clk_pll1_settings_are_valid()) {
+		panic();
+	}
+
+	memcpy(data, &pll1_settings, size);
+}
+
+void stm32mp1_clk_lp_load_opp_pll1_settings(uint8_t *data, size_t size)
+{
+	if (size != sizeof(pll1_settings)) {
+		panic();
+	}
+
+	memcpy(&pll1_settings, data, size);
+}
+
+int stm32mp1_clk_init(uint32_t pll1_freq_khz)
 {
 	uintptr_t rcc_base = stm32mp_rcc_base();
 	uint32_t pllfracv[_PLL_NB];
@@ -1900,15 +2482,27 @@ int stm32mp1_clk_init(void)
 		plloff[i] = fdt_rcc_subnode_offset(name);
 
 		pllcfg_valid[i] = fdt_check_node(plloff[i]);
-		if (!pllcfg_valid[i]) {
+		if (pllcfg_valid[i]) {
+			ret = clk_get_pll_settings_from_dt(plloff[i], pllcfg[i],
+							   &pllfracv[i],
+							   pllcsg[i],
+							   &pllcsg_set[i]);
+			if (ret != 0) {
+				return ret;
+			}
+
 			continue;
 		}
 
-		ret = clk_get_pll_settings_from_dt(plloff[i], pllcfg[i],
-						   &pllfracv[i], pllcsg[i],
-						   &pllcsg_set[i]);
-		if (ret != 0) {
-			return ret;
+		if ((i == _PLL1) && (pll1_freq_khz != 0U)) {
+			ret = clk_get_pll1_settings(clksrc[CLKSRC_PLL12],
+						    pll1_freq_khz,
+						    pllcfg[i], &pllfracv[i]);
+			if (ret != 0) {
+				return ret;
+			}
+
+			pllcfg_valid[i] = true;
 		}
 	}
 
@@ -2408,6 +3002,10 @@ static const struct clk_ops stm32mp_clk_ops = {
 
 int stm32mp1_clk_probe(void)
 {
+	unsigned long freq_khz;
+
+	assert(PLLCFG_NB == PLAT_MAX_PLLCFG_NB);
+
 #if defined(IMAGE_BL32)
 	if (!fdt_get_rcc_secure_state()) {
 		mmio_write_32(stm32mp_rcc_base() + RCC_TZCR, 0U);
@@ -2417,6 +3015,14 @@ int stm32mp1_clk_probe(void)
 	stm32mp1_osc_init();
 
 	sync_earlyboot_clocks_state();
+
+	/* Save current CPU operating point value */
+	freq_khz = udiv_round_nearest(stm32mp_clk_get_rate(CK_MPU), 1000UL);
+	if (freq_khz > (unsigned long)UINT32_MAX) {
+		panic();
+	}
+
+	current_opp_khz = (uint32_t)freq_khz;
 
 	clk_register(&stm32mp_clk_ops);
 

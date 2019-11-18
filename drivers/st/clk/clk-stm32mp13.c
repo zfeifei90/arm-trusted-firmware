@@ -2401,7 +2401,7 @@ static int stm32_clk_parse_fdt(struct stm32_clk_platdata *pdata)
 	return 0;
 }
 
-int stm32mp1_clk_init(void)
+int stm32mp1_clk_init(uint32_t pll1_freq_khz)
 {
 	return 0;
 }
