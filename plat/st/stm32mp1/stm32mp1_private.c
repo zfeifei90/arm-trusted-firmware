@@ -354,6 +354,42 @@ static uint32_t get_cpu_package(void)
 }
 #endif
 
+bool stm32mp_supports_cpu_opp(uint32_t opp_id)
+{
+	uint32_t id;
+
+	switch (opp_id) {
+	case PLAT_OPP_ID1:
+	case PLAT_OPP_ID2:
+		id = opp_id;
+		break;
+	default:
+		return false;
+	}
+
+	switch (get_part_number()) {
+#if STM32MP13
+	case STM32MP135F_PART_NB:
+	case STM32MP135D_PART_NB:
+	case STM32MP133F_PART_NB:
+	case STM32MP133D_PART_NB:
+	case STM32MP131F_PART_NB:
+	case STM32MP131D_PART_NB:
+#endif
+#if STM32MP15
+	case STM32MP157F_PART_NB:
+	case STM32MP157D_PART_NB:
+	case STM32MP153F_PART_NB:
+	case STM32MP153D_PART_NB:
+	case STM32MP151F_PART_NB:
+	case STM32MP151D_PART_NB:
+#endif
+		return true;
+	default:
+		return id == PLAT_OPP_ID1;
+	}
+}
+
 void stm32mp_get_soc_name(char name[STM32_SOC_NAME_SIZE])
 {
 	char *cpu_s, *cpu_r, *pkg;

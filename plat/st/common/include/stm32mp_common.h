@@ -115,6 +115,9 @@ void stm32mp_print_cpuinfo(void);
 /* Print board information */
 void stm32mp_print_boardinfo(void);
 
+/* Check HW CPU OPP support */
+bool stm32mp_supports_cpu_opp(uint32_t opp_id);
+
 /* Initialise the IO layer and register platform IO devices */
 void stm32mp_io_setup(void);
 
