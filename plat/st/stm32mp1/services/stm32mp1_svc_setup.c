@@ -76,6 +76,11 @@ static uintptr_t stm32mp1_svc_smc_handler(uint32_t smc_fid, u_register_t x1,
 		ret1 = rcc_cal_scv_handler(x1);
 		break;
 
+	case STM32_SMC_RCC_OPP:
+		ret1 = rcc_opp_scv_handler(x1, x2, &ret2);
+		ret2_enabled = true;
+		break;
+
 	case STM32_SMC_PWR:
 		ret1 = pwr_scv_handler(x1, x2, x3);
 		break;

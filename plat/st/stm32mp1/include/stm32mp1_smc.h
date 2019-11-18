@@ -90,6 +90,17 @@
  */
 #define STM32_SMC_PD_DOMAIN		0x82001008
 
+/*
+ * SIP function STM32_SMC_RCC_OPP.
+ *
+ * Argument a0: (input) SMCC ID.
+ *		(output) Status return code.
+ * Argument a1: (input) Service ID (STM32_SMC_RCC_OPP_xxx).
+ *		(output) Rounded frequency, if applicable.
+ * Argument a2: (input) Requested frequency.
+ */
+#define STM32_SMC_RCC_OPP		0x82001009
+
 /* SMC function IDs for SiP Service queries */
 
 /*
@@ -141,11 +152,15 @@
 #define STM32_SMC_SR_MODE_ASR		0x1
 #define STM32_SMC_SR_MODE_HSR		0x2
 
+/* Service ID for STM32_SMC_RCC_OPP */
+#define STM32_SMC_RCC_OPP_SET		0x0
+#define STM32_SMC_RCC_OPP_ROUND		0x1
+
 /* STM32 SiP Service Calls version numbers */
 #define STM32_SIP_SVC_VERSION_MAJOR	0x0
 #define STM32_SIP_SVC_VERSION_MINOR	0x1
 
 /* Number of STM32 SiP Calls implemented */
-#define STM32_COMMON_SIP_NUM_CALLS	10
+#define STM32_COMMON_SIP_NUM_CALLS	11
 
 #endif /* STM32MP1_SMC_H */
