@@ -555,4 +555,6 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
 #define DT_RCC_CLK_COMPAT		"st,stm32mp1-rcc"
 #define DT_SYSCFG_COMPAT		"st,stm32mp157-syscfg"
 
+#define DT_PLL1_NODE_NAME		"st,pll@0"
+
 #endif /* STM32MP1_DEF_H */
