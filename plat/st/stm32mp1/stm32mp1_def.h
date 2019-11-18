@@ -183,7 +183,7 @@ enum ddr_type {
 					 PLAT_XLAT_SIZE)
 
 /* DTB initialization value */
-#define STM32MP_DTB_SIZE		U(0x00005000)	/* 20 KB for DTB */
+#define STM32MP_DTB_SIZE		U(0x00006000)	/* 24 KB for DTB */
 
 #define STM32MP_DTB_BASE		(PLAT_XLAT_BASE -	\
 					 STM32MP_DTB_SIZE)
