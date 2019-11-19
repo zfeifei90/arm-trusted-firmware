@@ -84,6 +84,9 @@ STM32MP_EMMC_BOOT	?=	0
 STM32MP_USB_PROGRAMMER	?=	0
 STM32MP_UART_PROGRAMMER	?=	0
 
+# Hypervisor mode
+BL33_HYP			?= 0
+
 # Device tree
 DTB_FILE_NAME		?=	stm32mp157c-ev1.dtb
 ifeq ($(STM32MP_USE_STM32IMAGE),1)
@@ -162,6 +165,7 @@ endif
 # Enable flags for C files
 $(eval $(call assert_booleans,\
 	$(sort \
+		BL33_HYP \
 		PLAT_XLAT_TABLES_DYNAMIC \
 		STM32MP_DDR_32BIT_INTERFACE \
 		STM32MP_DDR_DUAL_AXI_PORT \
@@ -186,6 +190,7 @@ $(eval $(call assert_numerics,\
 
 $(eval $(call add_defines,\
 	$(sort \
+		BL33_HYP \
 		PLAT_PARTITION_MAX_ENTRIES \
 		PLAT_XLAT_TABLES_DYNAMIC \
 		STM32_TF_A_COPIES \
