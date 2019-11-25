@@ -55,7 +55,7 @@ void configure_pmic(void);
 #if DEBUG
 void print_pmic_info_and_debug(void);
 #else
-void print_pmic_info_and_debug(void)
+static inline void print_pmic_info_and_debug(void)
 {
 }
 #endif
