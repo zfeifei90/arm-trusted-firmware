@@ -249,8 +249,8 @@ static uint32_t stm32_rtc_get_second_fraction(struct stm32_rtc_calendar *cal)
 static signed long long stm32_rtc_diff_frac(struct stm32_rtc_calendar *cur,
 					    struct stm32_rtc_calendar *ref)
 {
-	return stm32_rtc_get_second_fraction(cur) -
-		stm32_rtc_get_second_fraction(ref);
+	return (signed long long)stm32_rtc_get_second_fraction(cur) -
+	       (signed long long)stm32_rtc_get_second_fraction(ref);
 }
 
 /*******************************************************************************
