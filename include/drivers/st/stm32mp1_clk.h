@@ -74,10 +74,8 @@ unsigned long stm32mp1_clk_rcc2id(unsigned int offset, unsigned int bit);
 int stm32mp1_round_opp_khz(uint32_t *freq_khz);
 int stm32mp1_set_opp_khz(uint32_t freq_khz);
 
-#if defined(IMAGE_BL32)
 void stm32mp1_clk_mpu_suspend(void);
 void stm32mp1_clk_mpu_resume(void);
-#endif
 
 void stm32mp1_register_clock_parents_secure(unsigned long id);
 

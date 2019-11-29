@@ -18,9 +18,7 @@
 #include <arch_helpers.h>
 #include <common/debug.h>
 #include <drivers/delay_timer.h>
-#if defined(IMAGE_BL32)
 #include <drivers/st/stm32_timer.h>
-#endif
 #include <drivers/st/stm32mp_clkfunc.h>
 #include <drivers/st/stm32mp1_clk.h>
 #include <drivers/st/stm32mp1_rcc.h>
@@ -1928,7 +1926,6 @@ int stm32mp1_set_opp_khz(uint32_t freq_khz)
 	return 0;
 }
 
-#if defined(IMAGE_BL32)
 void stm32mp1_clk_mpu_suspend(void)
 {
 	uintptr_t mpckselr = stm32mp_rcc_base() + RCC_MPCKSELR;
@@ -1952,7 +1949,6 @@ void stm32mp1_clk_mpu_resume(void)
 		}
 	}
 }
-#endif
 
 static int clk_get_pll_settings_from_dt(int plloff, unsigned int *pllcfg,
 					uint32_t *fracv, uint32_t *csg,
