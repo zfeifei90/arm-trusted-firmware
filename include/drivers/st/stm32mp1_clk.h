@@ -55,13 +55,15 @@ unsigned int stm32mp1_clk_get_refcount(unsigned long id);
 unsigned long stm32mp_clk_get_rate(unsigned long id);
 unsigned long stm32mp_clk_timer_get_rate(unsigned long id);
 
-void stm32mp1_stgen_increment(unsigned long long offset_in_ms);
-
 bool stm32mp1_rtc_get_read_twice(void);
 
 /* SMP protection on RCC registers access */
 void stm32mp1_clk_rcc_regs_lock(void);
 void stm32mp1_clk_rcc_regs_unlock(void);
+
+void stm32mp1_stgen_restore_counter(unsigned long long value,
+				    unsigned long long offset_in_ms);
+unsigned long long stm32mp1_stgen_get_counter(void);
 
 unsigned long stm32mp1_clk_rcc2id(unsigned int offset, unsigned int bit);
 

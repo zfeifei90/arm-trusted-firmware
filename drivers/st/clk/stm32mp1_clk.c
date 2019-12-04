@@ -1727,17 +1727,24 @@ unsigned long stm32mp_clk_timer_get_rate(unsigned long id)
 	return parent_rate * (timpre + 1) * 2;
 }
 
-void stm32mp1_stgen_increment(unsigned long long offset_in_ms)
+unsigned long long stm32mp1_stgen_get_counter(void)
+{
+	uintptr_t stgen = fdt_get_stgen_base();
+
+	return (((unsigned long long)mmio_read_32(stgen + CNTCVU_OFF) << 32) |
+		mmio_read_32(stgen + CNTCVL_OFF));
+}
+
+void stm32mp1_stgen_restore_counter(unsigned long long value,
+				    unsigned long long offset_in_ms)
 {
 	uintptr_t stgen;
 	unsigned long long cnt;
 
 	stgen = fdt_get_stgen_base();
 
-	cnt = ((unsigned long long)mmio_read_32(stgen + CNTCVU_OFF) << 32) |
-		mmio_read_32(stgen + CNTCVL_OFF);
-
-	cnt += (offset_in_ms * mmio_read_32(stgen + CNTFID_OFF)) / 1000U;
+	cnt = value + ((offset_in_ms * mmio_read_32(stgen + CNTFID_OFF)) /
+			1000U);
 
 	mmio_clrbits_32(stgen + CNTCR_OFF, CNTCR_EN);
 	mmio_write_32(stgen + CNTCVL_OFF, (uint32_t)cnt);
