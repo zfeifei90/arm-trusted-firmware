@@ -35,8 +35,6 @@ void stm32mp1_clk_force_disable(unsigned long id);
 void stm32mp1_clk_rcc_regs_lock(void);
 void stm32mp1_clk_rcc_regs_unlock(void);
 
-void stm32mp1_stgen_increment(unsigned long long offset_in_ms);
-
 void stm32mp1_clk_mcuss_protect(bool enable);
 
 #ifdef STM32MP_SHARED_RESOURCES
