@@ -10,9 +10,11 @@
 
 #include <platform_def.h>
 
+#include <arch_helpers.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/st/stm32_gpio.h>
 #include <drivers/st/stm32mp_clkfunc.h>
+#include <lib/mmio.h>
 
 #define DT_STGEN_COMPAT		"st,stm32-stgen"
 #define DT_UART_COMPAT		"st,stm32h7-uart"
@@ -404,16 +406,14 @@ bool fdt_is_pll1_predefined(void)
  * This function configures and restores the STGEN counter depending on the
  * connected clock.
  ******************************************************************************/
-void stm32mp_stgen_config(void)
+void stm32mp_stgen_config(unsigned long rate)
 {
 	uintptr_t stgen;
 	uint32_t cntfid0;
-	unsigned long rate;
 	unsigned long long counter;
 
 	stgen = fdt_get_stgen_base();
 	cntfid0 = mmio_read_32(stgen + CNTFID_OFF);
-	rate = stm32mp_clk_get_rate(STGEN_K);
 
 	if (cntfid0 == rate) {
 		return;
@@ -429,7 +429,7 @@ void stm32mp_stgen_config(void)
 	mmio_write_32(stgen + CNTFID_OFF, rate);
 	mmio_setbits_32(stgen + CNTCR_OFF, CNTCR_EN);
 
-	write_cntfrq((u_register_t)rate);
+	write_cntfrq_el0((u_register_t)rate);
 
 	/* Need to update timer with new frequency */
 	generic_delay_timer_init();
