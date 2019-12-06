@@ -316,10 +316,15 @@ int stm32_get_otp_value(const char *otp_name, uint32_t *otp_val)
 
 static int get_part_number(uint32_t *part_nb)
 {
-	uint32_t part_number;
+	static uint32_t part_number;
 	uint32_t dev_id;
 
 	assert(part_nb != NULL);
+
+	if (part_number != 0U) {
+		*part_nb = part_number;
+		return 0;
+	}
 
 	if (stm32mp1_dbgmcu_get_chip_dev_id(&dev_id) < 0) {
 		return -1;
@@ -332,7 +337,9 @@ static int get_part_number(uint32_t *part_nb)
 	part_number = (part_number & PART_NUMBER_OTP_PART_MASK) >>
 		PART_NUMBER_OTP_PART_SHIFT;
 
-	*part_nb = part_number | (dev_id << 16);
+	part_number |= dev_id << 16;
+
+	*part_nb = part_number;
 
 	return 0;
 }
@@ -552,6 +559,30 @@ bool stm32mp_is_closed_device(void)
 	}
 
 	return (value & CFG0_CLOSED_DEVICE) == CFG0_CLOSED_DEVICE;
+}
+
+/* Return true when device supports secure boot */
+bool stm32mp_is_auth_supported(void)
+{
+	uint32_t part_number;
+
+	if (get_part_number(&part_number) < 0) {
+		ERROR("Cannot get part number\n");
+		panic();
+	}
+
+	switch (part_number) {
+	case STM32MP151C_PART_NB:
+	case STM32MP151F_PART_NB:
+	case STM32MP153C_PART_NB:
+	case STM32MP153F_PART_NB:
+	case STM32MP157C_PART_NB:
+	case STM32MP157F_PART_NB:
+		return true;
+
+	default:
+		return false;
+	}
 }
 
 uint32_t stm32_iwdg_get_instance(uintptr_t base)
