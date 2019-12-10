@@ -88,6 +88,15 @@
 #define STM32MP_BACKUP_RAM_BASE		U(0x54000000)
 #define STM32MP_BACKUP_RAM_SIZE		U(0x00001000)
 
+#define STM32MP_NS_SYSRAM_SIZE		PAGE_SIZE
+#define STM32MP_NS_SYSRAM_BASE		(STM32MP_SYSRAM_BASE + \
+					 STM32MP_SYSRAM_SIZE - \
+					 STM32MP_NS_SYSRAM_SIZE)
+
+#define STM32MP_SEC_SYSRAM_BASE		STM32MP_SYSRAM_BASE
+#define STM32MP_SEC_SYSRAM_SIZE		(STM32MP_SYSRAM_SIZE - \
+					 STM32MP_NS_SYSRAM_SIZE)
+
 /* DDR configuration */
 #define STM32MP_DDR_BASE		U(0xC0000000)
 #define STM32MP_DDR_MAX_SIZE		U(0x40000000)	/* Max 1GB */
@@ -113,18 +122,18 @@ enum ddr_type {
 /* 256 Octets reserved for header */
 #define STM32MP_HEADER_SIZE		U(0x00000100)
 
-#define STM32MP_BINARY_BASE		(STM32MP_SYSRAM_BASE +		\
+#define STM32MP_BINARY_BASE		(STM32MP_SEC_SYSRAM_BASE +	\
 					 STM32MP_PARAM_LOAD_SIZE +	\
 					 STM32MP_HEADER_SIZE)
 
-#define STM32MP_BINARY_SIZE		(STM32MP_SYSRAM_SIZE -		\
+#define STM32MP_BINARY_SIZE		(STM32MP_SEC_SYSRAM_SIZE -	\
 					 (STM32MP_PARAM_LOAD_SIZE +	\
 					  STM32MP_HEADER_SIZE))
 
 #ifdef AARCH32_SP_OPTEE
 #define STM32MP_BL32_SIZE		U(0)
 
-#define STM32MP_OPTEE_BASE		STM32MP_SYSRAM_BASE
+#define STM32MP_OPTEE_BASE		STM32MP_SEC_SYSRAM_BASE
 
 #define STM32MP_OPTEE_SIZE		(STM32MP_DTB_BASE -  \
 					 STM32MP_OPTEE_BASE)
@@ -136,8 +145,8 @@ enum ddr_type {
 #endif
 #endif
 
-#define STM32MP_BL32_BASE		(STM32MP_SYSRAM_BASE + \
-					 STM32MP_SYSRAM_SIZE - \
+#define STM32MP_BL32_BASE		(STM32MP_SEC_SYSRAM_BASE + \
+					 STM32MP_SEC_SYSRAM_SIZE - \
 					 STM32MP_BL32_SIZE)
 
 #ifdef AARCH32_SP_OPTEE
@@ -324,7 +333,7 @@ enum ddr_type {
 #define DEBUG_UART_TX_EN		RCC_MP_APB1ENSETR_UART4EN
 
 /*******************************************************************************
- * STM32MP1 TZPC
+ * STM32MP1 ETZPC
  ******************************************************************************/
 #define STM32MP1_ETZPC_BASE		U(0x5C007000)
 #define STM32MP1_ETZPC_SIZE		U(0x000003FF)
@@ -332,6 +341,11 @@ enum ddr_type {
 #define STM32MP1_ETZPC_TZMA_ROM_ID	U(0)
 /*SYSRAM internal RAM*/
 #define STM32MP1_ETZPC_TZMA_RAM_ID	U(1)
+
+/* Lowest DECPROT ID for ETZPC cannot harden TZ security */
+#define STM32MP1_ETZPC_SEC_ID_LIMIT	U(13)
+
+#define STM32MP1_ETZPC_TZMA_ALL_SECURE	GENMASK_32(9, 0)
 
 /*******************************************************************************
  * STM32MP1 TZC (TZ400)

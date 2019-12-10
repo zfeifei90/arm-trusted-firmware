@@ -42,12 +42,29 @@
 					 BOARD_ID_VARFG_SHIFT)
 #define BOARD_ID2BOM(_id)		((_id) & BOARD_ID_BOM_MASK)
 
-#define MAP_SRAM	MAP_REGION_FLAT(STM32MP_SYSRAM_BASE, \
+#if defined(IMAGE_BL2)
+#define MAP_SEC_SYSRAM	MAP_REGION_FLAT(STM32MP_SYSRAM_BASE, \
 					STM32MP_SYSRAM_SIZE, \
 					MT_MEMORY | \
 					MT_RW | \
 					MT_SECURE | \
 					MT_EXECUTE_NEVER)
+#elif defined(IMAGE_BL32)
+#define MAP_SEC_SYSRAM	MAP_REGION_FLAT(STM32MP_SEC_SYSRAM_BASE, \
+					STM32MP_SEC_SYSRAM_SIZE, \
+					MT_MEMORY | \
+					MT_RW | \
+					MT_SECURE | \
+					MT_EXECUTE_NEVER)
+
+/* Non-secure SYSRAM is used a uncached memory for SCMI message transfer */
+#define MAP_NS_SYSRAM	MAP_REGION_FLAT(STM32MP_NS_SYSRAM_BASE, \
+					STM32MP_NS_SYSRAM_SIZE, \
+					MT_DEVICE | \
+					MT_RW | \
+					MT_NS | \
+					MT_EXECUTE_NEVER)
+#endif
 
 #define MAP_SRAM_MCU	MAP_REGION_FLAT(STM32MP_SRAM_MCU_BASE, \
 					STM32MP_SRAM_MCU_SIZE, \
@@ -79,7 +96,7 @@
 
 #if defined(IMAGE_BL2)
 static const mmap_region_t stm32mp1_mmap[] = {
-	MAP_SRAM,
+	MAP_SEC_SYSRAM,
 #if STM32MP_USB_PROGRAMMER
 	MAP_SRAM_MCU,
 #endif
@@ -90,7 +107,8 @@ static const mmap_region_t stm32mp1_mmap[] = {
 #endif
 #if defined(IMAGE_BL32)
 static const mmap_region_t stm32mp1_mmap[] = {
-	MAP_SRAM,
+	MAP_SEC_SYSRAM,
+	MAP_NS_SYSRAM,
 	MAP_DEVICE1,
 	MAP_DEVICE2,
 	{0}
