@@ -1142,12 +1142,49 @@ unsigned int stm32mp1_clk_get_refcount(unsigned long id)
 	return gate_refcounts[i];
 }
 
+/* Oscillators and PLLs are not gated at runtime */
+static bool clock_is_always_on(unsigned long id)
+{
+	CASSERT((CK_HSE == 0) &&
+		((CK_HSE + 1) == CK_CSI) &&
+		((CK_HSE + 2) == CK_LSI) &&
+		((CK_HSE + 3) == CK_LSE) &&
+		((CK_HSE + 4) == CK_HSI) &&
+		((CK_HSE + 5) == CK_HSE_DIV2) &&
+		((PLL1_P + 1) == PLL1_Q) &&
+		((PLL1_P + 2) == PLL1_R) &&
+		((PLL1_P + 3) == PLL2_P) &&
+		((PLL1_P + 4) == PLL2_Q) &&
+		((PLL1_P + 5) == PLL2_R) &&
+		((PLL1_P + 6) == PLL3_P) &&
+		((PLL1_P + 7) == PLL3_Q) &&
+		((PLL1_P + 8) == PLL3_R),
+		assert_osc_and_pll_ids_are_contiguous);
+
+	if ((id <= CK_HSE_DIV2) || ((id >= PLL1_P) && (id <= PLL3_R)))
+		return true;
+
+	switch (id) {
+	case CK_AXI:
+	case CK_MPU:
+	case CK_MCU:
+		return true;
+	default:
+		return false;
+	}
+}
+
 void __stm32mp1_clk_enable(unsigned long id, bool secure)
 {
 	const struct stm32mp1_clk_gate *gate;
-	int i = stm32mp1_clk_get_gated_id(id);
+	int i;
 	unsigned int *refcnt;
 
+	if (clock_is_always_on(id)) {
+		return;
+	}
+
+	i = stm32mp1_clk_get_gated_id(id);
 	if (i < 0) {
 		ERROR("Clock %d can't be enabled\n", (uint32_t)id);
 		panic();
@@ -1168,9 +1205,14 @@ void __stm32mp1_clk_enable(unsigned long id, bool secure)
 void __stm32mp1_clk_disable(unsigned long id, bool secure)
 {
 	const struct stm32mp1_clk_gate *gate;
-	int i = stm32mp1_clk_get_gated_id(id);
+	int i;
 	unsigned int *refcnt;
 
+	if (clock_is_always_on(id)) {
+		return;
+	}
+
+	i = stm32mp1_clk_get_gated_id(id);
 	if (i < 0) {
 		ERROR("Clock %d can't be disabled\n", (uint32_t)id);
 		panic();
@@ -1190,8 +1232,13 @@ void __stm32mp1_clk_disable(unsigned long id, bool secure)
 
 bool stm32mp_clk_is_enabled(unsigned long id)
 {
-	int i = stm32mp1_clk_get_gated_id(id);
+	int i;
 
+	if (clock_is_always_on(id)) {
+		return true;
+	}
+
+	i = stm32mp1_clk_get_gated_id(id);
 	if (i < 0) {
 		panic();
 	}
