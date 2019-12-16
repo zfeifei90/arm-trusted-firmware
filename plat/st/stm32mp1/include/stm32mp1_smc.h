@@ -146,6 +146,7 @@
 #define STM32_SMC_READ_OTP		0x04
 #define STM32_SMC_READ_ALL		0x05
 #define STM32_SMC_WRITE_ALL		0x06
+#define STM32_SMC_WRLOCK_OTP		0x07
 
 /* DDR Self-Refresh modes */
 #define STM32_SMC_SR_MODE_SSR		0x0
