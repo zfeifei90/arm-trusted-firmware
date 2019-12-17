@@ -66,11 +66,6 @@ bool stm32mp1_periph_is_non_secure(unsigned long id);
 bool stm32mp1_periph_is_secure(unsigned long id);
 bool stm32mp1_periph_is_unregistered(unsigned long id);
 
-bool stm32mp1_clock_is_secure(unsigned long clock_id);
-bool stm32mp1_clock_is_non_secure(unsigned long clock_id);
-bool stm32mp1_clock_is_shareable(unsigned long clock_id);
-bool stm32mp1_clock_is_shared(unsigned long clock_id);
-
 bool stm32mp_gpio_bank_is_non_secure(unsigned int bank);
 bool stm32mp_gpio_bank_is_shared(unsigned int bank);
 
@@ -125,26 +120,6 @@ static inline bool stm32mp1_periph_is_secure(unsigned long id)
 }
 
 static inline bool stm32mp1_periph_is_unregistered(unsigned long id)
-{
-	return false;
-}
-
-static inline bool stm32mp1_clock_is_secure(unsigned long clock_id)
-{
-	return true;
-}
-
-static inline bool stm32mp1_clock_is_non_secure(unsigned long clock_id)
-{
-	return false;
-}
-
-static inline bool stm32mp1_clock_is_shareable(unsigned long clock_id)
-{
-	return false;
-}
-
-static inline bool stm32mp1_clock_is_shared(unsigned long clock_id)
 {
 	return false;
 }
