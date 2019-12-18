@@ -405,7 +405,9 @@ bool stm32mp1_periph_is_non_secure(unsigned long id)
 {
 	lock_registering();
 
-	return shres_state[id] == SHRES_NON_SECURE;
+	/* Resource not registered are assumed non-secure */
+	return (shres_state[id] == SHRES_NON_SECURE) ||
+	       (shres_state[id] == SHRES_UNREGISTERED);
 }
 
 bool stm32mp1_periph_is_secure(unsigned long id)
@@ -413,13 +415,6 @@ bool stm32mp1_periph_is_secure(unsigned long id)
 	lock_registering();
 
 	return shres_state[id] == SHRES_SECURE;
-}
-
-bool stm32mp1_periph_is_unregistered(unsigned long id)
-{
-	lock_registering();
-
-	return shres_state[id] == SHRES_UNREGISTERED;
 }
 
 bool stm32mp_gpio_bank_is_shared(unsigned int bank)
