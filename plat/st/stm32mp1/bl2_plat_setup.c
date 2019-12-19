@@ -39,6 +39,8 @@
 
 #define PWRLP_TEMPO_5_HSI	5
 
+#define TIMEOUT_US_1MS		U(1000)
+
 static struct console_stm32 console;
 static enum boot_device_e boot_device = BOOT_DEVICE_BOARD;
 static struct stm32mp_auth_ops stm32mp1_auth_ops;
@@ -271,6 +273,21 @@ static void initialize_clock(bool wakeup_standby)
 	}
 }
 
+static void reset_uart(uint32_t reset)
+{
+	if (stm32mp_reset_assert_to(reset, TIMEOUT_US_1MS)) {
+		panic();
+	}
+
+	udelay(2);
+
+	if (stm32mp_reset_deassert_to(reset, TIMEOUT_US_1MS)) {
+		panic();
+	}
+
+	mdelay(1);
+}
+
 void bl2_el3_plat_arch_setup(void)
 {
 	int32_t result;
@@ -446,10 +463,7 @@ void bl2_el3_plat_arch_setup(void)
 
 	stm32mp_clk_enable((unsigned long)dt_uart_info.clock);
 
-	stm32mp_reset_assert((uint32_t)dt_uart_info.reset);
-	udelay(2);
-	stm32mp_reset_deassert((uint32_t)dt_uart_info.reset);
-	mdelay(1);
+	reset_uart((uint32_t)dt_uart_info.reset);
 
 	clk_rate = stm32mp_clk_get_rate((unsigned long)dt_uart_info.clock);
 

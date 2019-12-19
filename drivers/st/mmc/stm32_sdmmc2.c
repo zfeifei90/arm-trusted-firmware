@@ -124,6 +124,8 @@
 #define POWER_OFF_DELAY			2
 #define POWER_ON_DELAY			1
 
+#define TIMEOUT_US_1MS			U(1000)
+
 #define DT_SDMMC2_COMPAT		"st,stm32-sdmmc2"
 
 static void stm32_sdmmc2_init(void);
@@ -777,9 +779,13 @@ int stm32_sdmmc2_mmc_init(struct stm32_sdmmc2_params *params)
 
 	stm32mp_clk_enable(sdmmc2_params.clock_id);
 
-	stm32mp_reset_assert(sdmmc2_params.reset_id);
+	if (stm32mp_reset_assert_to(sdmmc2_params.reset_id, TIMEOUT_US_1MS)) {
+		panic();
+	}
 	udelay(2);
-	stm32mp_reset_deassert(sdmmc2_params.reset_id);
+	if (stm32mp_reset_deassert_to(sdmmc2_params.reset_id, TIMEOUT_US_1MS)) {
+		panic();
+	}
 	mdelay(1);
 
 	sdmmc2_params.clk_rate = stm32mp_clk_get_rate(sdmmc2_params.clock_id);

@@ -215,6 +215,8 @@ static const struct tzc_source_ip tzc_source_ip[] = {
 	_TZC_COND(DMA2_R, DMA2, STM32MP1_ETZPC_DMA2_ID),
 };
 
+#define TIMEOUT_US_1MS		U(1000)
+
 void __dead2 stm32mp_plat_reset(int cpu)
 {
 	uint32_t reg = RCC_MP_GRSTCSETR_MPUP0RST;
@@ -232,8 +234,14 @@ void __dead2 stm32mp_plat_reset(int cpu)
 		}
 
 		if (tzc_source_ip[id].reset_id != GPU_R) {
-			stm32mp_reset_assert(tzc_source_ip[id].reset_id);
-			stm32mp_reset_deassert(tzc_source_ip[id].reset_id);
+			uint32_t reset = tzc_source_ip[id].reset_id;
+
+			if (stm32mp_reset_assert_to(reset, TIMEOUT_US_1MS)) {
+				panic();
+			}
+			if (stm32mp_reset_deassert_to(reset, TIMEOUT_US_1MS)) {
+				panic();
+			}
 		} else {
 			/* GPU reset automatically cleared by hardware */
 			mmio_setbits_32(stm32mp_rcc_base() + RCC_AHB6RSTSETR,

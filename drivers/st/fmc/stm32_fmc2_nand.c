@@ -22,6 +22,8 @@
 #include <lib/mmio.h>
 #include <lib/utils_def.h>
 
+#define TIMEOUT_US_1MS			U(1000)
+
 /* FMC2 Compatibility */
 #define DT_FMC2_COMPAT			"st,stm32mp15-fmc2"
 #define MAX_CS				2U
@@ -861,8 +863,12 @@ int stm32_fmc2_init(void)
 	stm32mp_clk_enable(stm32_fmc2.clock_id);
 
 	/* Reset IP */
-	stm32mp_reset_assert(stm32_fmc2.reset_id);
-	stm32mp_reset_deassert(stm32_fmc2.reset_id);
+	if (stm32mp_reset_assert_to(stm32_fmc2.reset_id, TIMEOUT_US_1MS)) {
+		panic();
+	}
+	if (stm32mp_reset_deassert_to(stm32_fmc2.reset_id, TIMEOUT_US_1MS)) {
+		panic();
+	}
 
 	/* Setup default IP registers */
 	stm32_fmc2_ctrl_init();

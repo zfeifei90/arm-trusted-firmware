@@ -36,6 +36,8 @@
 #define RNG_TIMEOUT_US		100000
 #define RNG_TIMEOUT_STEP_US	10
 
+#define TIMEOUT_US_1MS		U(1000)
+
 struct stm32_rng_instance {
 	uintptr_t base;
 	unsigned long clock;
@@ -170,9 +172,14 @@ int stm32_rng_init(void)
 	stm32mp_clk_disable(stm32_rng.clock);
 
 	if (dt_rng.reset >= 0) {
-		stm32mp_reset_assert((unsigned long)dt_rng.reset);
+		if (stm32mp_reset_assert_to((unsigned long)dt_rng.reset,
+					    TIMEOUT_US_1MS))
+			panic();
+
 		udelay(20);
-		stm32mp_reset_deassert((unsigned long)dt_rng.reset);
+		if (stm32mp_reset_deassert_to((unsigned long)dt_rng.reset,
+					      TIMEOUT_US_1MS))
+			panic();
 	}
 
 	VERBOSE("Init RNG done\n");

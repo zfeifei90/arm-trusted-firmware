@@ -16,6 +16,8 @@
 #include <lib/mmio.h>
 #include <lib/utils_def.h>
 
+#define TIMEOUT_US_1MS		U(1000)
+
 /* QUADSPI registers */
 #define QSPI_CR			0x00U
 #define QSPI_DCR		0x04U
@@ -490,8 +492,12 @@ int stm32_qspi_init(void)
 
 	stm32mp_clk_enable(stm32_qspi.clock_id);
 
-	stm32mp_reset_assert(stm32_qspi.reset_id);
-	stm32mp_reset_deassert(stm32_qspi.reset_id);
+	if (stm32mp_reset_assert_to(stm32_qspi.reset_id, TIMEOUT_US_1MS)) {
+		panic();
+	}
+	if (stm32mp_reset_deassert_to(stm32_qspi.reset_id, TIMEOUT_US_1MS)) {
+		panic();
+	}
 
 	mmio_write_32(qspi_base() + QSPI_CR, QSPI_CR_SSHIFT);
 	mmio_write_32(qspi_base() + QSPI_DCR, QSPI_DCR_FSIZE_MASK);
