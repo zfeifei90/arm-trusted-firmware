@@ -2650,6 +2650,7 @@ unsigned long stm32mp1_clk_rcc2id(unsigned int offset, unsigned int bit)
 	return get_id_from_rcc_bit(offset, bit);
 }
 
+#ifdef IMAGE_BL32
 /*
  * Get the parent ID of the target parent clock, for tagging as secure
  * shared clock dependencies.
@@ -2725,7 +2726,7 @@ static int get_parent_id_parent(unsigned int parent_id)
 	}
 
 #if LOG_LEVEL >= LOG_LEVEL_VERBOSE
-	VERBOSE("No parent selected for %s",
+	VERBOSE("No parent selected for %s\n",
 		stm32mp1_clk_parent_name[parent_id]);
 #endif
 
@@ -2737,66 +2738,40 @@ static void secure_parent_clocks(unsigned long parent_id)
 	int grandparent_id;
 
 	switch (parent_id) {
-	/* Secure only the parents for these clocks */
+	case _PLL3_P:
+	case _PLL3_Q:
+	case _PLL3_R:
+		stm32mp_register_secure_periph(STM32MP1_SHRES_PLL3);
+		break;
+
+	/* These clocks are always secure when RCC is secure */
 	case _ACLK:
 	case _HCLK2:
 	case _HCLK6:
 	case _PCLK4:
 	case _PCLK5:
-		break;
-	/* PLLs */
 	case _PLL1_P:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL1_P);
-		break;
 	case _PLL1_Q:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL1_Q);
-		break;
 	case _PLL1_R:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL1_R);
-		break;
-
 	case _PLL2_P:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL2_P);
-		break;
 	case _PLL2_Q:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL2_Q);
-		break;
 	case _PLL2_R:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL2_R);
-		break;
-
-	case _PLL3_P:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL3_P);
-		break;
-	case _PLL3_Q:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL3_Q);
-		break;
-	case _PLL3_R:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_PLL3_R);
-		break;
-
-	/* Source clocks */
 	case _HSI:
 	case _HSI_KER:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_HSI);
-		break;
 	case _LSI:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_LSI);
-		break;
 	case _CSI:
 	case _CSI_KER:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_CSI);
-		break;
 	case _HSE:
 	case _HSE_KER:
 	case _HSE_KER_DIV2:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_HSE);
-		break;
 	case _LSE:
-		stm32mp1_register_secure_periph(STM32MP1_SHRES_LSE);
 		break;
 
 	default:
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+		VERBOSE("Cannot secure parent clock %s\n",
+			stm32mp1_clk_parent_name[parent_id]);
+#endif
 		panic();
 	}
 
@@ -2816,14 +2791,12 @@ void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
 
 	switch (clock_id) {
 	case PLL1:
-		parent_id = get_parent_id_parent(_PLL1_P);
-		break;
 	case PLL2:
-		parent_id = get_parent_id_parent(_PLL2_P);
-		break;
+		/* PLL1/PLL2 are always secure: nothing to do */
+		return;
 	case PLL3:
-		parent_id = get_parent_id_parent(_PLL3_P);
-		break;
+		stm32mp_register_secure_periph(STM32MP1_SHRES_PLL3);
+		return;
 	case PLL4:
 		ERROR("PLL4 cannot be secured\n");
 		panic();
@@ -2841,6 +2814,11 @@ void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
 
 	secure_parent_clocks(parent_id);
 }
+#else
+void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
+{
+}
+#endif /* IMAGE_BL32 */
 
 /* Sync secure clock refcount after all drivers probe/inits,  */
 void stm32mp1_update_earlyboot_clocks_state(void)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2018-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -99,9 +99,24 @@ bool stm32mp_supports_cpu_opp(uint32_t opp_id);
  * @id: Target clock ID, ID used in clock DT bindings
  */
 bool stm32mp_clk_is_enabled(unsigned long id);
+unsigned long stm32mp_clk_get_rate(unsigned long id);
+
+#ifdef IMAGE_BL32
+/* Generic clock gating for secure world (to move to clock driver) */
 void stm32mp_clk_enable(unsigned long id);
 void stm32mp_clk_disable(unsigned long id);
-unsigned long stm32mp_clk_get_rate(unsigned long id);
+#else
+static inline void stm32mp_clk_enable(unsigned long id)
+{
+	stm32mp1_clk_enable_secure(id);
+}
+
+static inline void stm32mp_clk_disable(unsigned long id)
+{
+	stm32mp1_clk_enable_secure(id);
+}
+#endif
+
 
 /* Initialise the IO layer and register platform IO devices */
 void stm32mp_io_setup(void);

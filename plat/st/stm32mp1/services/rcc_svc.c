@@ -222,29 +222,8 @@ static void raw_allowed_access_request(uint32_t request,
 	switch (offset) {
 	case RCC_OCENSETR:
 	case RCC_OCENCLRR:
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_HSI)) {
-			allowed_mask |= RCC_OCENR_HSION | RCC_OCENR_HSIKERON;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_CSI)) {
-			allowed_mask |= RCC_OCENR_CSION | RCC_OCENR_CSIKERON;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_HSE)) {
-			allowed_mask |= RCC_OCENR_HSEON | RCC_OCENR_HSEKERON |
-					RCC_OCENR_HSEBYP | RCC_OCENR_HSECSSON |
-					RCC_OCENR_DIGBYP;
-		}
-		break;
-
 	case RCC_HSICFGR:
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_HSI)) {
-			allowed_mask = UINT32_MAX;
-		}
-		break;
-
 	case RCC_CSICFGR:
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_CSI)) {
-			allowed_mask = UINT32_MAX;
-		}
 		break;
 
 	case RCC_MP_CIER:
@@ -252,76 +231,16 @@ static void raw_allowed_access_request(uint32_t request,
 		/* RCC_MP_CIFR_xxxRDYF matches CIER and CIFR bit mapping */
 		allowed_mask |= RCC_MP_CIFR_WKUPF | RCC_MP_CIFR_PLL4DYF;
 
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_LSI)) {
-			allowed_mask |= RCC_MP_CIFR_LSIRDYF;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_LSE)) {
-			allowed_mask |= RCC_MP_CIFR_LSERDYF;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_HSI)) {
-			allowed_mask |= RCC_MP_CIFR_HSIRDYF;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_HSE)) {
-			allowed_mask |= RCC_MP_CIFR_HSERDYF;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_CSI)) {
-			allowed_mask |= RCC_MP_CIFR_CSIRDYF;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL1)) {
-			allowed_mask |= RCC_MP_CIFR_PLL1DYF;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL2)) {
-			allowed_mask |= RCC_MP_CIFR_PLL2DYF;
-		}
 		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL3)) {
 			allowed_mask |= RCC_MP_CIFR_PLL3DYF;
 		}
 		break;
 
-	case RCC_PLL1CR:
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL1_P)) {
-			allowed_mask |= RCC_PLLNCR_DIVPEN;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL1_Q)) {
-			allowed_mask |= RCC_PLLNCR_DIVQEN;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL1_R)) {
-			allowed_mask |= RCC_PLLNCR_DIVREN;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL1)) {
-			allowed_mask |= RCC_PLLNCR_PLLON | RCC_PLLNCR_PLLRDY |
-					RCC_PLLNCR_SSCG_CTRL;
-		}
-		break;
-
-	case RCC_PLL2CR:
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL2_P)) {
-			allowed_mask |= RCC_PLLNCR_DIVPEN;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL2_Q)) {
-			allowed_mask |= RCC_PLLNCR_DIVQEN;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL2_R)) {
-			allowed_mask |= RCC_PLLNCR_DIVREN;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL2)) {
-			allowed_mask |= RCC_PLLNCR_PLLON | RCC_PLLNCR_PLLRDY |
-					RCC_PLLNCR_SSCG_CTRL;
-		}
-		break;
-
 	case RCC_PLL3CR:
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL3_P)) {
-			allowed_mask |= RCC_PLLNCR_DIVPEN;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL3_Q)) {
-			allowed_mask |= RCC_PLLNCR_DIVQEN;
-		}
-		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL3_R)) {
-			allowed_mask |= RCC_PLLNCR_DIVREN;
-		}
 		if (stm32mp1_periph_is_non_secure(STM32MP1_SHRES_PLL3)) {
-			allowed_mask |= RCC_PLLNCR_PLLON | RCC_PLLNCR_PLLRDY |
+			allowed_mask |= RCC_PLLNCR_DIVPEN | RCC_PLLNCR_DIVQEN |
+					RCC_PLLNCR_DIVREN | RCC_PLLNCR_PLLON |
+					RCC_PLLNCR_PLLRDY |
 					RCC_PLLNCR_SSCG_CTRL;
 		}
 		break;

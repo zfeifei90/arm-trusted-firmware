@@ -387,8 +387,6 @@ static void register_non_secure_pmic(void)
 	}
 
 	stm32mp_register_non_secure_periph_iomem(i2c_handle.i2c_base_addr);
-
-	stm32mp_register_clock_parents(i2c_handle.clock);
 }
 
 static void register_secure_pmic(void)

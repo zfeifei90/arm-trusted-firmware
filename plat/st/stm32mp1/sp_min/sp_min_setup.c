@@ -389,7 +389,7 @@ void sp_min_platform_setup(void)
 
 	configure_wakeup_interrupt();
 
-	stm32mp1_driver_init_late();
+	stm32mp_lock_periph_registering();
 }
 
 void sp_min_plat_arch_setup(void)
