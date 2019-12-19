@@ -74,6 +74,8 @@ bool stm32mp1_clock_is_shared(unsigned long clock_id);
 bool stm32mp_gpio_bank_is_non_secure(unsigned int bank);
 bool stm32mp_gpio_bank_is_shared(unsigned int bank);
 
+bool stm32mp_nsec_can_access_clock(unsigned long clock_id);
+bool stm32mp_nsec_can_access_reset(unsigned int reset_id);
 #else /* IMAGE_BL32 */
 static inline void stm32mp_register_secure_periph(unsigned int id)
 {
