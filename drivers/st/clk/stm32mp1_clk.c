@@ -119,6 +119,7 @@ enum stm32mp1_parent_sel {
 	_MCUS_SEL,
 	_USBPHY_SEL,
 	_USBO_SEL,
+	_RTC_SEL,
 	_MPU_SEL,
 	_PER_SEL,
 	_PARENT_SEL_NB,
@@ -404,6 +405,8 @@ static const struct stm32mp1_clk_gate stm32mp1_clk_gate[] = {
 	_CLK_SC_FIXED(RCC_MP_APB5ENSETR, 16, BSEC, _PCLK5),
 	_CLK_SC_SELEC(RCC_MP_APB5ENSETR, 20, STGEN_K, _STGEN_SEL),
 
+	_CLK_SELEC(RCC_BDCR, 20, RTC, _RTC_SEL),
+
 	_CLK_SC_SELEC(RCC_MP_AHB2ENSETR, 0, DMA1, _UNKNOWN_SEL),
 	_CLK_SC_SELEC(RCC_MP_AHB2ENSETR, 1, DMA2, _UNKNOWN_SEL),
 	_CLK_SC_SELEC(RCC_MP_AHB2ENSETR, 8, USBO_K, _USBO_SEL),
@@ -507,6 +510,10 @@ static const uint8_t usbo_parents[] = {
 	_PLL4_R, _USB_PHY_48
 };
 
+static const uint8_t rtc_parents[] = {
+	_UNKNOWN_ID, _LSE, _LSI, _HSE
+};
+
 static const uint8_t mpu_parents[] = {
 	_HSI, _HSE, _PLL1_P, _PLL1_P /* specific div */
 };
@@ -523,6 +530,7 @@ static const struct stm32mp1_clk_sel stm32mp1_clk_sel[_PARENT_SEL_NB] = {
 	_CLK_PARENT_SEL(SPI6, RCC_SPI6CKSELR, spi6_parents),
 	_CLK_PARENT_SEL(UART1, RCC_UART1CKSELR, usart1_parents),
 	_CLK_PARENT_SEL(RNG1, RCC_RNG1CKSELR, rng1_parents),
+	_CLK_PARENT_SEL(RTC, RCC_BDCR, rtc_parents),
 	_CLK_PARENT_SEL(MPU, RCC_MPCKSELR, mpu_parents),
 	_CLK_PARENT_SEL(PER, RCC_CPERCKSELR, per_parents),
 	_CLK_PARENT_SEL(UART6, RCC_UART6CKSELR, uart6_parents),
