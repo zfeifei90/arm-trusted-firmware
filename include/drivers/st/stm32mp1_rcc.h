@@ -450,6 +450,9 @@
 #define RCC_MP_SREQCLRR_STPREQ_P0	BIT(0)
 #define RCC_MP_SREQCLRR_STPREQ_P1	BIT(1)
 
+/* Global Control Register */
+#define RCC_MP_GCR_BOOT_MCU		BIT(0)
+
 /* Values of RCC_UART24CKSELR register */
 #define RCC_UART24CKSELR_HSI		0x00000002
 
