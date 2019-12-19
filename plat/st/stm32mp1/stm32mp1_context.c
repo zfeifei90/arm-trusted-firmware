@@ -63,6 +63,9 @@
 /* Set to 600 bytes to be a bit flexible but could be optimized if needed */
 #define CLOCK_CONTEXT_SIZE		600
 
+/* SCMI needs only 24 bits to save the state of the 24 exposed clocks */
+#define SCMI_CONTEXT_SIZE		(sizeof(uint8_t) * 4)
+
 struct backup_data_s {
 	uint32_t magic;
 	uint32_t core0_resume_hint;
@@ -86,6 +89,7 @@ struct backup_bl32_data_s {
 	struct stm32_rtc_calendar rtc;
 	unsigned long long stgen;
 	uint8_t clock_cfg[CLOCK_CONTEXT_SIZE];
+	uint8_t scmi_context[SCMI_CONTEXT_SIZE];
 };
 
 static struct backup_bl32_data_s *get_bl32_backup_data(void)
@@ -216,6 +220,9 @@ int stm32_save_context(uint32_t zq0cr0_zdata,
 	memcpy(&backup_bl32_data->rtc, rtc_time, sizeof(struct stm32_rtc_calendar));
 	backup_bl32_data->stgen = stgen_cnt;
 
+	stm32mp1_pm_save_scmi_state(backup_bl32_data->scmi_context,
+				    sizeof(backup_bl32_data->scmi_context));
+
 	save_clock_pm_context();
 
 	clk_disable(BKPSRAM);
@@ -254,6 +261,9 @@ int stm32_restore_context(void)
 	cpu_context = cm_get_context(NON_SECURE);
 
 	restore_clock_pm_context();
+
+	stm32mp1_pm_restore_scmi_state(backup_bl32_data->scmi_context,
+				       sizeof(backup_bl32_data->scmi_context));
 
 	/* Restore data from Backup SRAM */
 	memcpy(smc_context, backup_bl32_data->saved_smc_context,
