@@ -9,6 +9,7 @@
 
 #include <common/debug.h>
 #include <common/runtime_svc.h>
+#include <drivers/st/scmi-msg.h>
 #include <lib/psci/psci.h>
 #include <tools_share/uuid.h>
 
@@ -91,6 +92,15 @@ static uintptr_t stm32mp1_svc_smc_handler(uint32_t smc_fid, u_register_t x1,
 
 	case STM32_SMC_PD_DOMAIN:
 		ret1 = pm_domain_scv_handler(x1, x2);
+		break;
+
+	case STM32_SMC_SCMI_MESSAGE_AGENT0:
+		scmi_smt_fastcall_smc_entry(0U);
+		ret1 = STM32_SMC_OK;
+		break;
+	case STM32_SMC_SCMI_MESSAGE_AGENT1:
+		scmi_smt_fastcall_smc_entry(1U);
+		ret1 = STM32_SMC_OK;
 		break;
 
 	default:

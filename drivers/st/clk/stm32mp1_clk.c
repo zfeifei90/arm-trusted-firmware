@@ -3335,7 +3335,6 @@ static void sync_earlyboot_clocks_state(void)
 	stm32mp_clk_enable(TZC2);
 	stm32mp_clk_enable(STGEN_K);
 
-	stm32mp_clk_enable(BSEC);
 	stm32mp_clk_enable(RTCAPB);
 }
 

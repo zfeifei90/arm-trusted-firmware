@@ -35,3 +35,11 @@ BL32_SOURCES		+=	plat/st/stm32mp1/services/bsec_svc.c		\
 				plat/st/stm32mp1/services/pwr_svc.c		\
 				plat/st/stm32mp1/services/rcc_svc.c		\
 				plat/st/stm32mp1/services/stm32mp1_svc_setup.c
+
+# SCMI server
+BL32_SOURCES		+=	drivers/st/scmi-msg/base.c		\
+				drivers/st/scmi-msg/clock.c		\
+				drivers/st/scmi-msg/entry.c		\
+				drivers/st/scmi-msg/reset_domain.c	\
+				drivers/st/scmi-msg/smt.c		\
+				plat/st/stm32mp1/stm32mp1_scmi.c
