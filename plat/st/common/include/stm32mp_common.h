@@ -40,6 +40,8 @@ int stm32_get_gpio_bank_clock(unsigned int bank);
 uint32_t stm32_get_gpio_bank_offset(unsigned int bank);
 
 bool stm32mp_supports_cpu_opp(uint32_t opp_id);
+bool stm32mp_ddr_supports_ssr_asr(void);
+
 void stm32mp_print_cpuinfo(void);
 void stm32mp_print_boardinfo(void);
 
