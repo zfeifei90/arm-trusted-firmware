@@ -325,6 +325,9 @@ static int stm32mp1_ddr_setup(void)
 		}
 	}
 
+	/* Switch to Automatic Self-Refresh */
+	ddr_sr_mode_asr();
+
 #ifndef DCACHE_OFF
 	write_sctlr(read_sctlr() | SCTLR_C_BIT);
 #endif
