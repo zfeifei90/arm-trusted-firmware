@@ -45,8 +45,6 @@ struct stm32_header {
 	uint8_t binary_type;
 };
 
-static struct stm32_header stm32image_header;
-
 static void stm32image_default_header(struct stm32_header *ptr)
 {
 	if (!ptr) {
@@ -127,6 +125,7 @@ static int stm32image_create_header_file(char *srcname, char *destname,
 	int src_fd, dest_fd;
 	struct stat sbuf;
 	unsigned char *ptr;
+	struct stm32_header stm32image_header;
 
 	dest_fd = open(destname, O_RDWR | O_CREAT | O_TRUNC | O_APPEND, 0666);
 	if (dest_fd == -1) {
