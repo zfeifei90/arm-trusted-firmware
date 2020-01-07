@@ -211,19 +211,19 @@ int main(int argc, char *argv[])
 			dest = optarg;
 			break;
 		case 'l':
-			loadaddr = strtol(optarg, NULL, 16);
+			loadaddr = strtol(optarg, NULL, 0);
 			break;
 		case 'e':
-			entry = strtol(optarg, NULL, 16);
+			entry = strtol(optarg, NULL, 0);
 			break;
 		case 'v':
-			version = strtol(optarg, NULL, 10);
+			version = strtol(optarg, NULL, 0);
 			break;
 		case 'm':
-			major = strtol(optarg, NULL, 10);
+			major = strtol(optarg, NULL, 0);
 			break;
 		case 'n':
-			minor = strtol(optarg, NULL, 10);
+			minor = strtol(optarg, NULL, 0);
 			break;
 		default:
 			fprintf(stderr,
