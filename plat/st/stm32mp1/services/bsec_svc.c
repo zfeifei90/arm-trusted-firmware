@@ -100,6 +100,7 @@ static enum bsec_ssp_status bsec_check_ssp(uint32_t otp, uint32_t update)
 	return BSEC_NO_SSP;
 }
 
+#if STM32MP_USB_PROGRAMMER || STM32MP_UART_PROGRAMMER
 static uint32_t bsec_read_all_bsec(struct otp_exchange *exchange)
 {
 	uint32_t i;
@@ -388,15 +389,16 @@ static uint32_t bsec_write_all_bsec(struct otp_exchange *exchange,
 
 	return BSEC_OK;
 }
+#endif /* STM32MP_USB_PROGRAMMER || STM32MP_UART_PROGRAMMER */
 
 uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 		   uint32_t *ret_otp_value)
 {
 	uint32_t result;
 	uint32_t tmp_data = 0U;
-	struct otp_exchange *otp_exch;
-	uintptr_t map_begin;
-	size_t map_size = PAGE_SIZE;
+	struct otp_exchange *otp_exch __unused;
+	uintptr_t map_begin __unused;
+	size_t map_size __unused = PAGE_SIZE;
 	int ret __unused;
 
 	if ((x1 != STM32_SMC_READ_ALL) && (x1 != STM32_SMC_WRITE_ALL) &&
@@ -404,6 +406,7 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 		return BSEC_ERROR;
 	}
 
+#if STM32MP_USB_PROGRAMMER || STM32MP_UART_PROGRAMMER
 	if ((x1 == STM32_SMC_READ_ALL) || (x1 == STM32_SMC_WRITE_ALL)) {
 		map_begin = round_down(x2, PAGE_SIZE);
 
@@ -431,6 +434,7 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 
 		otp_exch = (struct otp_exchange *)(uintptr_t)x2;
 	}
+#endif
 
 	switch (x1) {
 	case STM32_SMC_READ_SHADOW:
@@ -475,12 +479,14 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 
 		result = bsec_write_otp(tmp_data, x2);
 		break;
+#if STM32MP_USB_PROGRAMMER || STM32MP_UART_PROGRAMMER
 	case STM32_SMC_READ_ALL:
 		result = bsec_read_all_bsec(otp_exch);
 		break;
 	case STM32_SMC_WRITE_ALL:
 		result = bsec_write_all_bsec(otp_exch, ret_otp_value);
 		break;
+#endif
 	case STM32_SMC_WRLOCK_OTP:
 		result = bsec_permanent_lock_otp(x2);
 		break;
@@ -489,10 +495,12 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 		break;
 	}
 
+#if STM32MP_USB_PROGRAMMER || STM32MP_UART_PROGRAMMER
 	if ((x1 == STM32_SMC_READ_ALL) || (x1 == STM32_SMC_WRITE_ALL)) {
 		ret = mmap_remove_dynamic_region(map_begin, map_size);
 		assert(ret == 0);
 	}
+#endif
 
 	return result;
 }
