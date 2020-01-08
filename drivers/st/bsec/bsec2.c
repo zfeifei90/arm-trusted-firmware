@@ -482,16 +482,23 @@ uint32_t bsec_program_otp(uint32_t val, uint32_t otp)
 {
 	uint32_t result;
 	bool power_up = false;
-	bool value;
+	bool sp_lock, perm_lock;
 
-	result = bsec_read_sp_lock(otp, &value);
+	result = bsec_read_sp_lock(otp, &sp_lock);
 	if (result != BSEC_OK) {
 		ERROR("BSEC: %u Sticky-prog bit read Error %i\n", otp, result);
 		return result;
 	}
 
-	if (value) {
+	result = bsec_read_permanent_lock(otp, &perm_lock);
+	if (result != BSEC_OK) {
+		ERROR("BSEC: %u permanent bit read Error %i\n", otp, result);
+		return result;
+	}
+
+	if (sp_lock || perm_lock) {
 		WARN("BSEC: OTP locked, prog will be ignored\n");
+		return BSEC_PROG_FAIL;
 	}
 
 	if ((mmio_read_32(bsec_base + BSEC_OTP_LOCK_OFF) &
