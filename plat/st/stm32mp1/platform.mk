@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -18,6 +18,11 @@ VERSION_STRING		:=	v${VERSION_MAJOR}.${VERSION_MINOR}-${ST_VERSION}(${BUILD_TYPE
 # the monotonic counter
 STM32_TF_VERSION	?=	0
 $(eval $(call add_define_val,STM32_TF_VERSION,${STM32_TF_VERSION}))
+
+# Enable dynamic memory mapping
+PLAT_XLAT_TABLES_DYNAMIC :=	1
+$(eval $(call assert_boolean,PLAT_XLAT_TABLES_DYNAMIC))
+$(eval $(call add_define,PLAT_XLAT_TABLES_DYNAMIC))
 
 # Enable software PMIC programming in case of debug purpose
 STM32MP1_DEBUG_ENABLE	?=	1

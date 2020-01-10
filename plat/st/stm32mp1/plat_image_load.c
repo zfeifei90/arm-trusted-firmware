@@ -90,7 +90,13 @@ bl_load_info_t *plat_get_bl_image_load_info(void)
 		stm32mp_clk_disable(RTCAPB);
 	}
 
-	bl33->image_info.image_max_size = dt_get_ddr_size();
+	/* Max size is non-secure DDR end address minus image_base */
+	bl33->image_info.image_max_size = dt_get_ddr_size() -
+#ifdef AARCH32_SP_OPTEE
+					  STM32MP_DDR_S_SIZE -
+					  STM32MP_DDR_SHMEM_SIZE -
+#endif
+					  bl33->image_info.image_base;
 
 	return get_bl_load_info_from_mem_params_desc();
 }
