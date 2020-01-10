@@ -1,12 +1,10 @@
 #
-# Copyright (c) 2017-2019, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2017-2020, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
 SP_MIN_WITH_SECURE_FIQ	:=	1
-
-BL32_CFLAGS		+=	-DPLAT_XLAT_TABLES_DYNAMIC=1
 
 BL32_SOURCES		+=	plat/common/aarch32/platform_mp_stack.S		\
 				drivers/st/clk/stm32mp1_calib.c			\

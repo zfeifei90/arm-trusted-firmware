@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2018-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
  */
@@ -305,11 +305,6 @@ static int stm32mp1_ddr_setup(void)
 	VERBOSE("%s : ram size(%x, %x)\n", __func__,
 		(uint32_t)priv->info.base, (uint32_t)priv->info.size);
 
-#ifndef DCACHE_OFF
-	write_sctlr(read_sctlr() & ~SCTLR_C_BIT);
-	dcsw_op_all(DC_OP_CISW);
-#endif
-
 	if (config.self_refresh) {
 		uret = ddr_test_rw_access();
 		if (uret != 0U) {
@@ -345,10 +340,6 @@ static int stm32mp1_ddr_setup(void)
 
 	/* Switch to Automatic Self-Refresh */
 	ddr_sr_mode_asr();
-
-#ifndef DCACHE_OFF
-	write_sctlr(read_sctlr() | SCTLR_C_BIT);
-#endif
 
 	return 0;
 }
