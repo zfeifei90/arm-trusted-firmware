@@ -214,7 +214,7 @@ STM32IMAGE		?= ${STM32IMAGEPATH}/stm32image${BIN_EXT}
 .PHONY:			${STM32_TF_STM32}
 .SUFFIXES:
 
-all: check_dtc_version ${STM32_TF_STM32} stm32image
+all: check_dtc_version stm32image ${STM32_TF_STM32}
 
 ifeq ($(AARCH32_SP),sp_min)
 # BL32 is built only if using SP_MIN
@@ -226,6 +226,8 @@ distclean realclean clean: clean_stm32image
 
 stm32image:
 	${Q}${MAKE} CPPFLAGS="" --no-print-directory -C ${STM32IMAGEPATH}
+
+${STM32IMAGE}: stm32image
 
 clean_stm32image:
 	${Q}${MAKE} --no-print-directory -C ${STM32IMAGEPATH} clean
@@ -261,7 +263,7 @@ ${STM32_TF_BINARY}:	${STM32_TF_ELF}
 			@echo "Built $@ successfully"
 			@echo
 
-${STM32_TF_STM32}:	stm32image ${STM32_TF_BINARY}
+${STM32_TF_STM32}:	${STM32IMAGE} ${STM32_TF_BINARY}
 			@echo
 			@echo "Generate $@"
 			$(eval LOADADDR =  $(shell cat ${STM32_TF_MAPFILE} | grep RAM | awk '{print $$2}'))
