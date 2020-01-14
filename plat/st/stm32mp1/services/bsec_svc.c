@@ -393,14 +393,14 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 
 	if ((x1 != STM32_SMC_READ_ALL) && (x1 != STM32_SMC_WRITE_ALL) &&
 	    (bsec_check_nsec_access_rights(x2) != BSEC_OK)) {
-		return BSEC_ERROR;
+		return STM32_SMC_INVALID_PARAMS;
 	}
 
 #if STM32MP_USB || STM32MP_UART_PROGRAMMER
 	if (((x1 == STM32_SMC_READ_ALL) || (x1 == STM32_SMC_WRITE_ALL)) &&
 	    (!ddr_is_nonsecured_area((uintptr_t)x2,
 				     sizeof(struct otp_exchange)))) {
-		return BSEC_ERROR;
+		return STM32_SMC_INVALID_PARAMS;
 	}
 #endif
 
@@ -460,9 +460,8 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 		result = bsec_permanent_lock_otp(x2);
 		break;
 	default:
-		result = BSEC_ERROR;
-		break;
+		return STM32_SMC_INVALID_PARAMS;
 	}
 
-	return result;
+	return (result == BSEC_OK) ? STM32_SMC_OK : STM32_SMC_FAILED;
 }
