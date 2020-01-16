@@ -162,8 +162,13 @@ enum ddr_type {
 #define STM32MP_BL2_BASE		(STM32MP_BL32_BASE - \
 					 STM32MP_BL2_SIZE)
 
+#if defined(STM32MP_USB)
+/* BL2 and BL32/sp_min require 5 finer granularity tables */
+ #define MAX_XLAT_TABLES			U(5)		/* 20 Ko for mapping */
+#else
 /* BL2 and BL32/sp_min require 4 finer granularity tables */
-#define MAX_XLAT_TABLES			U(4)		/* 16 Ko for mapping */
+ #define MAX_XLAT_TABLES			U(4)		/* 16 Ko for mapping */
+#endif
 
 /*
  * MAX_MMAP_REGIONS is usually:
