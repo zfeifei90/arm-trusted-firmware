@@ -1214,6 +1214,14 @@ static void __stm32mp1_clk_enable(unsigned long id, bool secure)
 	gate = gate_ref(i);
 	refcnt = &gate_refcounts[i];
 
+#if defined(IMAGE_BL32)
+	if (gate_is_non_secure(gate)) {
+		/* Enable non-secure clock w/o any refcounting */
+		__clk_enable(gate);
+		return;
+	}
+#endif
+
 	stm32mp1_clk_lock(&refcount_lock);
 
 	if (stm32mp_incr_shrefcnt(refcnt, secure) != 0) {
@@ -1241,6 +1249,13 @@ static void __stm32mp1_clk_disable(unsigned long id, bool secure)
 
 	gate = gate_ref(i);
 	refcnt = &gate_refcounts[i];
+
+#if defined(IMAGE_BL32)
+	if (gate_is_non_secure(gate)) {
+		/* Don't disable non-secure clocks */
+		return;
+	}
+#endif
 
 	stm32mp1_clk_lock(&refcount_lock);
 
