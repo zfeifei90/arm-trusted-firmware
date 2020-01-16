@@ -476,13 +476,26 @@ void stm32mp1_register_etzpc_decprot(unsigned int id,
 		panic();
 	}
 
-	id_shres = decprot2shres(id);
-	if (id_shres == SHRES_INVALID) {
-		if (state == SHRES_SECURE) {
+	switch (id) {
+	case STM32MP1_ETZPC_STGENC_ID:
+	case STM32MP1_ETZPC_BKPSRAM_ID:
+	case STM32MP1_ETZPC_DDRCTRL_ID:
+	case STM32MP1_ETZPC_DDRPHYC_ID:
+		/* We assume these must always be assigned to secure world */
+		if (state != SHRES_SECURE) {
 			panic();
 		}
-	} else {
-		register_periph(id_shres, state);
+		break;
+	default:
+		id_shres = decprot2shres(id);
+		if (id_shres == SHRES_INVALID) {
+			if (state == SHRES_SECURE) {
+				panic();
+			}
+		} else {
+			register_periph(id_shres, state);
+		}
+		break;
 	}
 }
 
