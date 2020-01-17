@@ -407,6 +407,9 @@ uint32_t bsec_main(uint32_t x1, uint32_t x2, uint32_t x3,
 	}
 
 #if STM32MP_USB_PROGRAMMER || STM32MP_UART_PROGRAMMER
+	otp_exch = NULL;
+	map_begin = 0U;
+
 	if ((x1 == STM32_SMC_READ_ALL) || (x1 == STM32_SMC_WRITE_ALL)) {
 		map_begin = round_down(x2, PAGE_SIZE);
 
