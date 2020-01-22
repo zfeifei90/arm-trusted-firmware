@@ -10,6 +10,7 @@
 #include <platform_def.h>
 
 #include <arch_helpers.h>
+#include <bl32/sp_min/platform_sp_min.h>
 #include <common/debug.h>
 #include <drivers/arm/gic_common.h>
 #include <drivers/arm/gicv2.h>
@@ -88,9 +89,8 @@ static int stm32_pwr_domain_on(u_register_t mpidr)
 	/* Wait for this IT to be acknowledged by ROM code. */
 	udelay(10);
 
-	if ((stm32_sec_entrypoint < STM32MP_SEC_SYSRAM_BASE) ||
-	    (stm32_sec_entrypoint > (STM32MP_SEC_SYSRAM_BASE +
-				     (STM32MP_SEC_SYSRAM_SIZE - 1)))) {
+	/* Only one valid entry point */
+	if (stm32_sec_entrypoint != (uintptr_t)&sp_min_warm_entrypoint) {
 		return PSCI_E_INVALID_ADDRESS;
 	}
 
