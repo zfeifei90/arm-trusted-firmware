@@ -122,11 +122,6 @@ To build TF-A with OP-TEE support for all bootable devices:
     make DEVICE_TREE=stm32mp157c-ev1 all
 
 
-The following build options are supported:
-
-- ``ENABLE_STACK_PROTECTOR``: To enable the stack protection.
-
-
 Populate SD-card
 ----------------
 
