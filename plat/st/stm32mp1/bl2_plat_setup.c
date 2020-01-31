@@ -166,9 +166,10 @@ void bl2_platform_setup(void)
 	 * Map DDR non cacheable during its initialisation to avoid
 	 * speculative loads before accesses are fully setup.
 	 */
-	mmap_add_dynamic_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,
-				STM32MP_DDR_MAX_SIZE,
-				MT_NON_CACHEABLE | MT_RW | MT_NS);
+	ret = mmap_add_dynamic_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,
+				      STM32MP_DDR_MAX_SIZE,
+				      MT_NON_CACHEABLE | MT_RW | MT_NS);
+	assert(ret == 0);
 
 	ret = stm32mp1_ddr_probe();
 	if (ret < 0) {
@@ -176,23 +177,29 @@ void bl2_platform_setup(void)
 		panic();
 	}
 
-	mmap_remove_dynamic_region(STM32MP_DDR_BASE, STM32MP_DDR_MAX_SIZE);
+	ret = mmap_remove_dynamic_region(STM32MP_DDR_BASE,
+					 STM32MP_DDR_MAX_SIZE);
+	assert(ret == 0);
 
 #ifdef AARCH32_SP_OPTEE
 	INFO("BL2 runs OP-TEE setup\n");
 
 	/* Map non secure DDR for BL33 load, now with cacheable attribute */
-	mmap_add_dynamic_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,
-				dt_get_ddr_size()  - STM32MP_DDR_S_SIZE -
-				STM32MP_DDR_SHMEM_SIZE,
-				MT_MEMORY | MT_RW | MT_NS);
+	ret = mmap_add_dynamic_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,
+				      dt_get_ddr_size()  - STM32MP_DDR_S_SIZE -
+				      STM32MP_DDR_SHMEM_SIZE,
+				      MT_MEMORY | MT_RW | MT_NS);
+	assert(ret == 0);
 
-	mmap_add_dynamic_region(STM32MP_DDR_BASE + dt_get_ddr_size() -
-				STM32MP_DDR_S_SIZE - STM32MP_DDR_SHMEM_SIZE,
-				STM32MP_DDR_BASE + dt_get_ddr_size() -
-				STM32MP_DDR_S_SIZE - STM32MP_DDR_SHMEM_SIZE,
-				STM32MP_DDR_S_SIZE,
-				MT_MEMORY | MT_RW | MT_SECURE);
+	ret = mmap_add_dynamic_region(STM32MP_DDR_BASE + dt_get_ddr_size() -
+				      STM32MP_DDR_S_SIZE -
+				      STM32MP_DDR_SHMEM_SIZE,
+				      STM32MP_DDR_BASE + dt_get_ddr_size() -
+				      STM32MP_DDR_S_SIZE -
+				      STM32MP_DDR_SHMEM_SIZE,
+				      STM32MP_DDR_S_SIZE,
+				      MT_MEMORY | MT_RW | MT_SECURE);
+	assert(ret == 0);
 
 	/* Initialize tzc400 after DDR initialization */
 	stm32mp1_security_setup();
@@ -200,9 +207,10 @@ void bl2_platform_setup(void)
 	INFO("BL2 runs SP_MIN setup\n");
 
 	/* Map non secure DDR for BL33 load, now with cacheable attribute */
-	mmap_add_dynamic_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,
-				dt_get_ddr_size(),
-				MT_MEMORY | MT_RW | MT_NS);
+	ret = mmap_add_dynamic_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,
+				      dt_get_ddr_size(),
+				      MT_MEMORY | MT_RW | MT_NS);
+	assert(ret == 0);
 #endif
 }
 
