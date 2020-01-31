@@ -210,7 +210,7 @@ STM32_TF_OBJS		:=	${BUILD_PLAT}/stm32mp1.o
 STM32IMAGEPATH		?= tools/stm32image
 STM32IMAGE		?= ${STM32IMAGEPATH}/stm32image${BIN_EXT}
 
-.PHONY:			${STM32_TF_STM32}
+.PHONY: check_dtc_version stm32image clean_stm32image
 .SUFFIXES:
 
 all: check_dtc_version stm32image ${STM32_TF_STM32}
@@ -223,10 +223,10 @@ endif
 
 distclean realclean clean: clean_stm32image
 
-stm32image:
-	${Q}${MAKE} CPPFLAGS="" --no-print-directory -C ${STM32IMAGEPATH}
+stm32image: ${STM32IMAGE}
 
-${STM32IMAGE}: stm32image
+${STM32IMAGE}:
+	${Q}${MAKE} CPPFLAGS="" --no-print-directory -C ${STM32IMAGEPATH}
 
 clean_stm32image:
 	${Q}${MAKE} --no-print-directory -C ${STM32IMAGEPATH} clean
