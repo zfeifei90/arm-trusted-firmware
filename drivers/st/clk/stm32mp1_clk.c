@@ -1123,11 +1123,10 @@ static bool clock_is_always_on(unsigned long id)
 	}
 }
 
-void __stm32mp1_clk_enable(unsigned long id, bool secure)
+static void __stm32mp1_clk_enable(unsigned long id, bool with_refcnt)
 {
 	const struct stm32mp1_clk_gate *gate;
 	int i;
-	unsigned int *refcnt;
 
 	if (clock_is_always_on(id)) {
 		return;
@@ -1140,7 +1139,11 @@ void __stm32mp1_clk_enable(unsigned long id, bool secure)
 	}
 
 	gate = gate_ref(i);
-	refcnt = &gate_refcounts[i];
+
+	if (!with_refcnt) {
+		__clk_enable(gate);
+		return;
+	}
 
 #if defined(IMAGE_BL32)
 	if (gate_is_non_secure(gate)) {
@@ -1152,18 +1155,22 @@ void __stm32mp1_clk_enable(unsigned long id, bool secure)
 
 	stm32mp1_clk_lock(&refcount_lock);
 
-	if (stm32mp_incr_shrefcnt(refcnt, secure) != 0) {
+	if (gate_refcounts[i] == 0) {
 		__clk_enable(gate);
+	}
+
+	gate_refcounts[i]++;
+	if (gate_refcounts[i] == UINT_MAX) {
+		panic();
 	}
 
 	stm32mp1_clk_unlock(&refcount_lock);
 }
 
-void __stm32mp1_clk_disable(unsigned long id, bool secure)
+static void __stm32mp1_clk_disable(unsigned long id, bool with_refcnt)
 {
 	const struct stm32mp1_clk_gate *gate;
 	int i;
-	unsigned int *refcnt;
 
 	if (clock_is_always_on(id)) {
 		return;
@@ -1176,7 +1183,11 @@ void __stm32mp1_clk_disable(unsigned long id, bool secure)
 	}
 
 	gate = gate_ref(i);
-	refcnt = &gate_refcounts[i];
+
+	if (!with_refcnt) {
+		__clk_disable(gate);
+		return;
+	}
 
 #if defined(IMAGE_BL32)
 	if (gate_is_non_secure(gate)) {
@@ -1187,7 +1198,12 @@ void __stm32mp1_clk_disable(unsigned long id, bool secure)
 
 	stm32mp1_clk_lock(&refcount_lock);
 
-	if (stm32mp_decr_shrefcnt(refcnt, secure) != 0) {
+	if (gate_refcounts[i] == 0) {
+		panic();
+	}
+	gate_refcounts[i]--;
+
+	if (gate_refcounts[i] == 0) {
 		__clk_disable(gate);
 	}
 
@@ -1204,6 +1220,16 @@ static int stm32mp_clk_enable(unsigned long id)
 static void stm32mp_clk_disable(unsigned long id)
 {
 	__stm32mp1_clk_disable(id, true);
+}
+
+void stm32mp1_clk_force_enable(unsigned long id)
+{
+	__stm32mp1_clk_enable(id, false);
+}
+
+void stm32mp1_clk_force_disable(unsigned long id)
+{
+	__stm32mp1_clk_disable(id, false);
 }
 
 static bool stm32mp_clk_is_enabled(unsigned long id)
