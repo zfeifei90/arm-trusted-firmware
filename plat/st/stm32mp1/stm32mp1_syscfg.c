@@ -7,6 +7,7 @@
 #include <platform_def.h>
 
 #include <common/debug.h>
+#include <drivers/st/stm32mp1_clk.h>
 #include <drivers/st/stpmic1.h>
 #include <lib/mmio.h>
 
@@ -138,7 +139,7 @@ void stm32mp1_syscfg_enable_io_compensation(void)
 	 * Warning: need to ensure CSI enabled and ready in clock driver.
 	 * Enable non-secure clock, we assume non-secure is suspended.
 	 */
-	stm32mp1_clk_enable_non_secure(SYSCFG);
+	stm32mp1_clk_force_enable(SYSCFG);
 
 	mmio_setbits_32(SYSCFG_BASE + SYSCFG_CMPENSETR,
 			SYSCFG_CMPENSETR_MPU_EN);
@@ -184,5 +185,5 @@ void stm32mp1_syscfg_disable_io_compensation(void)
 	mmio_clrbits_32(SYSCFG_BASE + SYSCFG_CMPENSETR,
 			SYSCFG_CMPENSETR_MPU_EN);
 
-	stm32mp1_clk_disable_non_secure(SYSCFG);
+	stm32mp1_clk_force_disable(SYSCFG);
 }

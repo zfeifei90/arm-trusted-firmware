@@ -36,8 +36,8 @@ int stm32mp1_clk_get_maxfreq_opp(uint32_t *freq_mhz, uint32_t *voltage_mv);
 bool stm32mp1_rcc_is_secure(void);
 bool stm32mp1_rcc_is_mckprot(void);
 
-void stm32mp1_clk_enable_non_secure(unsigned long id);
-void stm32mp1_clk_disable_non_secure(unsigned long id);
+void stm32mp1_clk_force_enable(unsigned long id);
+void stm32mp1_clk_force_disable(unsigned long id);
 
 unsigned int stm32mp1_clk_get_refcount(unsigned long id);
 
