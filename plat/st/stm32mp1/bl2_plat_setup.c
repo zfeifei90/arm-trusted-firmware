@@ -301,7 +301,7 @@ void bl2_el3_plat_arch_setup(void)
 	stm32_save_boot_interface(boot_context->boot_interface_selected,
 				  boot_context->boot_interface_instance);
 
-#if STM32MP_USB_PROGRAMMER
+#if STM32MP_USB_PROGRAMMER && STM32MP15
 	/* Deconfigure all UART RX pins configured by ROM code */
 	stm32mp1_deconfigure_uart_pins();
 #endif
