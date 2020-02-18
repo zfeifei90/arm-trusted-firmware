@@ -46,6 +46,7 @@
 static struct console_stm32 console;
 static enum boot_device_e boot_device = BOOT_DEVICE_BOARD;
 static struct auth_ops stm32mp_auth_ops;
+static bool wakeup_standby;
 
 static void print_reset_reason(void)
 {
@@ -190,6 +191,10 @@ void bl2_platform_setup(void)
 				dt_get_ddr_size(),
 				MT_MEMORY | MT_RW | MT_NS);
 #endif
+
+	if ((dt_pmic_status() > 0) && (!wakeup_standby)) {
+		configure_pmic();
+	}
 }
 
 static void update_monotonic_counter(void)
@@ -226,7 +231,7 @@ static void update_monotonic_counter(void)
 	}
 }
 
-static void initialize_clock(bool wakeup_standby)
+static void initialize_clock(void)
 {
 	uint32_t voltage_mv = 0U;
 	uint32_t freq_khz = 0U;
@@ -288,7 +293,6 @@ void bl2_el3_plat_arch_setup(void)
 		tamp_bkpr(BOOT_API_CORE1_MAGIC_NUMBER_TAMP_BCK_REG_IDX);
 	uint32_t bkpr_core1_addr =
 		tamp_bkpr(BOOT_API_CORE1_BRANCH_ADDRESS_TAMP_BCK_REG_IDX);
-	bool wakeup_standby = false;
 
 	mmap_add_region(BL_CODE_BASE, BL_CODE_BASE,
 			BL_CODE_END - BL_CODE_BASE,
@@ -386,9 +390,7 @@ void bl2_el3_plat_arch_setup(void)
 		mmio_write_32(bkpr_core1_magic, 0);
 	}
 
-	if (mmio_read_32(bkpr_core1_addr) != 0U) {
-		wakeup_standby = true;
-	}
+	wakeup_standby = (mmio_read_32(bkpr_core1_addr) != 0U);
 
 	generic_delay_timer_init();
 
@@ -416,13 +418,9 @@ void bl2_el3_plat_arch_setup(void)
 
 	if (dt_pmic_status() > 0) {
 		initialize_pmic();
-
-		if (!wakeup_standby) {
-			configure_pmic();
-		}
 	}
 
-	initialize_clock(wakeup_standby);
+	initialize_clock();
 
 	stm32mp1_syscfg_init();
 
