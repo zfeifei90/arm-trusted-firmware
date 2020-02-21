@@ -209,6 +209,7 @@ STM32_TF_OBJS		:=	${BUILD_PLAT}/stm32mp1.o
 # Variables for use with stm32image
 STM32IMAGEPATH		?= tools/stm32image
 STM32IMAGE		?= ${STM32IMAGEPATH}/stm32image${BIN_EXT}
+STM32IMAGE_SRC		:= ${STM32IMAGEPATH}/stm32image.c
 
 .PHONY: check_dtc_version stm32image clean_stm32image
 .SUFFIXES:
@@ -225,7 +226,7 @@ distclean realclean clean: clean_stm32image
 
 stm32image: ${STM32IMAGE}
 
-${STM32IMAGE}:
+${STM32IMAGE}: ${STM32IMAGE_SRC}
 	${Q}${MAKE} CPPFLAGS="" --no-print-directory -C ${STM32IMAGEPATH}
 
 clean_stm32image:
