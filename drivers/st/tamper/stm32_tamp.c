@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2018-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -337,8 +337,9 @@ int stm32_tamp_init(void)
 	/* Reset Tamp register without modifying backup registers conf */
 	stm32_tamp_reset_register(stm32_tamp.base);
 
-	/* Check if tamper are secured */
-	if (dt_tamp.status != DT_SECURE) {
+	/* Check if TAMP is enabled */
+	if ((dt_tamp.status != DT_SECURE) &&
+	    (dt_tamp.status != DT_SHARED)) {
 		return 0;
 	}
 
@@ -360,7 +361,7 @@ int stm32_tamp_init(void)
 		stm32_tamp_configure_or(stm32_tamp.base, 1);
 	}
 
-	if (stm32_gic_enable_spi(node, NULL) != 0) {
+	if (stm32_gic_enable_spi(node, NULL) < 0) {
 		panic();
 	}
 

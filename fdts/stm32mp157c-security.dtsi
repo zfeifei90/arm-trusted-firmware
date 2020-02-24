@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier:	GPL-2.0+	BSD-3-Clause
  */
@@ -96,6 +96,6 @@
 &tamp {
 	compatible = "st,stm32-tamp";
 	clocks = <&rcc RTCAPB>;
-	interrupts = <GIC_SPI 197 IRQ_TYPE_LEVEL_HIGH>;
+	secure-interrupts = <GIC_SPI 197 IRQ_TYPE_LEVEL_HIGH>;
 	secure-status= "disabled";
 };
