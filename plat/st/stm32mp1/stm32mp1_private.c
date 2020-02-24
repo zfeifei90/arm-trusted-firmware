@@ -350,7 +350,8 @@ static uint32_t get_part_number(void)
 	}
 
 	if (stm32mp1_dbgmcu_get_chip_dev_id(&dev_id) < 0) {
-		panic();
+		WARN("Use default chip ID\n");
+		dev_id = STM32MP1_CHIP_ID;
 	}
 
 	if (stm32_get_otp_value(PART_NUMBER_OTP, &part_number) != 0) {
@@ -477,7 +478,6 @@ void stm32mp_print_cpuinfo(void)
 	ret = stm32mp1_dbgmcu_get_chip_version(&chip_dev_id);
 	if (ret < 0) {
 		WARN("Cannot get CPU version\n");
-		return;
 	}
 
 	switch (chip_dev_id) {
