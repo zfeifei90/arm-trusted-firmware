@@ -648,7 +648,13 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
 #define DT_IWDG_COMPAT			"st,stm32mp1-iwdg"
 #define DT_NVMEM_LAYOUT_COMPAT		"st,stm32-nvmem-layout"
 #define DT_PWR_COMPAT			"st,stm32mp1,pwr-reg"
+#if STM32MP13
+#define DT_RCC_CLK_COMPAT		"st,stm32mp13-rcc"
+#define DT_RCC_SEC_CLK_COMPAT		"st,stm32mp13-rcc-secure"
+#endif
+#if STM32MP15
 #define DT_RCC_CLK_COMPAT		"st,stm32mp1-rcc"
 #define DT_RCC_SEC_CLK_COMPAT		"st,stm32mp1-rcc-secure"
+#endif
 
 #endif /* STM32MP1_DEF_H */
