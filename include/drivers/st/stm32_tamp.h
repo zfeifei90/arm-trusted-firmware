@@ -113,7 +113,7 @@ enum stm32_tamp_state {
 
 struct stm32_tamp_int {
 	int id;
-	void (*it_handler)(void);
+	void (*func)(int id);
 };
 
 struct stm32_tamp_ext {
@@ -121,7 +121,7 @@ struct stm32_tamp_ext {
 	uint8_t mode;
 	uint8_t erase;
 	uint8_t evt_mask;
-	void (*it_handler)(void);
+	void (*func)(int id);
 };
 
 /*

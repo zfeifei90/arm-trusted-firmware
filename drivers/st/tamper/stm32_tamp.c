@@ -278,8 +278,8 @@ void stm32_tamp_it_handler(void)
 		uint32_t int_id = (uint32_t)int_list[tamp].id;
 
 		if ((it & BIT(int_id + 16U)) != 0U) {
-			if (int_list[tamp].it_handler != NULL) {
-				int_list[tamp].it_handler();
+			if (int_list[tamp].func != NULL) {
+				int_list[tamp].func(int_id);
 			}
 
 			mmio_setbits_32(stm32_tamp.base + STM32_TAMP_SCR,
@@ -300,8 +300,8 @@ tamp_ext:
 		uint32_t ext_id = (uint32_t)ext_list[tamp].id;
 
 		if ((it & BIT(ext_id)) != 0U) {
-			if (ext_list[tamp].it_handler != NULL) {
-				ext_list[tamp].it_handler();
+			if (ext_list[tamp].func != NULL) {
+				ext_list[tamp].func(ext_id);
 			}
 
 			mmio_setbits_32(stm32_tamp.base + STM32_TAMP_SCR,
