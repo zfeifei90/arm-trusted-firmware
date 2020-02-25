@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -13,7 +13,6 @@
 #include <stm32mp1_rcc.h>
 
 #define GPIO_TX_SHIFT		(DEBUG_UART_TX_GPIO_PORT << 1)
-#define GPIO_TX_ALT_SHIFT	((DEBUG_UART_TX_GPIO_PORT - GPIO_ALT_LOWER_LIMIT) << 2)
 
 	.globl	platform_mem_init
 	.globl	plat_report_exception
@@ -265,10 +264,16 @@ func plat_crash_console_init
 	bic	r2, r2, #(GPIO_PULL_MASK << GPIO_TX_SHIFT)
 	str	r2, [r1, #GPIO_PUPD_OFFSET]
 	/* Set alternate */
-	ldr	r2, [r1, #GPIO_AFRH_OFFSET]
-	bic	r2, r2, #(GPIO_ALTERNATE_MASK << GPIO_TX_ALT_SHIFT)
-	orr	r2, r2, #(DEBUG_UART_TX_GPIO_ALTERNATE << GPIO_TX_ALT_SHIFT)
-	str	r2, [r1, #GPIO_AFRH_OFFSET]
+	ldr	r2, =DEBUG_UART_TX_GPIO_PORT
+	cmp	r2, #GPIO_ALT_LOWER_LIMIT
+	ldrge	r2, [r1, #GPIO_AFRH_OFFSET]
+	bicge	r2, r2, #(GPIO_ALTERNATE_MASK << ((DEBUG_UART_TX_GPIO_PORT - GPIO_ALT_LOWER_LIMIT) << 2))
+	orrge	r2, r2, #(DEBUG_UART_TX_GPIO_ALTERNATE << ((DEBUG_UART_TX_GPIO_PORT - GPIO_ALT_LOWER_LIMIT) << 2))
+	strge	r2, [r1, #GPIO_AFRH_OFFSET]
+	ldrlt	r2, [r1, #GPIO_AFRL_OFFSET]
+	biclt	r2, r2, #(GPIO_ALTERNATE_MASK << (DEBUG_UART_TX_GPIO_PORT << 2))
+	orrlt	r2, r2, #(DEBUG_UART_TX_GPIO_ALTERNATE << (DEBUG_UART_TX_GPIO_PORT << 2))
+	strlt	r2, [r1, #GPIO_AFRL_OFFSET]
 	/* Enable UART clock, with its source */
 	ldr	r1, =(RCC_BASE + DEBUG_UART_TX_CLKSRC_REG)
 	mov	r2, #DEBUG_UART_TX_CLKSRC
