@@ -19,13 +19,17 @@
 #include <drivers/st/stm32_iwdg.h>
 #include <lib/usb/usb_st_dfu.h>
 
+#define USB_STATE_READY		0
+#define USB_STATE_WRITTEN	1
+
+#define IO_USB_TIMEOUT_10_SEC	U(10000000)
+#define DETACH_TIMEOUT		U(0x100)
+#define USB_DFU_MAX_XFER_SIZE	1024
+
 static uint8_t first_usb_buffer[USB_DFU_MAX_XFER_SIZE + 1] __aligned(4);
 static usb_dfu_media_t usb_dfu_fops;
 static uint8_t checksum_is_wrong;
 static uint8_t usb_status;
-
-#define USB_STATE_READY		0
-#define USB_STATE_WRITTEN	1
 
 /* usb device functions */
 static int usb_dev_open(const uintptr_t init_params,
@@ -323,21 +327,31 @@ static int usb_block_read(io_entity_t *entity, uintptr_t buffer,
 
 	/* Wait Detach in case of bl33 */
 	if (current_phase.phase_id == PHASE_SSBL) {
-		uint32_t timeout = IO_USB_TIMEOUT;
+		uint64_t timeout;
 		uint32_t detach_timeout = DETACH_TIMEOUT;
 
 		usb_dfu_set_phase_id(0x0);
 		usb_dfu_set_download_addr(UNDEFINE_DOWN_ADDR);
 		usb_dfu_request_detach();
-		while (timeout && detach_timeout) {
+		timeout = timeout_init_us(IO_USB_TIMEOUT_10_SEC);
+
+		while (detach_timeout != 0U) {
 			usb_core_handle_it((usb_handle_t *)
 					   usb_dev_info.info);
-			if (!usb_dfu_detach_req())
+
+			if (usb_dfu_detach_req() == 0U) {
+				/*
+				 * Continue to handle usb core IT to assure
+				 * complete data transmission
+				 */
 				detach_timeout--;
-			timeout--;
+			}
+
+			if (timeout_elapsed(timeout)) {
+				return -EIO;
+			}
 		}
-		if (!timeout)
-			return -EIO;
+
 		/* STOP the USB Handler */
 		usb_core_stop((usb_handle_t *)usb_dev_info.info);
 	}
