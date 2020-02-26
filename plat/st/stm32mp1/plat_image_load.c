@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -81,7 +81,8 @@ bl_load_info_t *plat_get_bl_image_load_info(void)
 	}
 
 	/* Max size is non-secure DDR end address minus image_base */
-	bl33->image_info.image_max_size = dt_get_ddr_size() -
+	bl33->image_info.image_max_size = STM32MP_DDR_BASE +
+					  dt_get_ddr_size() -
 					  STM32MP_DDR_S_SIZE -
 					  STM32MP_DDR_SHMEM_SIZE -
 					  bl33->image_info.image_base;
