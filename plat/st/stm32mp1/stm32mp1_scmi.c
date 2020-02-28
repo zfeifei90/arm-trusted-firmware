@@ -323,15 +323,8 @@ int32_t plat_scmi_clock_set_rate(unsigned int agent_id,
 
 	switch (scmi_id) {
 	case CK_SCMI0_MPU:
-		switch (rate) {
-		case 650000000U:
-		case 800000000U:
-			ret = stm32mp1_set_opp_khz(rate / 1000UL);
-			if (ret != 0) {
-				return SCMI_INVALID_PARAMETERS;
-			}
-			break;
-		default:
+		ret = stm32mp1_set_opp_khz(rate / 1000UL);
+		if (ret != 0) {
 			return SCMI_INVALID_PARAMETERS;
 		}
 		break;
