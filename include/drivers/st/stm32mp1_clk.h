@@ -22,6 +22,8 @@ void stm32mp1_clk_lp_save_opp_pll1_settings(uint8_t *data, size_t size);
 void stm32mp1_clk_lp_load_opp_pll1_settings(uint8_t *data, size_t size);
 
 int stm32mp1_clk_get_maxfreq_opp(uint32_t *freq_mhz, uint32_t *voltage_mv);
+int stm32mp1_clk_opp_get_voltage_from_freq(uint32_t freq_khz,
+					   uint32_t *voltage_mv);
 
 bool stm32mp1_rcc_is_secure(void);
 bool stm32mp1_rcc_is_mckprot(void);
