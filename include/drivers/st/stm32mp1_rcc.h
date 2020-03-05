@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2015-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -462,6 +462,12 @@
 #define RCC_MP_APB5ENSETR_IWDG1APBEN	BIT(15)
 
 /* Values of RCC_MP_AHB4ENSETR register */
+#define RCC_MP_AHB4ENSETR_GPIOAEN	BIT(0)
+#define RCC_MP_AHB4ENSETR_GPIOBEN	BIT(1)
+#define RCC_MP_AHB4ENSETR_GPIOCEN	BIT(2)
+#define RCC_MP_AHB4ENSETR_GPIODEN	BIT(3)
+#define RCC_MP_AHB4ENSETR_GPIOEEN	BIT(4)
+#define RCC_MP_AHB4ENSETR_GPIOFEN	BIT(5)
 #define RCC_MP_AHB4ENSETR_GPIOGEN	BIT(6)
 #define RCC_MP_AHB4ENSETR_GPIOHEN	BIT(7)
 
