@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -28,6 +28,7 @@
 #include <drivers/st/stm32mp_clkfunc.h>
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp1_clk.h>
+#include <drivers/st/stm32mp1_ddr_helpers.h>
 #include <drivers/st/stpmic1.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <lib/el3_runtime/context_mgmt.h>
@@ -441,6 +442,8 @@ static void stm32mp1_sp_min_security_setup(void)
  ******************************************************************************/
 void sp_min_platform_setup(void)
 {
+	ddr_save_sr_mode();
+
 	/* Initialize tzc400 after DDR initialization */
 	stm32mp1_security_setup();
 
