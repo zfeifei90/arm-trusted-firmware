@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -681,6 +681,33 @@ uint32_t dt_get_pwr_vdd_voltage(void)
 	}
 
 	return fdt32_to_cpu(*cuint);
+}
+
+/*******************************************************************************
+ * This function retrieves CPU regulator name from DT.
+ * Returns string taken from supply node, NULL otherwise.
+ ******************************************************************************/
+const char *dt_get_cpu_regulator_name(void)
+{
+	int node;
+	const fdt32_t *cuint;
+
+	node = fdt_path_offset(fdt, "/cpus/cpu@0");
+	if (node < 0) {
+		return NULL;
+	}
+
+	cuint = fdt_getprop(fdt, node, "cpu-supply", NULL);
+	if (cuint == NULL) {
+		return NULL;
+	}
+
+	node = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*cuint));
+	if (node < 0) {
+		return NULL;
+	}
+
+	return (const char *)fdt_getprop(fdt, node, "regulator-name", NULL);
 }
 
 /*******************************************************************************
