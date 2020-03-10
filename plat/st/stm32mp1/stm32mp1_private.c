@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -543,16 +543,6 @@ bool stm32mp_is_single_core(void)
 	default:
 		return false;
 	}
-}
-
-/* Return true if DDR supports Software/Automatic Self-Refresh */
-bool stm32mp_ddr_supports_ssr_asr(void)
-{
-	uintptr_t ddrctrl_base = stm32mp_ddrctrl_base();
-	uint32_t mstr = mmio_read_32(ddrctrl_base + DDRCTRL_MSTR);
-
-	return ((mstr & DDRCTRL_MSTR_LPDDR2) != 0U) ||
-	       ((mstr & DDRCTRL_MSTR_LPDDR3) != 0U);
 }
 
 /* Return true when device is in closed state */
