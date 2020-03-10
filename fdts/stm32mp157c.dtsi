@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
- * Copyright (C) STMicroelectronics 2017-2019 - All Rights Reserved
+ * Copyright (C) STMicroelectronics 2017-2020 - All Rights Reserved
  * Author: Ludovic Barre <ludovic.barre@st.com> for STMicroelectronics.
  */
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -10,6 +10,12 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
+
+	cpus {
+		cpu0: cpu@0 {
+			compatible = "arm,cortex-a7";
+		};
+	};
 
 	intc: interrupt-controller@a0021000 {
 		compatible = "arm,cortex-a7-gic";

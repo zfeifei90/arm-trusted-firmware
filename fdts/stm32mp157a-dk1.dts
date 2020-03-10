@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
- * Copyright (C) STMicroelectronics 2018-2019 - All Rights Reserved
+ * Copyright (C) STMicroelectronics 2018-2020 - All Rights Reserved
  * Author: Alexandre Torgue <alexandre.torgue@st.com>.
  */
 
@@ -23,6 +23,10 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+};
+
+&cpu0{
+	cpu-supply = <&vddcore>;
 };
 
 &clk_hse {
