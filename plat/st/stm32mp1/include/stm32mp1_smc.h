@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2016-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -69,16 +69,6 @@
 #define STM32_SMC_BSEC			0x82001003
 
 /* Low Power services */
-
-/*
- * SIP functions STM32_SMC_SR_MODE.
- *
- * Argument a0: (input) SMCC ID.
- *		(output) Status return code.
- * Argument a1: (unused).
- * Argument a2: (input) Target selfrefresh mode (STM32_SMC_SR_MODE_xxx).
- */
-#define STM32_SMC_SR_MODE		0x82001004
 
 /*
  * SIP function STM32_SMC_PD_DOMAIN.
@@ -158,11 +148,6 @@
 #define STM32_SMC_READ_ALL		0x05
 #define STM32_SMC_WRITE_ALL		0x06
 #define STM32_SMC_WRLOCK_OTP		0x07
-
-/* DDR Self-Refresh modes */
-#define STM32_SMC_SR_MODE_SSR		0x0
-#define STM32_SMC_SR_MODE_ASR		0x1
-#define STM32_SMC_SR_MODE_HSR		0x2
 
 /* Service ID for STM32_SMC_RCC_OPP */
 #define STM32_SMC_RCC_OPP_SET		0x0

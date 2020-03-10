@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,7 +9,6 @@
 
 #include <stdint.h>
 
-uint32_t sr_mode_scv_handler(uint32_t x1, uint32_t x2);
 uint32_t pm_domain_scv_handler(uint32_t x1, uint32_t x2);
 
 #endif /* LOW_POWER_SVC_H */
