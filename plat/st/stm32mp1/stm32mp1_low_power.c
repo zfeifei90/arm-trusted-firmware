@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -92,11 +92,28 @@ static const struct pwr_lp_config config_pwr[STM32_PM_MAX_SOC_MODE] = {
 void stm32_apply_pmic_suspend_config(uint32_t mode)
 {
 	const char *node_name = config_pwr[mode].regul_suspend_node_name;
+	const char *regu_name;
 
 	assert(mode < ARRAY_SIZE(config_pwr));
 
+	/*
+	 * stm32mp1_clk_mpu_suspend() has previously selected PLL1 via MPUDIV
+	 * as MPU clock source, ensure current frequency is lower enough to be
+	 * compliant with regulator minimum voltage.
+	 */
+	assert(stm32mp_clk_get_rate(CK_MPU) <= 650000000UL);
+
 	if (node_name != NULL) {
 		if (!initialize_pmic_i2c()) {
+			panic();
+		}
+
+		regu_name = dt_get_cpu_regulator_name();
+		if (regu_name == NULL) {
+			panic();
+		}
+
+		if (pmic_set_regulator_min_voltage(regu_name) < 0) {
 			panic();
 		}
 
@@ -107,6 +124,71 @@ void stm32_apply_pmic_suspend_config(uint32_t mode)
 		if (pmic_configure_boot_on_regulators() < 0) {
 			panic();
 		}
+	}
+}
+
+void stm32_apply_pmic_resume_config(void)
+{
+	uint32_t rate_khz;
+	uint32_t volt_mv;
+	uint32_t divider;
+	int read_voltage;
+	const char *name;
+	uintptr_t rcc_base = stm32mp_rcc_base();
+
+	/*
+	 * MPU selected clock source is still PLL1 via MPUDIV until next
+	 * stm32mp1_clk_mpu_resume() call just after this function.
+	 * New frequency is computed from current rate and divider, and should
+	 * fit with one CPU OPP value.
+	 * Related voltage is then obtained by parsing OPP settings.
+	 */
+	rate_khz = (uint32_t)udiv_round_nearest(stm32mp_clk_get_rate(CK_MPU),
+						1000UL);
+
+	if (((mmio_read_32(rcc_base + RCC_MPCKSELR) & RCC_SELR_SRC_MASK)) ==
+	    RCC_MPCKSELR_PLL_MPUDIV) {
+		divider = mmio_read_32(rcc_base + RCC_MPCKDIVR) &
+			  RCC_DIVR_DIV_MASK;
+
+		switch (divider) {
+		case 0:
+			/* Unexpected value */
+			panic();
+
+		case 1:
+		case 2:
+		case 3:
+			rate_khz <<= divider;
+			break;
+
+		default:
+			rate_khz <<= 4;
+			break;
+		}
+	}
+
+	if (stm32mp1_clk_opp_get_voltage_from_freq(rate_khz, &volt_mv) < 0) {
+		panic();
+	}
+
+	name = stm32mp_get_cpu_supply_name();
+	if (name == NULL) {
+		panic();
+	}
+
+	read_voltage = stpmic1_regulator_voltage_get(name);
+	if (volt_mv != (uint32_t)read_voltage) {
+		if (stpmic1_regulator_voltage_set(name,
+						  (uint16_t)volt_mv) != 0) {
+			panic();
+		}
+
+		/*
+		 * PMIC Output voltage slew rate is 5.5mV/us, assume 3mv/us as
+		 * a margin to compute delay.
+		 */
+		udelay((volt_mv - read_voltage) / 3);
 	}
 }
 
@@ -235,6 +317,10 @@ void stm32_exit_cstop(void)
 	}
 
 	enter_cstop_done = false;
+
+	if (dt_pmic_status() > 0) {
+		stm32_apply_pmic_resume_config();
+	}
 
 	stm32mp1_clk_mpu_resume();
 
