@@ -114,4 +114,10 @@ void stm32mp_io_setup(void);
  */
 int stm32mp_check_header(boot_api_image_header_t *header, uintptr_t buffer);
 
+#if TRUSTED_BOARD_BOOT
+void stm32mp_save_loaded_header(void *header);
+void stm32mp_delete_loaded_header(void);
+boot_api_image_header_t *stm32mp_get_loaded_header(void);
+#endif
+
 #endif /* STM32MP_COMMON_H */

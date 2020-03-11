@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -286,6 +286,9 @@ static int usb_block_read(io_entity_t *entity, uintptr_t buffer,
 		usb_dfu_set_download_addr((uintptr_t)
 					  &local_ptr[USB_DFU_MAX_XFER_SIZE]);
 	} else {
+#if TRUSTED_BOARD_BOOT
+		stm32mp_save_loaded_header(header);
+#endif
 		memcpy((uint8_t *)local_ptr,
 		       (uint8_t *)
 		       &first_usb_buffer[sizeof(boot_api_image_header_t)],
@@ -315,14 +318,6 @@ static int usb_block_read(io_entity_t *entity, uintptr_t buffer,
 	if (result) {
 		ERROR("Header check failed\n");
 		return result;
-	}
-
-	if (current_phase.phase_id != PHASE_FLASHLAYOUT) {
-		result = stm32mp_auth_image(header, (uintptr_t)local_ptr);
-		if (result != 0) {
-			ERROR("Authentication failed\n");
-			return result;
-		}
 	}
 
 	/* Wait Detach in case of bl33 */

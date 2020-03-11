@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2015-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -428,15 +428,7 @@ static int uart_start_cmd(boot_api_image_header_t *header, uintptr_t buffer)
 				start_address, BL33_BASE);
 		}
 
-		result = stm32mp_check_header(header, buffer);
-		if (result)
-			return result;
-
-		result = stm32mp_auth_image(header, buffer);
-		if (result != 0) {
-			return result;
-		}
-		break;
+		return stm32mp_check_header(header, buffer);
 
 	default:
 		ERROR("Invalid phase ID : %i\n", current_phase.phase_id);
@@ -465,6 +457,9 @@ static int uart_block_read(io_entity_t *entity, uintptr_t buffer,
 	} else if (header_length_read &&
 		  ((header_length_read -
 		    sizeof(boot_api_image_header_t)) > 0)) {
+#if TRUSTED_BOARD_BOOT
+		stm32mp_save_loaded_header(header_buffer);
+#endif
 		memcpy((uint8_t *)buffer,
 		       (uint8_t *)
 		       &header_buffer[sizeof(boot_api_image_header_t)],
