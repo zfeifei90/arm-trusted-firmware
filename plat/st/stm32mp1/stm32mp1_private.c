@@ -528,15 +528,6 @@ bool stm32mp_is_single_core(void)
 	}
 }
 
-/* Return true if DDR supports Software/Automatic Self-Refresh */
-bool stm32mp_ddr_supports_ssr_asr(void)
-{
-	uintptr_t ddrctrl_base = stm32mp_ddrctrl_base();
-	uint32_t mstr = mmio_read_32(ddrctrl_base + DDRCTRL_MSTR);
-
-	return (mstr & DDRCTRL_MSTR_LPDDR2) != 0U;
-}
-
 uint8_t stm32_iwdg_get_instance(uintptr_t base)
 {
 	switch (base) {
