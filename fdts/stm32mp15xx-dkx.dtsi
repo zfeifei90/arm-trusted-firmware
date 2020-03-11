@@ -38,6 +38,14 @@
 	cpu-supply = <&vddcore>;
 };
 
+&cpu1{
+	cpu-supply = <&vddcore>;
+};
+
+&hash1 {
+	status = "okay";
+};
+
 &i2c4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c4_pins_a>;
@@ -200,8 +208,9 @@
 				regulator-name = "vdd_usb";
 				regulator-min-microvolt = <3300000>;
 				regulator-max-microvolt = <3300000>;
+				regulator-always-on;
 				standby-ddr-sr {
-					regulator-off-in-suspend;
+					regulator-on-in-suspend;
 				};
 				standby-ddr-off {
 					regulator-off-in-suspend;

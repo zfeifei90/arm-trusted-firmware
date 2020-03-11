@@ -29,6 +29,10 @@
 	cpu-supply = <&vddcore>;
 };
 
+&cryp1 {
+	status = "okay";
+};
+
 &etzpc {
 	st,decprot = <
 		DECPROT(STM32MP1_ETZPC_USART1_ID, DECPROT_NS_RW, DECPROT_UNLOCK)
@@ -44,8 +48,4 @@
 		DECPROT(STM32MP1_ETZPC_BKPSRAM_ID, DECPROT_S_RW, DECPROT_LOCK)
 		DECPROT(STM32MP1_ETZPC_IWDG1_ID, DECPROT_S_RW, DECPROT_LOCK)
 	>;
-};
-
-&hash1 {
-	status = "okay";
 };
