@@ -30,6 +30,7 @@
 #include <stm32mp_pmic.h>
 #include <stm32mp1_clk.h>
 #include <stm32mp1_context.h>
+#include <stm32mp1_ddr_helpers.h>
 #include <stm32mp1_power_config.h>
 #include <stm32mp1_private.h>
 #include <stm32mp1_shared_resources.h>
@@ -381,6 +382,8 @@ void stm32mp1_sp_min_security_setup(void)
  ******************************************************************************/
 void sp_min_platform_setup(void)
 {
+	ddr_save_sr_mode();
+
 	/* Initialize tzc400 after DDR initialization */
 	stm32mp1_security_setup();
 

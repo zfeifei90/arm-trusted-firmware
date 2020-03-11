@@ -9,8 +9,12 @@
 #include <delay_timer.h>
 #include <mmio.h>
 #include <platform_def.h>
+#include <stm32mp1_ddr.h>
+#include <stm32mp1_ddr_regs.h>
 
 #define TIMEOUT_500US	us2tick(500)
+
+static enum stm32mp1_ddr_sr_mode saved_ddr_sr_mode;
 
 void ddr_enable_clock(void)
 {
@@ -377,7 +381,7 @@ int ddr_standby_sr_entry(uint32_t *zq0cr0_zdata)
 	return 0;
 }
 
-void ddr_sr_mode_ssr(void)
+static void ddr_sr_mode_ssr(void)
 {
 	uintptr_t rcc_ddritfcr = stm32mp_rcc_base() + RCC_DDRITFCR;
 	uintptr_t ddrctrl_base = stm32mp_ddrctrl_base();
@@ -429,7 +433,7 @@ void ddr_sr_mode_ssr(void)
 			DDRCTRL_PWRCTL_SELFREF_EN);
 }
 
-void ddr_sr_mode_asr(void)
+static void ddr_sr_mode_asr(void)
 {
 	uintptr_t rcc_ddritfcr = stm32mp_rcc_base() + RCC_DDRITFCR;
 	uintptr_t ddrctrl_base = stm32mp_ddrctrl_base();
@@ -470,7 +474,7 @@ void ddr_sr_mode_asr(void)
 			DDRCTRL_PWRCTL_SELFREF_EN);
 }
 
-void ddr_sr_mode_hsr(void)
+static void ddr_sr_mode_hsr(void)
 {
 	uintptr_t rcc_ddritfcr = stm32mp_rcc_base() + RCC_DDRITFCR;
 	uintptr_t ddrctrl_base = stm32mp_ddrctrl_base();
@@ -505,6 +509,58 @@ void ddr_sr_mode_hsr(void)
 	 */
 	mmio_setbits_32(ddrctrl_base + DDRCTRL_PWRCTL,
 			DDRCTRL_PWRCTL_EN_DFI_DRAM_CLK_DISABLE);
+}
+
+enum stm32mp1_ddr_sr_mode ddr_read_sr_mode(void)
+{
+	uint32_t pwrctl = mmio_read_32(stm32mp_ddrctrl_base() + DDRCTRL_PWRCTL);
+	uint32_t mask = DDRCTRL_PWRCTL_EN_DFI_DRAM_CLK_DISABLE |
+			DDRCTRL_PWRCTL_SELFREF_EN;
+
+	switch (pwrctl & mask) {
+	case 0U:
+		return DDR_SSR_MODE;
+
+	case DDRCTRL_PWRCTL_EN_DFI_DRAM_CLK_DISABLE:
+		return DDR_HSR_MODE;
+
+	case DDRCTRL_PWRCTL_EN_DFI_DRAM_CLK_DISABLE | DDRCTRL_PWRCTL_SELFREF_EN:
+		return DDR_ASR_MODE;
+
+	default:
+		return DDR_SR_MODE_INVALID;
+	}
+}
+
+void ddr_set_sr_mode(enum stm32mp1_ddr_sr_mode mode)
+{
+	switch (mode) {
+	case DDR_SSR_MODE:
+		ddr_sr_mode_ssr();
+		break;
+
+	case DDR_HSR_MODE:
+		ddr_sr_mode_hsr();
+		break;
+
+	case DDR_ASR_MODE:
+		ddr_sr_mode_asr();
+		break;
+
+	default:
+		ERROR("Unknown Self Refresh mode\n");
+		panic();
+	}
+}
+
+void ddr_save_sr_mode(void)
+{
+	saved_ddr_sr_mode = ddr_read_sr_mode();
+}
+
+void ddr_restore_sr_mode(void)
+{
+	ddr_set_sr_mode(saved_ddr_sr_mode);
 }
 
 bool ddr_is_nonsecured_area(uintptr_t address, uint32_t length)
