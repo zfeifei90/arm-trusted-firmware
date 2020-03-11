@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,6 +14,8 @@
 
 int dt_pmic_status(void);
 int pmic_configure_boot_on_regulators(void);
+int dt_pmic_find_supply(const char **supply_name, const char *regu_name);
+int pmic_set_regulator_min_voltage(const char *regu_name);
 int pmic_set_lp_config(const char *node_name);
 bool initialize_pmic_i2c(void);
 bool is_pmic_regulator(struct stm32mp_regulator *regu);
