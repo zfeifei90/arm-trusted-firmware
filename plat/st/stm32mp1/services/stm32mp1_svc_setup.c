@@ -82,10 +82,6 @@ static uintptr_t stm32mp1_svc_smc_handler(uint32_t smc_fid, u_register_t x1,
 		ret1 = pwr_scv_handler(x1, x2, x3);
 		break;
 
-	case STM32_SMC_SR_MODE:
-		ret1 = sr_mode_scv_handler(x1, x2);
-		break;
-
 	case STM32_SMC_PD_DOMAIN:
 		ret1 = pm_domain_scv_handler(x1, x2);
 		break;
