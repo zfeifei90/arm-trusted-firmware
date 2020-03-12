@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -108,7 +108,14 @@ static void initialize_pll1_settings(void)
 	}
 
 	if (dt_pmic_status() > 0) {
-		ret = stpmic1_regulator_voltage_get("buck1");
+		const char *name;
+
+		name = stm32mp_get_cpu_supply_name();
+		if (name == NULL) {
+			panic();
+		}
+
+		ret = stpmic1_regulator_voltage_get(name);
 		if (ret < 0) {
 			panic();
 		}

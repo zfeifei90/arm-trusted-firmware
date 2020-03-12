@@ -14,6 +14,7 @@
 #include <stm32mp_clkfunc.h>
 #include <stm32mp_common.h>
 #include <stm32mp_dt.h>
+#include <stm32mp_pmic.h>
 
 uintptr_t plat_get_ns_image_entrypoint(void)
 {
@@ -165,4 +166,24 @@ uint64_t timeout_start(void)
 bool timeout_elapsed(uint64_t tick_start, uint64_t tick_to)
 {
 	return (tick_to != 0U) && ((read_cntpct_el0() - tick_start) > tick_to);
+}
+
+/* Return CPU supply name */
+const char *stm32mp_get_cpu_supply_name(void)
+{
+	const char *regulator;
+	const char *supply = NULL;
+
+	regulator = dt_get_cpu_regulator_name();
+	if (regulator == NULL) {
+		return NULL;
+	}
+
+	if (dt_pmic_status() > 0) {
+		if (dt_pmic_find_supply(&supply, regulator) != 0) {
+			return NULL;
+		}
+	}
+
+	return supply;
 }

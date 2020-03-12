@@ -262,7 +262,12 @@ static void initialize_clock(void)
 
 		if (dt_pmic_status() > 0) {
 			int read_voltage;
-			const char *name = "buck1";
+			const char *name;
+
+			name = stm32mp_get_cpu_supply_name();
+			if (name == NULL) {
+				panic();
+			}
 
 			read_voltage = stpmic1_regulator_voltage_get(name);
 			if (voltage_mv != (uint32_t)read_voltage) {

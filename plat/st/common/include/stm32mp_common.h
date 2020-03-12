@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -16,6 +16,7 @@ void stm32mp_save_boot_ctx_address(uintptr_t address);
 uintptr_t stm32mp_get_boot_ctx_address(void);
 
 bool stm32mp_is_single_core(void);
+const char *stm32mp_get_cpu_supply_name(void);
 
 uintptr_t stm32mp_ddrctrl_base(void);
 uintptr_t stm32mp_ddrphyc_base(void);

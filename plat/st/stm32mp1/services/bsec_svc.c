@@ -85,8 +85,16 @@ static enum bsec_ssp_status bsec_check_ssp(uint32_t otp, uint32_t update)
 				   sizeof(boot_api_ssp_config_t));
 #endif
 		if (dt_pmic_status() > 0) {
+			const char *name;
+
 			initialize_pmic();
-			stpmic1_regulator_mask_reset_set("buck1");
+
+			name = stm32mp_get_cpu_supply_name();
+			if (name == NULL) {
+				return BSEC_SSP_ERROR;
+			}
+
+			stpmic1_regulator_mask_reset_set(name);
 		}
 
 		return BSEC_SSP_SET;
