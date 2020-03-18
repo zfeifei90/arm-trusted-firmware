@@ -208,9 +208,9 @@ int fdt_get_clock_id_by_name(int node, const char *name)
  ******************************************************************************/
 unsigned long fdt_get_uart_clock_freq(uintptr_t instance)
 {
-	int node;
 	void *fdt;
-	unsigned long clk_id;
+	int node;
+	int clk_id;
 
 	if (fdt_get_address(&fdt) == 0) {
 		return 0;
@@ -227,7 +227,7 @@ unsigned long fdt_get_uart_clock_freq(uintptr_t instance)
 		return 0UL;
 	}
 
-	return stm32mp_clk_get_rate(clk_id);
+	return stm32mp_clk_get_rate((unsigned long)clk_id);
 }
 
 /*******************************************************************************
