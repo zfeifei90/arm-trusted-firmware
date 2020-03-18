@@ -226,7 +226,7 @@ static int stm32image_partition_read(io_entity_t *entity, uintptr_t buffer,
 	int local_length;
 	uintptr_t backend_handle;
 	int result = -EINVAL;
-	uint8_t *local_buffer = (uint8_t *)buffer;
+	uint8_t *local_buffer;
 	boot_api_image_header_t *header =
 		(boot_api_image_header_t *)first_lba_buffer;
 
@@ -234,6 +234,7 @@ static int stm32image_partition_read(io_entity_t *entity, uintptr_t buffer,
 	assert(buffer != 0U);
 	assert(length_read != NULL);
 
+	local_buffer = (uint8_t *)buffer;
 	*length_read = 0U;
 
 #if TRUSTED_BOARD_BOOT
