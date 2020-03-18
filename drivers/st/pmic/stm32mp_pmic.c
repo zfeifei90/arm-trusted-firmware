@@ -136,8 +136,8 @@ static int pmic_config_boot_on(void *fdt, int node, const char *regu_name)
 	}
 
 	pmic_voltage = stpmic1_regulator_voltage_get(regu_name);
-	if (status < 0) {
-		return status;
+	if (pmic_voltage < 0) {
+		return pmic_voltage;
 	}
 
 	if ((uint16_t)pmic_voltage < voltage_min) {
