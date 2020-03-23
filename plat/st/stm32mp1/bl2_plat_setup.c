@@ -291,6 +291,10 @@ static void initialize_clock(void)
 			}
 
 			read_voltage = stpmic1_regulator_voltage_get(name);
+			if (read_voltage < 0) {
+				panic();
+			}
+
 			if (voltage_mv != (uint32_t)read_voltage) {
 				if (stpmic1_regulator_voltage_set(name,
 						(uint16_t)voltage_mv) != 0) {
