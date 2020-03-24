@@ -22,44 +22,6 @@ static bool registering_locked;
 static int8_t gpioz_nbpin = -1;
 
 /*
- * Generic clock enable/disable from secure world.
- * Some drivers may use non secure resources in specific execution context:
- * when the other SMP core(s) are offline and non secure is never reached.
- * In such cases, drivers shall enable/disable the HW clock only if it was not
- * left enabled by the non secure world.
- *
- * During driver initializations, before registering_locked is locked, all
- * driver simply enable/disable the clock as if the peripheral was secure.
- */
-void stm32mp_clk_enable(unsigned long id)
-{
-	if (registering_locked) {
-		if (stm32mp1_clock_is_non_secure(id)) {
-			assert(stm32mp1_clk_get_refcount(id) == 0U);
-
-			if (stm32mp_clk_is_enabled(id)) {
-				return;
-			}
-		}
-	}
-
-	stm32mp1_clk_enable_secure(id);
-}
-
-void stm32mp_clk_disable(unsigned long id)
-{
-	if (registering_locked) {
-		if (stm32mp1_clock_is_non_secure(id)) {
-			if (stm32mp1_clk_get_refcount(id) == 0U) {
-				return;
-			}
-		}
-	}
-
-	stm32mp1_clk_disable_secure(id);
-}
-
-/*
  * Shared peripherals and resources.
  * Defines resource that may be non secure, secure or shared.
  * May be a device, a bus, a clock, a memory.
@@ -760,7 +722,7 @@ void stm32mp_lock_periph_registering(void)
 		}
 	}
 
-	stm32mp1_update_earlyboot_clocks_state();
+	stm32mp1_dump_clocks_state();
 
 	check_rcc_secure_configuration();
 	check_etzpc_secure_configuration();

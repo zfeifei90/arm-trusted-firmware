@@ -36,28 +36,8 @@ int stm32mp1_clk_get_maxfreq_opp(uint32_t *freq_mhz, uint32_t *voltage_mv);
 bool stm32mp1_rcc_is_secure(void);
 bool stm32mp1_rcc_is_mckprot(void);
 
-void __stm32mp1_clk_enable(unsigned long id, bool caller_is_secure);
-void __stm32mp1_clk_disable(unsigned long id, bool caller_is_secure);
-
-static inline void stm32mp1_clk_enable_non_secure(unsigned long id)
-{
-	__stm32mp1_clk_enable(id, false);
-}
-
-static inline void stm32mp1_clk_enable_secure(unsigned long id)
-{
-	__stm32mp1_clk_enable(id, true);
-}
-
-static inline void stm32mp1_clk_disable_non_secure(unsigned long id)
-{
-	__stm32mp1_clk_disable(id, false);
-}
-
-static inline void stm32mp1_clk_disable_secure(unsigned long id)
-{
-	__stm32mp1_clk_disable(id, true);
-}
+void stm32mp1_clk_enable_non_secure(unsigned long id);
+void stm32mp1_clk_disable_non_secure(unsigned long id);
 
 unsigned int stm32mp1_clk_get_refcount(unsigned long id);
 
@@ -80,5 +60,7 @@ void stm32mp1_clk_mpu_resume(void);
 void stm32mp1_register_clock_parents_secure(unsigned long id);
 
 void stm32mp1_update_earlyboot_clocks_state(void);
+
+void stm32mp1_dump_clocks_state(void);
 
 #endif /* STM32MP1_CLK_H */

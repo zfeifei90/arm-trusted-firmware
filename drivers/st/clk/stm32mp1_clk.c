@@ -1174,7 +1174,7 @@ static bool clock_is_always_on(unsigned long id)
 	}
 }
 
-void __stm32mp1_clk_enable(unsigned long id, bool secure)
+static void __stm32mp1_clk_enable(unsigned long id, bool secure)
 {
 	const struct stm32mp1_clk_gate *gate;
 	int i;
@@ -1202,7 +1202,7 @@ void __stm32mp1_clk_enable(unsigned long id, bool secure)
 	stm32mp1_clk_unlock(&refcount_lock);
 }
 
-void __stm32mp1_clk_disable(unsigned long id, bool secure)
+static void __stm32mp1_clk_disable(unsigned long id, bool secure)
 {
 	const struct stm32mp1_clk_gate *gate;
 	int i;
@@ -1228,6 +1228,26 @@ void __stm32mp1_clk_disable(unsigned long id, bool secure)
 	}
 
 	stm32mp1_clk_unlock(&refcount_lock);
+}
+
+void stm32mp_clk_enable(unsigned long id)
+{
+	__stm32mp1_clk_enable(id, true);
+}
+
+void stm32mp_clk_disable(unsigned long id)
+{
+	__stm32mp1_clk_disable(id, true);
+}
+
+void stm32mp1_clk_enable_non_secure(unsigned long id)
+{
+	__stm32mp1_clk_enable(id, false);
+}
+
+void stm32mp1_clk_disable_non_secure(unsigned long id)
+{
+	__stm32mp1_clk_disable(id, false);
 }
 
 bool stm32mp_clk_is_enabled(unsigned long id)
@@ -2917,23 +2937,11 @@ void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
 #endif /* IMAGE_BL32 */
 
 /* Sync secure clock refcount after all drivers probe/inits,  */
-void stm32mp1_update_earlyboot_clocks_state(void)
+void stm32mp1_dump_clocks_state(void)
 {
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
 	unsigned int idx;
 
-	for (idx = 0U; idx < NB_GATES; idx++) {
-		const struct stm32mp1_clk_gate *gate = gate_ref(idx);
-		unsigned long clock_id = gate_ref(idx)->index;
-
-		/* Drop non secure refcnt on non shared shareable clocks */
-		if (__clk_is_enabled(gate) &&
-		    stm32mp1_clock_is_shareable(clock_id) &&
-		    !stm32mp1_clock_is_shared(clock_id)) {
-			stm32mp1_clk_disable_non_secure(clock_id);
-		}
-	}
-
-#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
 	/* Dump clocks state */
 	for (idx = 0U; idx < NB_GATES; idx++) {
 		const struct stm32mp1_clk_gate *gate = gate_ref(idx);
@@ -2951,22 +2959,6 @@ void stm32mp1_update_earlyboot_clocks_state(void)
 
 static void sync_earlyboot_clocks_state(void)
 {
-	unsigned int idx;
-
-	for (idx = 0U; idx < NB_GATES; idx++) {
-		assert(gate_refcounts[idx] == 0);
-	}
-
-	/* Set a non secure refcnt for shareable clocks enabled from boot */
-	for (idx = 0U; idx < NB_GATES; idx++) {
-		struct stm32mp1_clk_gate const *gate = gate_ref(idx);
-
-		if (__clk_is_enabled(gate) &&
-		    stm32mp1_clock_is_shareable(gate->index)) {
-			gate_refcounts[idx] = SHREFCNT_NONSECURE_FLAG;
-		}
-	}
-
 	/*
 	 * Register secure clock parents and init a refcount for
 	 * secure only resources that are not registered from a driver probe.
@@ -2975,40 +2967,40 @@ static void sync_earlyboot_clocks_state(void)
 	 * - RTCAPB clocks on multi-core
 	 */
 	stm32mp1_register_clock_parents_secure(DDRC1);
-	stm32mp1_clk_enable_secure(DDRC1);
+	stm32mp_clk_enable(DDRC1);
 	stm32mp1_register_clock_parents_secure(DDRC1LP);
-	stm32mp1_clk_enable_secure(DDRC1LP);
+	stm32mp_clk_enable(DDRC1LP);
 	stm32mp1_register_clock_parents_secure(DDRC2);
-	stm32mp1_clk_enable_secure(DDRC2);
+	stm32mp_clk_enable(DDRC2);
 	stm32mp1_register_clock_parents_secure(DDRC2LP);
-	stm32mp1_clk_enable_secure(DDRC2LP);
+	stm32mp_clk_enable(DDRC2LP);
 	stm32mp1_register_clock_parents_secure(DDRPHYC);
-	stm32mp1_clk_enable_secure(DDRPHYC);
+	stm32mp_clk_enable(DDRPHYC);
 	stm32mp1_register_clock_parents_secure(DDRPHYCLP);
-	stm32mp1_clk_enable_secure(DDRPHYCLP);
+	stm32mp_clk_enable(DDRPHYCLP);
 	stm32mp1_register_clock_parents_secure(DDRCAPB);
-	stm32mp1_clk_enable_secure(DDRCAPB);
+	stm32mp_clk_enable(DDRCAPB);
 	stm32mp1_register_clock_parents_secure(AXIDCG);
-	stm32mp1_clk_enable_secure(AXIDCG);
+	stm32mp_clk_enable(AXIDCG);
 	stm32mp1_register_clock_parents_secure(DDRPHYCAPB);
-	stm32mp1_clk_enable_secure(DDRPHYCAPB);
+	stm32mp_clk_enable(DDRPHYCAPB);
 	stm32mp1_register_clock_parents_secure(DDRPHYCAPBLP);
-	stm32mp1_clk_enable_secure(DDRPHYCAPBLP);
+	stm32mp_clk_enable(DDRPHYCAPBLP);
 
 	stm32mp1_register_clock_parents_secure(TZPC);
-	stm32mp1_clk_enable_secure(TZPC);
+	stm32mp_clk_enable(TZPC);
 	stm32mp1_register_clock_parents_secure(TZC1);
-	stm32mp1_clk_enable_secure(TZC1);
+	stm32mp_clk_enable(TZC1);
 	stm32mp1_register_clock_parents_secure(TZC2);
-	stm32mp1_clk_enable_secure(TZC2);
+	stm32mp_clk_enable(TZC2);
 	stm32mp1_register_clock_parents_secure(STGEN_K);
-	stm32mp1_clk_enable_secure(STGEN_K);
+	stm32mp_clk_enable(STGEN_K);
 
 	stm32mp1_register_clock_parents_secure(BSEC);
 	stm32mp1_register_clock_parents_secure(BKPSRAM);
 
 	stm32mp1_register_clock_parents_secure(RTCAPB);
-	stm32mp1_clk_enable_secure(RTCAPB);
+	stm32mp_clk_enable(RTCAPB);
 }
 
 int stm32mp1_clk_probe(void)
