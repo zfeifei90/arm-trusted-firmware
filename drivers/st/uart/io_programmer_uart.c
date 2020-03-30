@@ -18,6 +18,7 @@
 #include <drivers/st/io_stm32image.h>
 #include <drivers/st/io_uart.h>
 #include <drivers/st/stm32_iwdg.h>
+#include <lib/ssp_lib.h>
 
 /* USART bootloader protocol version V4.0*/
 #define USART_BL_VERSION	0x40
@@ -31,6 +32,9 @@ static const uint8_t command_tab[] = {
 	GET_VER_COMMAND,
 	GET_ID_COMMAND,
 	PHASE_COMMAND,
+#if STM32MP_SSP
+	READ_PART_COMMAND,
+#endif
 	START_COMMAND,
 	DOWNLOAD_COMMAND
 };
@@ -195,8 +199,10 @@ static int uart_block_open(io_dev_info_t *dev_info, const  uintptr_t spec,
 	int result = -EIO;
 	const struct stm32image_part_info *partition_spec =
 		(struct stm32image_part_info *)spec;
+#if !STM32MP_SSP
 	uint32_t length = 0;
 	uint32_t layout_length = 0;
+#endif
 
 	/* Use PHASE_FSBL1 like init value*/
 	if (current_phase.phase_id == PHASE_FSBL1) {
@@ -205,6 +211,7 @@ static int uart_block_open(io_dev_info_t *dev_info, const  uintptr_t spec,
 
 		current_phase.current_packet = 0;
 
+#if !STM32MP_SSP
 		if (!strcmp(partition_spec->name, BL33_IMAGE_NAME)) {
 			/* read flashlayout first for U-boot */
 			current_phase.phase_id = PHASE_FLASHLAYOUT;
@@ -224,6 +231,18 @@ static int uart_block_open(io_dev_info_t *dev_info, const  uintptr_t spec,
 			current_phase.max_size = dt_get_ddr_size();
 			current_phase.keep_header = 0;
 		}
+#else
+		if (!strcmp(partition_spec->name, "SSP")) {
+			current_phase.phase_id = SSP_PHASE;
+			header_length_read = 0;
+		}
+
+		if (!strcmp(partition_spec->name, "SSP_INIT")) {
+			current_phase.phase_id = RESET_PHASE;
+			header_length_read = 0;
+		}
+#endif
+
 		entity->info = (uintptr_t)&current_phase;
 		result = 0;
 	} else {
@@ -303,17 +322,128 @@ static int get_id_command(void)
 	return 0;
 }
 
-static int uart_send_phase(uint32_t address)
+static int uart_send_phase(uint32_t address, size_t length)
 {
-	uart_write_byte(0x05);			/* length of data - 1 */
+	size_t local_length = 0;
+	uint32_t i;
+
+	if (current_phase.phase_id == RESET_PHASE) {
+		local_length = length;
+	}
+
+	if ((local_length + 5U) > UINT8_MAX) {
+		return -EINVAL;
+	}
+
+	uart_write_byte(local_length + 5U);		/* length of data - 1 */
+
 	/* Send the ID of next partition */
 	uart_write_byte(current_phase.phase_id);	/* partition ID */
 
 	uart_write_uint32(address);		/* destination address */
-	uart_write_byte(0x00);			/* length of extra data */
+
+	uart_write_byte(local_length);		/* length of extra data */
+
+	for (i = 0; i < local_length; i++) {
+		uart_write_byte(((char *)address)[i]);
+	}
 
 	return 0;
 }
+
+#if STM32MP_SSP
+static int uart_read_part(uint8_t *buffer, size_t length, size_t *length_read)
+{
+	uint8_t byte = 0U;
+	uint8_t xor = 0U;
+	uint8_t partid = 0U;
+	uint16_t size = 0U;
+	uint32_t start_address = 0U;
+	uint32_t i;
+
+	/* Get partition id */
+	if (uart_read_byte(&partid) != 0) {
+		return -EIO;
+	}
+
+	if (partid != SSP_PART_ID) {
+		return -EPERM;
+	}
+
+	xor = partid;
+
+	/* Get address */
+	for (i = 4U; i > 0U; i--) {
+		if (uart_read_byte(&byte) != 0) {
+			return -EIO;
+		}
+
+		xor ^= byte;
+		start_address = (start_address << 8) | byte;
+	}
+
+	/* Checksum */
+	if (uart_read_byte(&byte) != 0) {
+		return -EIO;
+	}
+
+	if (xor != byte) {
+		WARN("UART: Start cmd: address checksum: %x != %x\n",
+		     xor, byte);
+		return -EPROTO;
+	}
+
+	uart_write_byte(ACK_BYTE);
+
+	/* Get number of bytes to send */
+	if (uart_read_byte(&byte) != 0) {
+		return -EIO;
+	}
+
+	xor = byte;
+
+	/* Send Size + 1 */
+	size = byte++;
+
+	/* Checksum */
+	if (uart_read_byte(&byte) != 0) {
+		return -EIO;
+	}
+
+	if ((xor ^ byte) != 0xFF) {
+		WARN("UART: Start cmd: length checksum: %x != %x\n", xor, byte);
+		return -EPROTO;
+	}
+
+	uart_write_byte(ACK_BYTE);
+
+	switch (partid) {
+	case SSP_PART_ID:
+		if ((start_address != 0U) ||
+		    (size < (SSP_KEY_CERTIFICATE_SIZE * sizeof(uint32_t)))) {
+			return -EIO;
+		}
+
+		for (i = 0U;
+		     i < (SSP_KEY_CERTIFICATE_SIZE * sizeof(uint32_t));
+		     i++, buffer++) {
+			uart_write_byte(*buffer);
+		}
+
+		for (; i < size; i++) {
+			uart_write_byte(0x0);
+		}
+
+		break;
+
+	default:
+		WARN("Not supported\n");
+		return -EPROTO;
+	}
+
+	return 0;
+}
+#endif /* STM32MP_SSP */
 
 static int uart_download_part(uint8_t *buffer, uint32_t *length_read)
 {
@@ -325,15 +455,23 @@ static int uart_download_part(uint8_t *buffer, uint32_t *length_read)
 	int i = 0;
 	volatile uint8_t *ptr = (uint8_t *)buffer;
 
-	/* get operation number */
-	if (uart_read_byte(&operation))
+	/* Get operation number */
+	if (uart_read_byte(&operation) != 0) {
 		return -EIO;
+	}
+
 	xor = operation;
 
-	/* get packet Number */
-	for (i = 3, byte = 0; i > 0; i--) {
-		if (uart_read_byte(&byte))
+	if ((operation != 0x0) && (operation != 0xF3)) {
+		return -EPERM;
+	}
+
+	/* Get packet number */
+	for (i = 3; i > 0; i--) {
+		if (uart_read_byte(&byte) != 0) {
 			return -EIO;
+		}
+
 		xor ^= byte;
 		packet_number = (packet_number << 8) | byte;
 	}
@@ -430,6 +568,12 @@ static int uart_start_cmd(boot_api_image_header_t *header, uintptr_t buffer)
 
 		return stm32mp_check_header(header, buffer);
 
+#if STM32MP_SSP
+	case SSP_PHASE:
+		current_phase.phase_id = RESET_PHASE;
+		break;
+#endif
+
 	default:
 		ERROR("Invalid phase ID : %i\n", current_phase.phase_id);
 		return -EINVAL;
@@ -447,6 +591,9 @@ static int uart_block_read(io_entity_t *entity, uintptr_t buffer,
 	uint32_t ptr_offset = 0;
 	uint8_t command = 0;
 	uint8_t all_commands_done = 0;
+#if STM32MP_SSP
+	ssp_exchange_t *exchange = (ssp_exchange_t *)buffer;
+#endif
 	boot_api_image_header_t *header =
 			(boot_api_image_header_t *)&header_buffer[0];
 
@@ -508,12 +655,44 @@ static int uart_block_read(io_entity_t *entity, uintptr_t buffer,
 			break;
 
 		case PHASE_COMMAND:
-			result = uart_send_phase((uint32_t)buffer);
+			result = uart_send_phase((uint32_t)buffer, length);
+#if STM32MP_SSP
+			if (current_phase.phase_id == RESET_PHASE) {
+				all_commands_done = 1;
+			}
+#endif
 			break;
 
+#if STM32MP_SSP
+		case READ_PART_COMMAND:
+			result = uart_read_part((uint8_t *)(buffer), length,
+						length_read);
+
+			if (result == 0) {
+				/* No ACK_BYTE needed */
+				continue;
+			}
+
+			break;
+#endif
+
 		case DOWNLOAD_COMMAND:
-			result = uart_download_part((uint8_t *)(buffer +
-								ptr_offset),
+#if STM32MP_SSP
+			result = uart_download_part((uint8_t *)
+						    (exchange->blob +
+						     ptr_offset),
+						    &read_length);
+			if (!result) {
+				ptr_offset += read_length;
+				total_length += read_length;
+				if (total_length > length) {
+					/* Buffer too long */
+					all_commands_done = 1;
+				}
+			}
+#else
+			result = uart_download_part((uint8_t *)
+						    (buffer + ptr_offset),
 						    &read_length);
 			if (!result) {
 				ptr_offset += read_length;
@@ -524,6 +703,7 @@ static int uart_block_read(io_entity_t *entity, uintptr_t buffer,
 					all_commands_done = 1;
 				}
 			}
+#endif
 
 			break;
 
@@ -531,7 +711,6 @@ static int uart_block_read(io_entity_t *entity, uintptr_t buffer,
 			result = uart_start_cmd(header, buffer);
 			if (!result)
 				all_commands_done = 1;
-
 			break;
 
 		default:
@@ -557,8 +736,7 @@ static int uart_block_read(io_entity_t *entity, uintptr_t buffer,
 	*length_read = total_length;
 
 	INFO("Read block in buffer 0x%lx size 0x%x phase ID %i\n",
-	     buffer, length, current_phase.phase_id);
-
+	     buffer, *length_read, current_phase.phase_id);
 	return 0;
 }
 

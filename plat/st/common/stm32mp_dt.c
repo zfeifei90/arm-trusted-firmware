@@ -651,6 +651,33 @@ uint32_t dt_get_pwr_vdd_voltage(void)
 }
 
 /*******************************************************************************
+ * This function retrieves VDD regulator name from DT.
+ * Returns string taken from supply node, NULL otherwise.
+ ******************************************************************************/
+const char *dt_get_vdd_regulator_name(void)
+{
+	int node;
+	const fdt32_t *cuint;
+
+	node = dt_get_node_by_compatible(DT_PWR_COMPAT);
+	if (node < 0) {
+		return NULL;
+	}
+
+	cuint = fdt_getprop(fdt, node, "vdd-supply", NULL);
+	if (cuint == NULL) {
+		return NULL;
+	}
+
+	node = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*cuint));
+	if (node < 0) {
+		return NULL;
+	}
+
+	return (const char *)fdt_getprop(fdt, node, "regulator-name", NULL);
+}
+
+/*******************************************************************************
  * This function retrieves CPU regulator name from DT.
  * Returns string taken from supply node, NULL otherwise.
  ******************************************************************************/

@@ -41,7 +41,12 @@
 			      <&nand_otp>,
 			      <&uid_otp>,
 			      <&package_otp>,
-			      <&hw2_otp>;
+			      <&hw2_otp>,
+			      <&pkh_otp>,
+			      <&cfg2_otp>,
+			      <&ssp_otp>,
+			      <&chip_otp>,
+			      <&rma_otp>;
 
 		nvmem-cell-names = "cfg0_otp",
 				   "part_number_otp",
@@ -49,7 +54,12 @@
 				   "nand_otp",
 				   "uid_otp",
 				   "package_otp",
-				   "hw2_otp";
+				   "hw2_otp",
+				   "pkh_otp",
+				   "cfg2_otp",
+				   "ssp_otp",
+				   "chip_otp",
+				   "rma_otp";
 	};
 
 	psci {
@@ -456,8 +466,14 @@
 			part_number_otp: part_number_otp@4 {
 				reg = <0x4 0x1>;
 			};
+			cfg2_otp: cfg2_otp@8 {
+				reg = <0x8 0x4>;
+			};
 			monotonic_otp: monotonic_otp@10 {
 				reg = <0x10 0x4>;
+			};
+			ssp_otp: ssp_otp@20 {
+				reg = <0x20 0x4>;
 			};
 			nand_otp: nand_otp@24 {
 				reg = <0x24 0x4>;
@@ -479,6 +495,12 @@
 			};
 			pkh_otp: pkh_otp@60 {
 				reg = <0x60 0x20>;
+			};
+			chip_otp: chip_otp@a0 {
+				reg = <0xa0 0x40>;
+			};
+			rma_otp: rma_otp@e0 {
+				reg = <0xe0 0x4>;
 			};
 			mac_addr: mac_addr@e4 {
 				reg = <0xe4 0x8>;

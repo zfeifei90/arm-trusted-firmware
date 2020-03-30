@@ -289,7 +289,11 @@
 		      <&package_otp>,
 		      <&hw2_otp>,
 		      <&pkh_otp>,
-		      <&board_id>;
+		      <&board_id>,
+		      <&cfg2_otp>,
+		      <&ssp_otp>,
+		      <&chip_otp>,
+		      <&rma_otp>;
 
 	nvmem-cell-names = "cfg0_otp",
 			   "part_number_otp",
@@ -299,7 +303,11 @@
 			   "package_otp",
 			   "hw2_otp",
 			   "pkh_otp",
-			   "board_id";
+			   "board_id",
+			   "cfg2_otp",
+			   "ssp_otp",
+			   "chip_otp",
+			   "rma_otp";
 };
 
 &pwr_regulators {

@@ -128,6 +128,7 @@ static pcd_handle_t pcd_handle;
 static const io_dev_connector_t *usb_dev_con;
 #endif /* STM32MP_USB_PROGRAMMER */
 
+#if !STM32MP_SSP
 #ifdef AARCH32_SP_OPTEE
 static const struct stm32image_part_info optee_header_partition_spec = {
 	.name = OPTEE_HEADER_IMAGE_NAME,
@@ -154,6 +155,7 @@ static const io_block_spec_t bl2_block_spec = {
 	.offset = BL2_BASE,
 	.length = STM32MP_BL2_SIZE,
 };
+#endif /* !STM32MP_SSP */
 
 static const struct stm32image_part_info bl33_partition_spec = {
 	.name = BL33_IMAGE_NAME,
@@ -199,7 +201,9 @@ static io_block_spec_t stm32image_block_spec = {
 
 static const io_dev_connector_t *stm32image_dev_con __unused;
 
+#if !STM32MP_SSP
 static int open_dummy(const uintptr_t spec);
+#endif
 static int open_image(const uintptr_t spec);
 static int open_storage(const uintptr_t spec);
 
@@ -210,6 +214,7 @@ struct plat_io_policy {
 };
 
 static const struct plat_io_policy policies[] = {
+#if !STM32MP_SSP
 	[BL2_IMAGE_ID] = {
 		.dev_handle = &dummy_dev_handle,
 		.image_spec = (uintptr_t)&bl2_block_spec,
@@ -237,7 +242,8 @@ static const struct plat_io_policy policies[] = {
 		.image_spec = (uintptr_t)&bl32_block_spec,
 		.check = open_dummy
 	},
-#endif
+#endif /* AARCH32_SP_OPTEE */
+#endif /* !STM32MP_SSP */
 	[BL33_IMAGE_ID] = {
 		.dev_handle = &image_dev_handle,
 		.image_spec = (uintptr_t)&bl33_partition_spec,
@@ -257,10 +263,12 @@ static const struct plat_io_policy policies[] = {
 	}
 };
 
+#if !STM32MP_SSP
 static int open_dummy(const uintptr_t spec)
 {
 	return io_dev_init(dummy_dev_handle, 0);
 }
+#endif
 
 static int open_image(const uintptr_t spec)
 {

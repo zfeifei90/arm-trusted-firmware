@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -60,17 +60,30 @@
  * Put BL2 just below BL3-1. BL2_BASE is calculated using the current BL2 debug
  * size plus a little space for growth.
  */
+#if !STM32MP_SSP
 #define BL2_BASE			STM32MP_BL2_BASE
 #define BL2_LIMIT			(STM32MP_BL2_BASE + \
 					 STM32MP_BL2_SIZE)
+#else
+#define BL2_RO_BASE			STM32MP_BL2_BASE
+#define BL2_RO_LIMIT			(STM32MP_BL2_BASE +	\
+					 STM32MP_BL2_SIZE)
+#define BL2_RW_BASE			BL2_RO_LIMIT
+#define BL2_RW_LIMIT			(STM32MP_SYSRAM_BASE +	\
+					 STM32MP_SYSRAM_SIZE -	\
+					 PLAT_XLAT_SIZE	-	\
+					 STM32MP_BL2_SIZE)
+#endif
 
 /*******************************************************************************
  * BL32 specific defines.
  ******************************************************************************/
+#if !STM32MP_SSP
 #ifndef AARCH32_SP_OPTEE
 #define BL32_BASE			STM32MP_BL32_BASE
 #define BL32_LIMIT			(STM32MP_BL32_BASE + \
 					 STM32MP_BL32_SIZE)
+#endif
 #endif
 
 /*******************************************************************************

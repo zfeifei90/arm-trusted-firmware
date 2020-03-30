@@ -17,6 +17,7 @@
 #include <drivers/st/io_programmer_st_usb.h>
 #include <drivers/st/io_stm32image.h>
 #include <drivers/st/stm32_iwdg.h>
+#include <lib/ssp_lib.h>
 #include <lib/usb/usb_st_dfu.h>
 
 #define USB_STATE_READY		0
@@ -89,13 +90,22 @@ static uint16_t usb_callback_write_done(uint32_t *written_in, uint32_t len)
 }
 
 /* Call back to notify that a read memory is requested */
-static uint8_t *usb_callback_read(uint8_t *src, uint8_t *dest, uint32_t len)
+static uint16_t usb_callback_read(uint8_t *src, uint8_t *dest, uint32_t len)
 {
+#if STM32MP_SSP
+	if (current_phase.phase_id == SSP_PHASE) {
+		const size_t size = SSP_KEY_CERTIFICATE_SIZE * sizeof(uint32_t);
+
+		if (len >= size) {
+			memcpy(dest, src, size);
+			return size;
+		}
+	}
+#else
 	ERROR("%s read is not supported src 0x%lx dest 0x%lx len %i\n",
 	      __func__, (uintptr_t)src, (uintptr_t)dest, len);
-
-	/* Return a valid address to avoid HardFault */
-	return (uint8_t *)(dest);
+#endif
+	return 0;
 }
 
 /* Get the status to know if written operation has been checked */
@@ -173,10 +183,11 @@ static int usb_block_open(io_dev_info_t *dev_info, const  uintptr_t spec,
 			  io_entity_t *entity)
 {
 	int result;
+#if !STM32MP_SSP
 	uint32_t length = 0;
 	boot_api_image_header_t *header =
 		(boot_api_image_header_t *)first_usb_buffer;
-
+#endif
 	const struct stm32image_part_info *partition_spec =
 		(struct stm32image_part_info *)spec;
 
@@ -186,7 +197,7 @@ static int usb_block_open(io_dev_info_t *dev_info, const  uintptr_t spec,
 		assert(entity);
 
 		current_phase.current_packet = 0;
-
+#if !STM32MP_SSP
 		if (!strcmp(partition_spec->name, BL33_IMAGE_NAME)) {
 			/* read flash layout first for U-boot */
 			current_phase.phase_id = PHASE_FLASHLAYOUT;
@@ -221,6 +232,16 @@ static int usb_block_open(io_dev_info_t *dev_info, const  uintptr_t spec,
 			current_phase.phase_id = PHASE_SSBL;
 			current_phase.max_size = dt_get_ddr_size();
 		}
+#else
+		if (!strcmp(partition_spec->name, "SSP")) {
+			current_phase.phase_id = SSP_PHASE;
+			current_phase.keep_header = 1;
+		}
+
+		if (!strcmp(partition_spec->name, "SSP_INIT")) {
+			current_phase.phase_id = RESET_PHASE;
+		}
+#endif
 		entity->info = (uintptr_t)&current_phase;
 		result = 0;
 	} else {
@@ -267,6 +288,64 @@ static int usb_block_seek(io_entity_t *entity, int mode,
 }
 
 /* Read data from a file on the usb device */
+#if STM32MP_SSP
+static int usb_block_read(io_entity_t *entity, uintptr_t buffer,
+			  size_t length, size_t *length_read)
+{
+	uint64_t timeout;
+	uint32_t detach_timeout = DETACH_TIMEOUT;
+	ssp_exchange_t *exchange = (ssp_exchange_t *)buffer;
+
+	if (current_phase.phase_id == RESET_PHASE) {
+		usb_dfu_set_phase_id(RESET_PHASE);
+		usb_dfu_set_upload_addr(buffer);
+		usb_dfu_error_msg_size(length);
+	} else {
+		usb_dfu_set_upload_addr((uint32_t)exchange->msg);
+		usb_dfu_set_download_addr((uint32_t)exchange->blob);
+
+		/* Use flashlayout partition for SSP exchange */
+		usb_dfu_set_phase_id(PHASE_FLASHLAYOUT);
+
+		INFO("Start Download partition SSP address 0x%lx length %i\n",
+		     (uintptr_t)exchange->blob, length);
+	}
+
+	while (!usb_dfu_download_is_completed()) {
+		/* Reload watchdog */
+		stm32_iwdg_refresh();
+		usb_core_handle_it((usb_handle_t *)usb_dev_info.info);
+	}
+
+	/* Wait Detach in case */
+	usb_dfu_set_phase_id(0x0);
+	usb_dfu_set_upload_addr(UNDEFINE_DOWN_ADDR);
+	usb_dfu_request_detach();
+	timeout = timeout_init_us(IO_USB_TIMEOUT_10_SEC);
+	while (detach_timeout != 0U) {
+		usb_core_handle_it((usb_handle_t *)usb_dev_info.info);
+
+		if (usb_dfu_detach_req() == 0U) {
+			/*
+			 * Continue to handle usb core IT to assure
+			 * complete data transmission.
+			 */
+			detach_timeout--;
+		}
+
+		if (timeout_elapsed(timeout)) {
+			return -EIO;
+		}
+	}
+
+	/* STOP the USB Handler */
+	usb_core_stop((usb_handle_t *)usb_dev_info.info);
+
+	*length_read = length;
+
+	return 0;
+}
+#else /* STM32MP_SSP */
 static int usb_block_read(io_entity_t *entity, uintptr_t buffer,
 			  size_t length, size_t *length_read)
 {
@@ -355,6 +434,7 @@ static int usb_block_read(io_entity_t *entity, uintptr_t buffer,
 
 	return 0;
 }
+#endif /* STM32MP_SSP */
 
 /* Close a file on the usb device */
 static int usb_block_close(io_entity_t *entity)

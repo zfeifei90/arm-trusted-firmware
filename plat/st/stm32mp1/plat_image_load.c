@@ -33,6 +33,7 @@ static bool addr_inside_backupsram(uintptr_t addr)
  ******************************************************************************/
 bl_load_info_t *plat_get_bl_image_load_info(void)
 {
+#if !STM32MP_SSP
 	boot_api_context_t *boot_context =
 		(boot_api_context_t *)stm32mp_get_boot_ctx_address();
 #ifdef AARCH32_SP_OPTEE
@@ -86,7 +87,7 @@ bl_load_info_t *plat_get_bl_image_load_info(void)
 					  STM32MP_DDR_S_SIZE -
 					  STM32MP_DDR_SHMEM_SIZE -
 					  bl33->image_info.image_base;
-
+#endif /* STM32MP_SSP */
 	return get_bl_load_info_from_mem_params_desc();
 }
 

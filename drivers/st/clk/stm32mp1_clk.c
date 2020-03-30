@@ -698,20 +698,24 @@ static unsigned int gate_refcounts[NB_GATES];
 static struct spinlock refcount_lock;
 static struct stm32mp1_pll_settings pll1_settings;
 static uint32_t current_opp_khz;
+#if !STM32MP_SSP
 static uint32_t pll3cr;
 static uint32_t pll4cr;
 static uint32_t mssckselr;
 static uint32_t mcudivr;
+#endif
 
 static const struct stm32mp1_clk_gate *gate_ref(unsigned int idx)
 {
 	return &stm32mp1_clk_gate[idx];
 }
 
+#if !STM32MP_SSP
 static bool gate_is_non_secure(const struct stm32mp1_clk_gate *gate)
 {
 	return gate->secure == N_S;
 }
+#endif
 
 static const struct stm32mp1_clk_sel *clk_sel_ref(unsigned int idx)
 {
@@ -2848,6 +2852,7 @@ unsigned long stm32mp1_clk_rcc2id(unsigned int offset, unsigned int bit)
 	return get_id_from_rcc_bit(offset, bit);
 }
 
+#if !STM32MP_SSP
 #ifdef IMAGE_BL32
 /*
  * Get the parent ID of the target parent clock, for tagging as secure
@@ -3449,6 +3454,7 @@ static void sync_earlyboot_clocks_state(void)
 
 	stm32mp_clk_enable(RTCAPB);
 }
+#endif /* !STM32MP_SSP */
 
 int stm32mp1_clk_probe(void)
 {
@@ -3458,7 +3464,9 @@ int stm32mp1_clk_probe(void)
 
 	stm32mp1_osc_init();
 
+#if !STM32MP_SSP
 	sync_earlyboot_clocks_state();
+#endif
 
 	/* Save current CPU operating point value */
 	freq_khz = udiv_round_nearest(stm32mp_clk_get_rate(CK_MPU), 1000UL);

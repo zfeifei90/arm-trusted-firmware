@@ -23,6 +23,7 @@ bool stm32mp_is_closed_device(void);
 bool stm32mp_is_auth_supported(void);
 
 const char *stm32mp_get_cpu_supply_name(void);
+const char *stm32mp_get_vdd_supply_name(void);
 
 /* Return the base address of the DDR controller */
 uintptr_t stm32mp_ddrctrl_base(void);
@@ -93,6 +94,11 @@ void stm32mp_print_boardinfo(void);
 
 /* Check HW CPU OPP support */
 bool stm32mp_supports_cpu_opp(uint32_t opp_id);
+
+#if STM32MP_SSP
+/* Check HW support SSP */
+bool stm32mp_supports_ssp(void);
+#endif
 
 /*
  * Util for clock gating and to get clock rate for stm32 and platform drivers

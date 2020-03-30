@@ -32,6 +32,7 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 		VERBOSE("get_rot_pk_hash: get index error\n");
 		return -EINVAL;
 	}
+
 	if (len != (CHAR_BIT * BOOT_API_SHA256_DIGEST_SIZE_IN_BYTES)) {
 		VERBOSE("get_rot_pk_hash: length Error\n");
 		return -EINVAL;

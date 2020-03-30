@@ -15,6 +15,14 @@ VERSION_STRING		:=	v${VERSION_MAJOR}.${VERSION_MINOR}-${ST_VERSION}(${BUILD_TYPE
 
 TRUSTED_BOARD_BOOT	:=	1
 
+STM32MP_SSP		?=	0
+$(eval $(call assert_boolean,STM32MP_SSP))
+$(eval $(call add_define,STM32MP_SSP))
+
+ifeq ($(STM32MP_SSP),1)
+include plat/st/stm32mp1/stm32mp1_ssp.mk
+endif
+
 # Please don't increment this value without good understanding of
 # the monotonic counter
 STM32_TF_VERSION	?=	0
@@ -185,8 +193,10 @@ BL2_SOURCES		+=	drivers/st/uart/io_programmer_uart.c			\
 				drivers/st/uart/stm32mp1xx_hal_uart.c
 endif
 
+ifeq ($(STM32MP_SSP),0)
 BL2_SOURCES		+=	drivers/st/ddr/stm32mp1_ddr.c				\
 				drivers/st/ddr/stm32mp1_ram.c
+endif
 
 BL2_SOURCES		+=	common/desc_image_load.c				\
 				plat/st/stm32mp1/plat_bl2_mem_params_desc.c		\
@@ -227,7 +237,9 @@ STM32IMAGE_SRC		:= ${STM32IMAGEPATH}/stm32image.c
 .PHONY: check_dtc_version stm32image clean_stm32image
 .SUFFIXES:
 
+ifeq ($(STM32MP_SSP),0)
 all: check_dtc_version stm32image ${STM32_TF_STM32}
+endif
 
 ifeq ($(AARCH32_SP),sp_min)
 # BL32 is built only if using SP_MIN

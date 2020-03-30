@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2015-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,10 +12,12 @@
 #include <lib/usb/usb_st_dfu.h>
 
 static uintptr_t usbd_dfu_download_address;
+static uintptr_t usbd_dfu_upload_address;
 static uint32_t usbd_dfu_phase_id;
 static uint32_t usbd_dfu_operation_complete;
 static uint32_t usbd_dfu_current_req;
 static uint32_t usbd_detach_req;
+static uint32_t usbd_error_msg_size;
 
 /*
  * @brief  USBD_DFU_Init
@@ -370,30 +372,82 @@ static void usb_dfu_upload(usb_handle_t *pdev, usb_setup_req_t *req)
 
 				INFO("UPLOAD :\n");
 				INFO("\t\tPhase ID : %i\n", usbd_dfu_phase_id);
+#if STM32MP_SSP
+				INFO("\t\taddress 0x%lx\n",
+				     usbd_dfu_upload_address);
+
+				hdfu->buffer[0] = usbd_dfu_phase_id;
+				hdfu->buffer[1] = usbd_dfu_upload_address;
+				hdfu->buffer[2] = usbd_dfu_upload_address >> 8;
+				hdfu->buffer[3] = usbd_dfu_upload_address >> 16;
+				hdfu->buffer[4] = usbd_dfu_upload_address >> 24;
+				hdfu->buffer[5] = 0x00;
+				hdfu->buffer[6] = 0x00;
+				hdfu->buffer[7] = 0x00;
+				hdfu->buffer[8] = 0x00;
+
+				if ((usbd_dfu_upload_address ==
+				    UNDEFINE_DOWN_ADDR) &&
+				   (usbd_detach_req)) {
+					INFO("Send detach request\n");
+					hdfu->buffer[9] = 0x01;
+					pdev->ep_in[0].total_length = 10;
+					pdev->ep_in[0].rem_length   = 10;
+				} else {
+					if (usbd_dfu_phase_id != 0xFF) {
+						pdev->ep_in[0].total_length = 9;
+						pdev->ep_in[0].rem_length   = 9;
+					} else {
+						memcpy(&hdfu->buffer[9],
+						       (char *)
+						       usbd_dfu_upload_address,
+						       usbd_error_msg_size);
+						pdev->ep_in[0].total_length =
+							9 + usbd_error_msg_size;
+						pdev->ep_in[0].rem_length =
+							9 + usbd_error_msg_size;
+						usbd_dfu_operation_complete = 1;
+					}
+				}
+
+				if (hdfu->alt_setting != DFU_GET_PHASE) {
+					uint16_t size;
+
+					/* Change SSP phase */
+					size = ((usb_dfu_media_t *)
+						pdev->user_data)->
+						read((uint8_t *)
+						     usbd_dfu_upload_address,
+						     &hdfu->buffer[9],
+						     hdfu->wlength);
+
+					if (size != 0) {
+						pdev->ep_in[0].total_length +=
+							size;
+						pdev->ep_in[0].rem_length   +=
+							size;
+					}
+				}
+#else /* STM32MP_SSP */
 				INFO("\t\taddress 0x%lx\n",
 				     usbd_dfu_download_address);
 
 				hdfu->buffer[0] = usbd_dfu_phase_id;
-				hdfu->buffer[1] = (uint8_t)
-						  (usbd_dfu_download_address);
-				hdfu->buffer[2] = (uint8_t)
-						  (usbd_dfu_download_address >>
-						   8);
-				hdfu->buffer[3] = (uint8_t)
-						  (usbd_dfu_download_address >>
-						   16);
-				hdfu->buffer[4] = (uint8_t)
-						  (usbd_dfu_download_address >>
-						   24);
-
+				hdfu->buffer[1] = usbd_dfu_download_address;
+				hdfu->buffer[2] = usbd_dfu_download_address >>
+					8;
+				hdfu->buffer[3] = usbd_dfu_download_address >>
+					16;
+				hdfu->buffer[4] = usbd_dfu_download_address >>
+					24;
 				hdfu->buffer[5] = 0x00;
 				hdfu->buffer[6] = 0x00;
 				hdfu->buffer[7] = 0x00;
 				hdfu->buffer[8] = 0x00;
 
 				if ((usbd_dfu_download_address ==
-				    UNDEFINE_DOWN_ADDR) &&
-				   (usbd_detach_req)) {
+				     UNDEFINE_DOWN_ADDR) &&
+				    (usbd_detach_req)) {
 					INFO("Send detach request\n");
 					hdfu->buffer[9] = 0x01;
 					pdev->ep_in[0].total_length = 10;
@@ -402,7 +456,7 @@ static void usb_dfu_upload(usb_handle_t *pdev, usb_setup_req_t *req)
 					pdev->ep_in[0].total_length = 9;
 					pdev->ep_in[0].rem_length   = 9;
 				}
-
+#endif /* STM32MP_SSP */
 				/* Send the status data over EP0 */
 				pdev->ep0_state = USBD_EP0_DATA_IN;
 				/* Start the transfer */
@@ -662,6 +716,10 @@ static uint8_t usb_dfu_setup(usb_handle_t *pdev, usb_setup_req_t *req)
 				usb_dfu_upload(pdev, req);
 				break;
 
+			case DFU_DNLOAD:
+				usb_dfu_download(pdev, req);
+				break;
+
 			case DFU_GETSTATUS:
 				INFO("GETSTATUS :\n");
 				usb_dfu_get_status(pdev);
@@ -759,6 +817,7 @@ static uint8_t usb_dfu_setup(usb_handle_t *pdev, usb_setup_req_t *req)
 				break;
 
 			case DFU_DETACH:
+				INFO("Receive DFU detach\n");
 				usb_dfu_detach(pdev, req);
 				break;
 
@@ -844,6 +903,11 @@ void usb_dfu_set_download_addr(uintptr_t addr)
 	usbd_dfu_download_address = addr;
 }
 
+void usb_dfu_set_upload_addr(uintptr_t addr)
+{
+	usbd_dfu_upload_address = addr;
+}
+
 uint32_t usb_dfu_download_is_completed(void)
 {
 	return usbd_dfu_operation_complete;
@@ -862,4 +926,9 @@ uint32_t usb_dfu_detach_req(void)
 void usb_dfu_request_detach(void)
 {
 	usbd_detach_req = 1;
+}
+
+void usb_dfu_error_msg_size(uint32_t size)
+{
+	usbd_error_msg_size = size;
 }
