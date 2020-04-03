@@ -624,7 +624,7 @@ int dt_get_all_opp_freqvolt(uint32_t *count, uint32_t *freq_khz_array,
  ******************************************************************************/
 uint32_t dt_get_pwr_vdd_voltage(void)
 {
-	int node, pwr_regulators_node;
+	int node;
 	const fdt32_t *cuint;
 
 	node = dt_get_node_by_compatible(DT_PWR_COMPAT);
@@ -632,13 +632,7 @@ uint32_t dt_get_pwr_vdd_voltage(void)
 		return 0;
 	}
 
-	pwr_regulators_node = fdt_subnode_offset(fdt, node, "pwr-regulators");
-	if (pwr_regulators_node < 0) {
-		INFO("%s: Cannot read pwr-regulators node in DT\n", __func__);
-		return 0;
-	}
-
-	cuint = fdt_getprop(fdt, pwr_regulators_node, "vdd-supply", NULL);
+	cuint = fdt_getprop(fdt, node, "vdd-supply", NULL);
 	if (cuint == NULL) {
 		return 0;
 	}
