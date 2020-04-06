@@ -461,8 +461,6 @@ void bl2_el3_plat_arch_setup(void)
 
 	initialize_clock();
 
-	stm32mp1_syscfg_init();
-
 	result = dt_get_stdout_uart_info(&dt_uart_info);
 
 	if ((result <= 0) ||
@@ -529,6 +527,8 @@ skip_console_init:
 		panic();
 	}
 #endif
+
+	stm32mp1_syscfg_init();
 
 	if (stm32_iwdg_init() < 0) {
 		panic();
