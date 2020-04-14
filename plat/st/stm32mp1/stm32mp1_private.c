@@ -69,6 +69,15 @@
 					MT_EXECUTE_NEVER)
 #endif
 
+#if STM32MP13
+#define MAP_SRAM2	MAP_REGION_FLAT(SRAM2_BASE, \
+					SRAM2_SIZE, \
+					MT_MEMORY | \
+					MT_RW | \
+					MT_SECURE | \
+					MT_EXECUTE_NEVER)
+#endif
+
 #define MAP_DEVICE1	MAP_REGION_FLAT(STM32MP1_DEVICE1_BASE, \
 					STM32MP1_DEVICE1_SIZE, \
 					MT_DEVICE | \
@@ -86,6 +95,9 @@
 #if defined(IMAGE_BL2)
 static const mmap_region_t stm32mp1_mmap[] = {
 	MAP_SEC_SYSRAM,
+#if STM32MP13
+	MAP_SRAM2,
+#endif
 	MAP_DEVICE1,
 #if STM32MP_RAW_NAND
 	MAP_DEVICE2,

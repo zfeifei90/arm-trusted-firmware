@@ -23,6 +23,9 @@
 #define VER_VARIANT		0
 #define HEADER_VERSION_V1	0x1
 #define HEADER_VERSION_V2	0x2
+#define PADDING_HEADER_MAGIC	__be32_to_cpu(0x5354FFFF)
+#define PADDING_HEADER_FLAG	(1 << 31)
+#define PADDING_HEADER_LENGTH	0x180
 
 struct stm32_header_v1 {
 	uint32_t magic_number;
@@ -57,6 +60,9 @@ struct stm32_header_v2 {
 	uint32_t extension_headers_length;
 	uint32_t binary_type;
 	uint8_t padding[16];
+	uint32_t extension_header_type;
+	uint32_t extension_header_length;
+	uint8_t extension_padding[376];
 };
 
 static void stm32image_default_header(void *ptr)
@@ -136,6 +142,8 @@ static int stm32image_set_header(void *ptr, struct stat *sbuf, int ifd,
 {
 	struct stm32_header_v1 *stm32hdr = (struct stm32_header_v1 *)ptr;
 	struct stm32_header_v2 *stm32hdr_v2 = (struct stm32_header_v2 *)ptr;
+	uint32_t ext_size = 0U;
+	uint32_t ext_flags = 0U;
 
 	stm32image_default_header(ptr);
 
@@ -159,6 +167,15 @@ static int stm32image_set_header(void *ptr, struct stat *sbuf, int ifd,
 
 	case HEADER_VERSION_V2:
 		stm32hdr_v2->binary_type = binary_type;
+		ext_size += PADDING_HEADER_LENGTH;
+		ext_flags |= PADDING_HEADER_FLAG;
+		stm32hdr_v2->extension_flags =
+			__cpu_to_le32(ext_flags);
+		stm32hdr_v2->extension_headers_length =
+			__cpu_to_le32(ext_size);
+		stm32hdr_v2->extension_header_type = PADDING_HEADER_MAGIC;
+		stm32hdr_v2->extension_header_length =
+			__cpu_to_le32(PADDING_HEADER_LENGTH);
 		break;
 
 	default:

@@ -135,6 +135,15 @@ enum ddr_type {
 #endif
 
 /* Section used inside TF binaries */
+#if STM32MP13
+/* 512 Octets reserved for header */
+#define STM32MP_HEADER_RESERVED_SIZE	U(0x200)
+
+#define STM32MP_BINARY_BASE		STM32MP_SEC_SYSRAM_BASE
+
+#define STM32MP_BINARY_SIZE		STM32MP_SEC_SYSRAM_SIZE
+#endif
+#if STM32MP15
 #define STM32MP_PARAM_LOAD_SIZE		U(0x00002400)	/* 9 KB for param */
 /* 256 Octets reserved for header */
 #define STM32MP_HEADER_SIZE		U(0x00000100)
@@ -148,6 +157,7 @@ enum ddr_type {
 #define STM32MP_BINARY_SIZE		(STM32MP_SEC_SYSRAM_SIZE -	\
 					 (STM32MP_PARAM_LOAD_SIZE +	\
 					  STM32MP_HEADER_SIZE))
+#endif
 
 /* BL2 and BL32/sp_min require finer granularity tables */
 #if defined(IMAGE_BL2)
