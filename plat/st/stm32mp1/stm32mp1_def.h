@@ -206,7 +206,7 @@ enum ddr_type {
 #define STM32MP_BL33_BASE		(STM32MP_DDR_BASE + U(0x100000))
 
 /* Define Temporary Stack size use during low power mode */
-#define STM32MP_INT_STACK_SIZE		0x400
+#define STM32MP_INT_STACK_SIZE		0x100
 
 /* Define maximum page size for NAND devices */
 #define PLATFORM_MTD_MAX_PAGE_SIZE	U(0x1000)

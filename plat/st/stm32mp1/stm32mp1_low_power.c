@@ -36,7 +36,7 @@
 static unsigned int gicc_pmr;
 static struct stm32_rtc_calendar sleep_time;
 static bool enter_cstop_done;
-static uint8_t int_stack[STM32MP_INT_STACK_SIZE];
+static uint32_t int_stack[STM32MP_INT_STACK_SIZE];
 
 extern void wfi_svc_int_enable(uintptr_t stack_addr);
 
