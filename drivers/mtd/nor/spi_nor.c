@@ -368,7 +368,7 @@ int spi_nor_init(unsigned long long *size, unsigned int *erase_size)
 	if (nor_dev.read_op.data.buswidth == 4U) {
 		switch (id) {
 		case MACRONIX_ID:
-			WARN("Enable Macronix quad support\n");
+			INFO("Enable Macronix quad support\n");
 			ret = spi_nor_macronix_quad_enable();
 			break;
 		case MICRON_ID:
