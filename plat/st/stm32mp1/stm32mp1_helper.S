@@ -46,17 +46,17 @@ func plat_report_exception
 	bne	undef_inst_lbl
 	ldr	r4, =abort_str
 	bl	asm_print_str
-	b	print_excpetion_info
+	b	print_exception_info
 
 undef_inst_lbl:
 	/* Test for an undefined instruction */
 	cmp	r0, #MODE32_und
-	bne	other_excpetion_lbl
+	bne	other_exception_lbl
 	ldr	r4, =undefined_str
 	bl	asm_print_str
-	b	print_excpetion_info
+	b	print_exception_info
 
-other_excpetion_lbl:
+other_exception_lbl:
 	/* Other exceptions */
 	mov	r9, r0
 	ldr	r4, =exception_start_str
@@ -66,7 +66,7 @@ other_excpetion_lbl:
 	ldr	r4, =exception_end_str
 	bl	asm_print_str
 
-print_excpetion_info:
+print_exception_info:
 	mrs	r4, lr_svc
 	sub	r4, r4, #4
 	bl	asm_print_hex
