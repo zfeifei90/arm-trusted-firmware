@@ -183,7 +183,7 @@ static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
 	 * This is also the procedure awaited when switching off power supply.
 	 */
 	if (ddr_standby_sr_entry(&zq0cr0_zdata) != 0) {
-		return;
+		panic();
 	}
 
 	stm32mp_clk_enable(RTCAPB);
