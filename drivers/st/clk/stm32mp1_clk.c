@@ -3006,8 +3006,8 @@ void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
 	}
 
 	if (parent_id < 0) {
-		ERROR("No parent for clock %lu", clock_id);
-		panic();
+		INFO("No parent for clock %lu\n", clock_id);
+		return;
 	}
 
 	secure_parent_clocks(parent_id);
