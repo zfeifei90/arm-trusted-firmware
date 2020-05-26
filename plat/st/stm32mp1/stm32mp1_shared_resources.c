@@ -616,7 +616,7 @@ static bool check_decprot(unsigned int id, enum etzpc_decprot_attributes exp)
 	switch (exp) {
 	case TZPC_DECPROT_NS_RW:
 		if (cur == TZPC_DECPROT_S_RW) {
-			WARN("ETZPC: %s (%d) could be non secure\n",
+			INFO("ETZPC: %s (%d) could be non secure\n",
 			     decprot2str(id), id);
 		}
 		return true;

@@ -300,16 +300,9 @@ CASSERT((STM32MP_NS_SYSRAM_BASE & GENMASK(11, 0)) == 0,
 
 static void stm32mp1_etzpc_early_setup(void)
 {
-	uint32_t n;
-
 	etzpc_init();
 	etzpc_configure_tzma(0U, TZMA0_SECURE_RANGE);
 	etzpc_configure_tzma(1U, TZMA1_SECURE_RANGE);
-
-	/* Release security on all shared resources */
-	for (n = 0; n < STM32MP1_ETZPC_SEC_ID_LIMIT; n++) {
-		etzpc_configure_decprot(n, TZPC_DECPROT_NS_RW);
-	}
 }
 
 /*******************************************************************************
