@@ -252,7 +252,7 @@ int ddr_sw_self_refresh_exit(void)
 			DDRPHYC_DXNDLLCR_DLLDIS);
 
 	/* Additional delay to avoid early DLL clock switch */
-	udelay(10);
+	udelay(50);
 
 	/* Switch controller clocks (uMCTL2/PUBL) to DLL ref clock */
 	stm32mp1_clk_rcc_regs_lock();
