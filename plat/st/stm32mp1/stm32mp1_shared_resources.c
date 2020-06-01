@@ -375,10 +375,15 @@ void stm32mp1_register_etzpc_decprot(unsigned int id,
 	switch (id) {
 	case STM32MP1_ETZPC_STGENC_ID:
 	case STM32MP1_ETZPC_BKPSRAM_ID:
-	case STM32MP1_ETZPC_DDRCTRL_ID:
-	case STM32MP1_ETZPC_DDRPHYC_ID:
 		/* We assume these must always be assigned to secure world */
 		if (state != SHRES_SECURE) {
+			panic();
+		}
+		break;
+	case STM32MP1_ETZPC_DDRCTRL_ID:
+	case STM32MP1_ETZPC_DDRPHYC_ID:
+		/* allow write only for secure world */
+		if ((attr != TZPC_DECPROT_S_RW) && (attr != TZPC_DECPROT_NS_R_S_W)) {
 			panic();
 		}
 		break;
@@ -628,6 +633,7 @@ static bool check_decprot(unsigned int id, enum etzpc_decprot_attributes exp)
 
 	case TZPC_DECPROT_NS_R_S_W:
 	case TZPC_DECPROT_MCU_ISOLATION:
+		break;
 	default:
 		panic();
 	}
@@ -663,9 +669,15 @@ static void check_etzpc_secure_configuration(void)
 	error |= !check_decprot(STM32MP1_ETZPC_CRYP1_ID,
 				decprot_periph_attr(STM32MP1_SHRES_CRYP1));
 
-	error |= !check_decprot(STM32MP1_ETZPC_DDRCTRL_ID, TZPC_DECPROT_S_RW);
+	error |= !((check_decprot(STM32MP1_ETZPC_DDRCTRL_ID,
+				 TZPC_DECPROT_NS_R_S_W)) ||
+		   (check_decprot(STM32MP1_ETZPC_DDRCTRL_ID,
+				  TZPC_DECPROT_S_RW)));
 
-	error |= !check_decprot(STM32MP1_ETZPC_DDRPHYC_ID, TZPC_DECPROT_S_RW);
+	error |= !((check_decprot(STM32MP1_ETZPC_DDRPHYC_ID,
+				 TZPC_DECPROT_NS_R_S_W)) ||
+		   (check_decprot(STM32MP1_ETZPC_DDRPHYC_ID,
+				  TZPC_DECPROT_S_RW)));
 
 	error |= !check_decprot(STM32MP1_ETZPC_I2C6_ID,
 				decprot_periph_attr(STM32MP1_SHRES_I2C6));
