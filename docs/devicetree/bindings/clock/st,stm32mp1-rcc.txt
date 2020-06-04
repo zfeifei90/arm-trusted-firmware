@@ -166,7 +166,15 @@ Defining peripheral PLL frequencies
 
   Each PLL children nodes for PLL1 to PLL4 (see ref manual for details)
   are listed with associated reg 0 to 3.
-  PLLx is off when the associated node is absent or deactivated.
+
+  PLL2, PLL3 or PLL4 are off when their associated nodes are absent or
+  deactivated.
+
+  The configuration of PLL1, the source clock of Cortex-A7 core, with st,pll@0
+  node, is optional as TF-A automatically selects the most suitable operating
+  point for the platform.
+  The node st,pll@0 node should be absent; it is only used if you want to
+  override the PLL1 properties computed by TF-A (clock spreading for example).
 
   Here are the available properties for each PLL node:
     - compatible: should be "st,stm32mp1-pll"
