@@ -97,20 +97,20 @@ static int mmc_block_seek(io_entity_t *entity, int mode,
 static int mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 			  size_t length, size_t *length_read)
 {
-	uint8_t retries = 3U;
+	uint8_t retries;
 
-	do {
-		retries--;
-		if (retries == 0U) {
-			return -EIO;
-		}
-
+	for (retries = 0U; retries < 3U; retries++) {
 		*length_read = mmc_read_blocks(seek_offset / MMC_BLOCK_SIZE,
 					       buffer, length);
 
-	} while (*length_read != length);
+		if (*length_read == length) {
+			return 0;
+		}
+		WARN("%s: length_read = %u (!= %u), retry %d\n", __func__,
+		     *length_read, length, retries + 1U);
+	}
 
-	return 0;
+	return -EIO;
 }
 
 /* Close a file on the mmc device */
