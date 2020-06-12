@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -265,9 +265,6 @@ int stm32_iwdg_init(void)
 		} else {
 			stm32mp_register_secure_periph_iomem(iwdg->base);
 		}
-
-		stm32mp_clk_enable(iwdg->clock);
-		stm32mp_clk_disable(iwdg->clock);
 
 #if defined(IMAGE_BL32)
 		res = stm32_iwdg_conf_etimeout(node, iwdg);
