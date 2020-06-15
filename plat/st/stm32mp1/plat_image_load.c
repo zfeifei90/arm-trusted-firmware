@@ -35,9 +35,7 @@ bl_load_info_t *plat_get_bl_image_load_info(void)
 {
 	boot_api_context_t *boot_context =
 		(boot_api_context_t *)stm32mp_get_boot_ctx_address();
-#ifdef AARCH32_SP_OPTEE
 	bl_mem_params_node_t *bl32 = get_bl_mem_params_node(BL32_IMAGE_ID);
-#endif
 	bl_mem_params_node_t *bl33 = get_bl_mem_params_node(BL33_IMAGE_ID);
 	uint32_t rstsr = mmio_read_32(stm32mp_rcc_base() + RCC_MP_RSTSCLRR);
 	uint32_t bkpr_core1_addr =
@@ -60,9 +58,8 @@ bl_load_info_t *plat_get_bl_image_load_info(void)
 
 		if (mmio_read_32(bkpr_core1_addr) != 0U) {
 			bl33->image_info.h.attr |= IMAGE_ATTRIB_SKIP_LOADING;
-
-#ifdef AARCH32_SP_OPTEE
 			bl32->image_info.h.attr |= IMAGE_ATTRIB_SKIP_LOADING;
+#ifdef AARCH32_SP_OPTEE
 			bl32->ep_info.pc = stm32_pm_get_optee_ep();
 
 			if (addr_inside_backupsram(bl32->ep_info.pc)) {

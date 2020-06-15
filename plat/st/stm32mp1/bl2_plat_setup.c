@@ -564,7 +564,9 @@ skip_console_init:
 		print_pmic_info_and_debug();
 	}
 
-	stm32mp_io_setup();
+	if (!wakeup_standby) {
+		stm32mp_io_setup();
+	}
 }
 
 #if defined(AARCH32_SP_OPTEE)
