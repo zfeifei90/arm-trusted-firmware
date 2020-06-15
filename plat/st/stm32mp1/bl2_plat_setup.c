@@ -537,7 +537,9 @@ skip_console_init:
 
 	update_monotonic_counter();
 
-	stm32mp_io_setup();
+	if (!wakeup_standby) {
+		stm32mp_io_setup();
+	}
 }
 
 #if defined(AARCH32_SP_OPTEE)
