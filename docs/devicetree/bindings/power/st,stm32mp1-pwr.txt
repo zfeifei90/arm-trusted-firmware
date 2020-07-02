@@ -15,6 +15,7 @@ Optional Properties:
 - Nodes corresponding to PSCI commands issued by kernel:
   - system_suspend_supported_soc_modes: list of supported SoC modes in suspend
   - system_off_soc_mode: SoC mode for shutdown
+  - st,retram-enabled-in-standby-ddr-sr: enable retram during standby-ddr-sr
 
 The list of SoC modes is in include/dt-bindings/power/stm32mp1-power.h:
   - modes for system_suspend
