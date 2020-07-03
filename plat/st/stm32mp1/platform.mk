@@ -11,7 +11,7 @@ USE_COHERENT_MEM	:=	0
 MULTI_CONSOLE_API	:=	1
 
 # Add specific ST version
-ST_VERSION 		:=	r3.2
+ST_VERSION 		:=	r3.3
 VERSION_STRING		:=	v${VERSION_MAJOR}.${VERSION_MINOR}-${ST_VERSION}(${BUILD_TYPE}):${BUILD_STRING}
 
 # Please don't increment this value without good understanding of
