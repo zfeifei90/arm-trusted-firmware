@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -80,11 +80,8 @@ static void raw_allowed_access_request(uint32_t request,
 	case RCC_MP_CIFR:
 		allowed_mask = RCC_MP_CIFR_WKUPF;
 		break;
-	case RCC_MP_GCR:
-		allowed_mask = RCC_MP_GCR_BOOT_MCU;
-		break;
 	default:
-		panic();
+		return;
 	}
 
 	if (allowed_mask != 0U) {
