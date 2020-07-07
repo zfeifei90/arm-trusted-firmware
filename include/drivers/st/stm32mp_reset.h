@@ -48,6 +48,13 @@ static inline void stm32mp_reset_release(uint32_t reset_id)
 }
 
 /*
+ * Manage reset control for the MCU reset
+ *
+ * @assert_not_deassert: reset requested state
+ */
+void stm32mp_reset_assert_deassert_to_mcu(bool assert_not_deassert);
+
+/*
  * Manage system reset control
  */
 void __dead2 stm32mp_system_reset(void);
