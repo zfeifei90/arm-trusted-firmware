@@ -456,7 +456,7 @@ static int uart_block_read(io_entity_t *entity, uintptr_t buffer,
 		ptr_offset += header_length_read;
 	} else if (header_length_read &&
 		  ((header_length_read -
-		    sizeof(boot_api_image_header_t)) > 0)) {
+		    sizeof(boot_api_image_header_t)) >= 0)) {
 #if TRUSTED_BOARD_BOOT
 		stm32mp_save_loaded_header(header_buffer);
 #endif
