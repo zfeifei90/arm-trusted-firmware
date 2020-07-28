@@ -70,8 +70,8 @@ static void access_allowed_mask(uint32_t request, uint32_t offset,
 	}
 }
 
-static void raw_allowed_access_request(uint32_t request,
-				       uint32_t offset, uint32_t value)
+static uint32_t raw_allowed_access_request(uint32_t request,
+					   uint32_t offset, uint32_t value)
 {
 	uint32_t allowed_mask = 0;
 
@@ -81,12 +81,14 @@ static void raw_allowed_access_request(uint32_t request,
 		allowed_mask = RCC_MP_CIFR_WKUPF;
 		break;
 	default:
-		return;
+		return STM32_SMC_INVALID_PARAMS;
 	}
 
 	if (allowed_mask != 0U) {
 		access_allowed_mask(request, offset, value, allowed_mask);
 	}
+
+	return STM32_SMC_OK;
 }
 
 uint32_t rcc_scv_handler(uint32_t x1, uint32_t x2, uint32_t x3)
@@ -107,9 +109,7 @@ uint32_t rcc_scv_handler(uint32_t x1, uint32_t x2, uint32_t x3)
 		offset &= RCC_OFFSET_MASK;
 	}
 
-	raw_allowed_access_request(request, offset, value);
-
-	return STM32_SMC_OK;
+	return raw_allowed_access_request(request, offset, value);
 }
 
 uint32_t rcc_cal_scv_handler(uint32_t x1)
