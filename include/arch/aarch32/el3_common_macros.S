@@ -335,12 +335,14 @@
 		 */
 		mov	r7, r12
 		ldr	r0, =__BSS_START__
-		ldr	r1, =__BSS_SIZE__
+		ldr	r1, =__BSS_END__
+		sub 	r1, r1, r0
 		bl	zeromem
 
 #if USE_COHERENT_MEM
 		ldr	r0, =__COHERENT_RAM_START__
-		ldr	r1, =__COHERENT_RAM_UNALIGNED_SIZE__
+		ldr	r1, =__COHERENT_RAM_END_UNALIGNED__
+		sub 	r1, r1, r0
 		bl	zeromem
 #endif
 
@@ -354,7 +356,8 @@
 		 */
 		ldr	r0, =__DATA_RAM_START__
 		ldr	r1, =__DATA_ROM_START__
-		ldr	r2, =__DATA_SIZE__
+		ldr	r2, =__DATA_RAM_END__
+		sub 	r2, r2, r0
 		bl	memcpy4
 #endif
 	.endif /* _init_c_runtime */
