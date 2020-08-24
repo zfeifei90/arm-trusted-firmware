@@ -527,6 +527,7 @@ void bl2_el3_plat_arch_setup(void)
 		stm32mp_print_cpuinfo();
 		if (!stm32mp_supports_ssp()) {
 			ERROR("Chip doesn't support SSP\n");
+			panic();
 		}
 	}
 #else
