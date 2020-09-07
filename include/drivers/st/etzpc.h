@@ -1,11 +1,14 @@
 /*
- * Copyright (c) 2017-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #ifndef __ETZPC_H__
 #define __ETZPC_H__
+
+#include <stdbool.h>
+#include <stdint.h>
 
 /* Define security level for each peripheral (DECPROT) */
 enum etzpc_decprot_attributes {
