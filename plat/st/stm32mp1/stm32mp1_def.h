@@ -139,7 +139,7 @@ enum ddr_type {
 #define STM32MP_OPTEE_SIZE		(STM32MP_DTB_BASE -  \
 					 STM32MP_OPTEE_BASE)
 #else
-#define STM32MP_BL32_SIZE		U(0x00013000)	/* 76 KB for BL32 */
+#define STM32MP_BL32_SIZE		U(0x00014000)	/* 80 KB for BL32 */
 #endif
 
 #define STM32MP_BL32_BASE		(STM32MP_SEC_SYSRAM_BASE + \
