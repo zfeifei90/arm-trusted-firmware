@@ -131,6 +131,12 @@ enum ddr_type {
 					 (STM32MP_PARAM_LOAD_SIZE +	\
 					  STM32MP_HEADER_SIZE))
 
+#if STM32MP_SSP
+#define STM32MP_BL2_SIZE		U(0x00010000)	/* 64 Ko for BL2 */
+
+#define STM32MP_BL2_BASE		STM32MP_DTB_BASE + \
+					STM32MP_DTB_SIZE
+#else /* STM32MP_SSP */
 #ifdef AARCH32_SP_OPTEE
 #define STM32MP_BL32_SIZE		U(0)
 
@@ -162,6 +168,7 @@ enum ddr_type {
 
 #define STM32MP_BL2_BASE		(STM32MP_BL32_BASE - \
 					 STM32MP_BL2_SIZE)
+#endif /* STM32MP_SSP */
 
 #if STM32MP_USB_PROGRAMMER
  /* BL2 and BL32/sp_min require 5 finer granularity tables */
@@ -175,6 +182,9 @@ enum ddr_type {
  * MAX_MMAP_REGIONS is usually:
  * BL stm32mp1_mmap size + mmap regions in *_plat_arch_setup
  */
+#if STM32MP_SSP
+  #define MAX_MMAP_REGIONS		8
+#else
 #if defined(IMAGE_BL2)
  #if STM32MP_USB_PROGRAMMER
   #define MAX_MMAP_REGIONS		12
@@ -185,19 +195,30 @@ enum ddr_type {
 #if defined(IMAGE_BL32)
   #define MAX_MMAP_REGIONS		6
 #endif
+#endif /* STM32MP_SSP */
 
 #define XLAT_TABLE_OCTETSIZE		U(0x1000)
 #define PLAT_XLAT_SIZE			(MAX_XLAT_TABLES *	\
 					 XLAT_TABLE_OCTETSIZE)
 
+#if STM32MP_SSP
+#define PLAT_XLAT_BASE			(STM32MP_SYSRAM_BASE +	\
+					 STM32MP_SYSRAM_SIZE -	\
+					 PLAT_XLAT_SIZE)
+#else
 #define PLAT_XLAT_BASE			(STM32MP_BL2_BASE -	\
 					 PLAT_XLAT_SIZE)
+#endif
 
 /* DTB initialization value */
 #define STM32MP_DTB_SIZE		U(0x00006000)	/* 24 KB for DTB */
 
+#if STM32MP_SSP
+#define STM32MP_DTB_BASE		U(0x2FFC3000)
+#else
 #define STM32MP_DTB_BASE		(PLAT_XLAT_BASE -	\
 					 STM32MP_DTB_SIZE)
+#endif
 
 #define STM32MP_BL33_BASE		(STM32MP_DDR_BASE + U(0x100000))
 
@@ -400,10 +421,33 @@ enum ddr_type {
 #define UID_OTP				"uid_otp"
 #define PKH_OTP				"pkh_otp"
 #define BOARD_ID_OTP			"board_id"
+#define CFG2_OTP			"cfg2_otp"
+#define SSP_OTP				"ssp_otp"
+#define CHIP_CERTIFICATE_OTP		"chip_otp"
+#define RMA_OTP				"rma_otp"
 
 /* OTP mask */
 /* CFG0 */
 #define CFG0_CLOSED_DEVICE		BIT(6)
+
+/* CFG2 */
+#define OTP_CFG2_SEC_COUNTER_MASK	GENMASK_32(27, 20)
+#define OTP_CFG2_SEC_COUNTER_SHIFT	U(20)
+#define OTP_CFG2_ST_KEY_MASK		GENMASK_32(31, 28)
+#define OTP_CFG2_ST_KEY_SHIFT		U(28)
+
+/* SSP */
+#define SSP_OTP_REQ			BIT(BOOT_API_OTP_SSP_REQ_BIT_POS)
+#define SSP_OTP_SUCCESS			BIT(BOOT_API_OTP_SSP_SUCCESS_BIT_POS)
+#define SSP_OTP_MASK			GENMASK_32(9, 8)
+#define SSP_OTP_SECRET_BASE		U(59)
+#define SSP_OTP_SECRET_END		U(95)
+
+/* CHIP_CERT */
+#define CHIP_CERTIFICATE_MAX_SIZE	U(0x40)
+
+/* RMA */
+#define RMA_OTP_MASK			GENMASK_32(29, 0)
 
 /* PART NUMBER */
 #define PART_NUMBER_OTP_PART_MASK	GENMASK_32(7, 0)

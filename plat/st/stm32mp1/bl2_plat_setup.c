@@ -30,6 +30,7 @@
 #include <drivers/st/stpmic1.h>
 #include <lib/mmio.h>
 #include <lib/optee_utils.h>
+#include <lib/ssp_lib.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/common/platform.h>
 
@@ -41,6 +42,7 @@
 
 #define TIMEOUT_US_1MS		U(1000)
 
+#if !STM32MP_SSP
 static const char debug_msg[626] = {
 	"***************************************************\n"
 	"** NOTICE   NOTICE   NOTICE   NOTICE   NOTICE    **\n"
@@ -55,6 +57,7 @@ static const char debug_msg[626] = {
 	"**                                               **\n"
 	"***************************************************\n"
 };
+#endif
 
 static struct console_stm32 console;
 static enum boot_device_e boot_device = BOOT_DEVICE_BOARD;
@@ -158,6 +161,11 @@ void bl2_el3_early_platform_setup(u_register_t arg0,
 	stm32mp_save_boot_ctx_address(arg0);
 }
 
+#if STM32MP_SSP
+void bl2_platform_setup(void)
+{
+}
+#else
 void bl2_platform_setup(void)
 {
 	int ret;
@@ -217,6 +225,7 @@ void bl2_platform_setup(void)
 		configure_pmic();
 	}
 }
+#endif /* STM32MP_SSP */
 
 static void update_monotonic_counter(void)
 {
@@ -258,9 +267,11 @@ static void initialize_clock(void)
 	uint32_t freq_khz = 0U;
 	int ret = 0;
 
+#if !STM32MP_SSP
 	if (wakeup_standby) {
 		ret = stm32_get_pll1_settings_from_context();
 	}
+#endif
 
 	/*
 	 * If no pre-defined PLL1 settings in DT, find the highest frequency
@@ -343,6 +354,13 @@ void bl2_el3_plat_arch_setup(void)
 			BL_CODE_END - BL_CODE_BASE,
 			MT_CODE | MT_SECURE);
 
+#if SEPARATE_CODE_AND_RODATA
+	mmap_add_region(BL_RO_DATA_BASE, BL_RO_DATA_BASE,
+			BL_RO_DATA_END - BL_RO_DATA_BASE,
+			MT_RO_DATA | MT_SECURE);
+#endif
+
+#if !STM32MP_SSP
 #ifdef AARCH32_SP_OPTEE
 	mmap_add_region(STM32MP_OPTEE_BASE, STM32MP_OPTEE_BASE,
 			STM32MP_OPTEE_SIZE,
@@ -352,6 +370,7 @@ void bl2_el3_plat_arch_setup(void)
 	mmap_add_region(BL32_BASE, BL32_BASE,
 			BL32_LIMIT - BL32_BASE,
 			MT_RO_DATA | MT_SECURE);
+#endif
 #endif
 	/* Prevent corruption of preloaded Device Tree */
 	mmap_add_region(DTB_BASE, DTB_BASE,
@@ -502,7 +521,18 @@ void bl2_el3_plat_arch_setup(void)
 	console_set_scope(&console.console, CONSOLE_FLAG_BOOT |
 			  CONSOLE_FLAG_CRASH | CONSOLE_FLAG_TRANSLATE_CRLF);
 
+#if STM32MP_SSP
+	if (boot_context->p_ssp_config->ssp_cmd !=
+	    BOOT_API_CTX_SSP_CMD_PROV_SECRET_ACK) {
+		stm32mp_print_cpuinfo();
+		if (!stm32mp_supports_ssp()) {
+			ERROR("Chip doesn't support SSP\n");
+			panic();
+		}
+	}
+#else
 	stm32mp_print_cpuinfo();
+#endif
 
 	board_model = dt_get_board_model();
 	if (board_model != NULL) {
@@ -536,6 +566,7 @@ skip_console_init:
 
 	stm32_iwdg_refresh();
 
+#if !STM32MP_SSP
 	if (bsec_read_debug_conf() != 0U) {
 		result = stm32mp1_dbgmcu_freeze_iwdg2();
 		if (result != 0) {
@@ -554,6 +585,7 @@ skip_console_init:
 	}
 
 	stm32mp1_arch_security_setup();
+#endif
 
 	print_reset_reason();
 
@@ -564,9 +596,18 @@ skip_console_init:
 		print_pmic_info_and_debug();
 	}
 
+#if STM32MP_SSP
+	if (boot_context->p_ssp_config->ssp_cmd !=
+	    BOOT_API_CTX_SSP_CMD_PROV_SECRET_ACK) {
+		stm32mp_io_setup();
+	}
+
+	ssp_start(boot_context);
+#else
 	if (!wakeup_standby) {
 		stm32mp_io_setup();
 	}
+#endif
 }
 
 #if defined(AARCH32_SP_OPTEE)

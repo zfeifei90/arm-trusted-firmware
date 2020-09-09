@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2015-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,12 +12,18 @@
 #define PHASE_FSBL1		1
 #define PHASE_FSBL2		2
 #define PHASE_SSBL		3
+#define RESET_PHASE		0xFF
+
+#if STM32MP_SSP
+#define SSP_PHASE		0xF3
+#endif
 
 /* Command definition */
 #define GET_CMD_COMMAND		0x00
 #define GET_VER_COMMAND		0x01
 #define GET_ID_COMMAND		0x02
 #define PHASE_COMMAND		0x03
+#define READ_PART_COMMAND	0x12
 #define START_COMMAND		0x21
 #define DOWNLOAD_COMMAND	0x31
 

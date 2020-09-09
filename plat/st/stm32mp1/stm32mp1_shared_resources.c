@@ -66,6 +66,7 @@ static const char *shres2str_id(unsigned int id)
 	return shres2str_id_tbl[id];
 }
 
+#if !STM32MP_SSP
 static const char *shres2str_state_tbl[4] = {
 	[SHRES_UNREGISTERED] = "unregistered",
 	[SHRES_NON_SECURE] = "non-secure",
@@ -76,6 +77,7 @@ static const char *shres2str_state(unsigned int id)
 {
 	return shres2str_state_tbl[id];
 }
+#endif /* !STM32MP_SSP */
 
 struct shres2decprot {
 	unsigned int shres_id;
@@ -146,6 +148,12 @@ static unsigned int get_gpioz_nbpin(void)
 	return (unsigned int)gpioz_nbpin;
 }
 
+#if STM32MP_SSP
+static void register_periph(unsigned int id __unused,
+			    unsigned int state __unused)
+{
+}
+#else
 static void register_periph(unsigned int id, unsigned int state)
 {
 	assert((id < STM32MP1_SHRES_COUNT) &&
@@ -227,6 +235,7 @@ static void register_periph(unsigned int id, unsigned int state)
 		}
 	}
 }
+#endif /* STM32MP_SSP */
 
 static bool stm32mp1_mckprot_resource(unsigned int id)
 {

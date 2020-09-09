@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2015-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -89,7 +89,11 @@ typedef enum {
 typedef void (*p_function)(void);
 
 typedef struct {
+#if STM32MP_SSP
+	uint8_t buffer[512];
+#else
 	uint8_t buffer[10];
+#endif
 	uint8_t dev_state;
 	uint8_t dev_status[DFU_STATUS_DEPTH];
 	uint8_t manif_state;
@@ -101,16 +105,18 @@ typedef struct {
 
 typedef struct {
 	uint16_t (*write_done)(uint32_t *written_in, uint32_t len);
-	uint8_t* (*read)(uint8_t *src, uint8_t *dest, uint32_t len);
+	uint16_t (*read)(uint8_t *src, uint8_t *dest, uint32_t len);
 	uint16_t (*get_status)(void);
 } usb_dfu_media_t;
 
 void usb_dfu_register_callback(usb_handle_t *pdev);
 void usb_dfu_set_phase_id(uint32_t phase_id);
 void usb_dfu_set_download_addr(uintptr_t addr);
+void usb_dfu_set_upload_addr(uintptr_t addr);
 uint32_t usb_dfu_download_is_completed(void);
 uint32_t usb_dfu_get_current_req(void);
 uint32_t usb_dfu_detach_req(void);
 void usb_dfu_request_detach(void);
+void usb_dfu_error_msg_size(uint32_t size);
 
 #endif /* USB_ST_DFU_H */

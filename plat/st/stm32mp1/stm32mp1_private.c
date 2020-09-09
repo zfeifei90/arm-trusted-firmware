@@ -101,7 +101,9 @@ static const mmap_region_t stm32mp1_mmap[] = {
 	MAP_SRAM_MCU,
 #endif
 	MAP_DEVICE1,
+#if !STM32MP_SSP
 	MAP_DEVICE2,
+#endif
 	{0}
 };
 #endif
@@ -189,6 +191,7 @@ void __dead2 stm32mp_wait_cpu_reset(void)
 	}
 }
 
+#if defined(IMAGE_BL32)
 /*
  * tzc_source_ip contains the TZC transaction source IPs that need to be reset
  * before a C-A7 subsystem is reset (i.e. independent reset):
@@ -232,9 +235,22 @@ static const struct tzc_source_ip tzc_source_ip[] = {
 	_TZC_COND(DMA1_R, DMA1, STM32MP1_ETZPC_DMA1_ID),
 	_TZC_COND(DMA2_R, DMA2, STM32MP1_ETZPC_DMA2_ID),
 };
+#endif
 
 #define TIMEOUT_US_1MS		U(1000)
 
+#if defined(IMAGE_BL2)
+void __dead2 stm32mp_plat_reset(int cpu)
+{
+	mmio_setbits_32(stm32mp_rcc_base() + RCC_MP_GRSTCSETR,
+			RCC_MP_GRSTCSETR_MPSYSRST);
+
+	/* Loop in case system reset is not immediately caught */
+	for ( ; ; ) {
+		;
+	}
+}
+#else
 void __dead2 stm32mp_plat_reset(int cpu)
 {
 	uint32_t reg = RCC_MP_GRSTCSETR_MPUP0RST;
@@ -289,6 +305,7 @@ void __dead2 stm32mp_plat_reset(int cpu)
 
 	stm32mp_wait_cpu_reset();
 }
+#endif /* IMAGE_BL2 */
 
 unsigned long stm32_get_gpio_bank_clock(unsigned int bank)
 {
@@ -419,6 +436,23 @@ bool stm32mp_supports_cpu_opp(uint32_t opp_id)
 		return id == PLAT_OPP_ID1;
 	}
 }
+
+#if STM32MP_SSP
+bool stm32mp_supports_ssp(void)
+{
+	switch (get_part_number()) {
+	case STM32MP157F_PART_NB:
+	case STM32MP157C_PART_NB:
+	case STM32MP153F_PART_NB:
+	case STM32MP153C_PART_NB:
+	case STM32MP151F_PART_NB:
+	case STM32MP151C_PART_NB:
+		return true;
+	default:
+		return false;
+	}
+}
+#endif /* STM32MP_SSP */
 
 void stm32mp_print_cpuinfo(void)
 {
