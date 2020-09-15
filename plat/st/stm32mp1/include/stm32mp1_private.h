@@ -9,6 +9,8 @@
 
 #include <stdint.h>
 
+#include <drivers/st/etzpc.h>
+
 void configure_mmu(void);
 
 void stm32mp1_arch_security_setup(void);
@@ -16,6 +18,10 @@ void stm32mp1_security_setup(void);
 
 bool stm32mp1_addr_inside_backupsram(uintptr_t addr);
 bool stm32mp1_is_wakeup_from_standby(void);
+
+#if defined(IMAGE_BL32)
+enum etzpc_decprot_attributes stm32mp_etzpc_binding2decprot(uint32_t mode);
+#endif
 
 void stm32mp1_syscfg_init(void);
 void stm32mp1_syscfg_enable_io_compensation_start(void);

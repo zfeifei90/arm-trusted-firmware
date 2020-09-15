@@ -670,6 +670,30 @@ uint32_t stm32_iwdg_shadow_update(uint32_t iwdg_inst, uint32_t flags)
 }
 #endif
 
+#if defined(IMAGE_BL32)
+/*
+ * This function allows to split bindings between platform and ETZPC
+ * HW mapping. If this conversion was done at driver level, the driver
+ * should include all supported platform bindings. ETZPC may be used on
+ * other platforms.
+ */
+enum etzpc_decprot_attributes stm32mp_etzpc_binding2decprot(uint32_t mode)
+{
+	switch (mode) {
+	case DECPROT_S_RW:
+		return ETZPC_DECPROT_S_RW;
+	case DECPROT_NS_R_S_W:
+		return ETZPC_DECPROT_NS_R_S_W;
+	case DECPROT_MCU_ISOLATION:
+		return ETZPC_DECPROT_MCU_ISOLATION;
+	case DECPROT_NS_RW:
+		return ETZPC_DECPROT_NS_RW;
+	default:
+		panic();
+	}
+}
+#endif
+
 #if STM32MP_USE_STM32IMAGE
 /* Get the non-secure DDR size */
 uint32_t stm32mp_get_ddr_ns_size(void)
