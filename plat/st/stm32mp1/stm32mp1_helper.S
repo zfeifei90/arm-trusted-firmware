@@ -46,6 +46,8 @@ func plat_report_exception
 	bne	undef_inst_lbl
 	ldr	r4, =abort_str
 	bl	asm_print_str
+	mrs	r4, lr_abt
+	sub	r4, r4, #4
 	b	print_exception_info
 
 undef_inst_lbl:
@@ -54,6 +56,7 @@ undef_inst_lbl:
 	bne	other_exception_lbl
 	ldr	r4, =undefined_str
 	bl	asm_print_str
+	mrs	r4, lr_und
 	b	print_exception_info
 
 other_exception_lbl:
@@ -65,10 +68,9 @@ other_exception_lbl:
 	bl	asm_print_hex
 	ldr	r4, =exception_end_str
 	bl	asm_print_str
+	mov	r4, r6
 
 print_exception_info:
-	mrs	r4, lr_svc
-	sub	r4, r4, #4
 	bl	asm_print_hex
 
 	ldr	r4, =end_error_str
