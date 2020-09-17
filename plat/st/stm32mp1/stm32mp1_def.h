@@ -332,7 +332,7 @@ enum ddr_type {
 #define STM32MP1_TZC_ETH_ID		U(10)
 #define STM32MP1_TZC_DAP_ID		U(15)
 
-#define STM32MP1_FILTER_BIT_ALL		U(3)
+#define STM32MP1_FILTER_BIT_ALL		(BIT(1) | BIT(0))
 
 /*******************************************************************************
  * STM32MP1 SDMMC
