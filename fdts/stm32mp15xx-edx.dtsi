@@ -1,39 +1,52 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
- * Copyright (C) Arrow Electronics 2019 - All Rights Reserved
- * Author: Botond Kardos <botond.kardos@arroweurope.com>
- *
- * Copyright (C) Linaro Ltd 2019 - All Rights Reserved
- * Author: Manivannan Sadhasivam <manivannan.sadhasivam@linaro.org>
+ * Copyright (C) STMicroelectronics 2017 - All Rights Reserved
+ * Author: Ludovic Barre <ludovic.barre@st.com> for STMicroelectronics.
  */
 
-/dts-v1/;
-
-#include "stm32mp157.dtsi"
-#include "stm32mp15xa.dtsi"
-#include "stm32mp15-pinctrl.dtsi"
-#include "stm32mp15xxac-pinctrl.dtsi"
 #include <dt-bindings/clock/stm32mp1-clksrc.h>
 #include "stm32mp15-ddr3-2x4Gb-1066-binG.dtsi"
 
 / {
-	model = "Arrow Electronics STM32MP157A Avenger96 board";
-	compatible = "arrow,stm32mp157a-avenger96", "st,stm32mp157";
-
-	aliases {
-		mmc0 = &sdmmc1;
-		serial0 = &uart4;
-		serial1 = &uart7;
-	};
-
-	chosen {
-		stdout-path = "serial0:115200n8";
-	};
-
 	memory@c0000000 {
 		device_type = "memory";
-		reg = <0xc0000000 0x40000000>;
+		reg = <0xC0000000 0x40000000>;
 	};
+
+	aliases {
+		serial0 = &uart4;
+	};
+
+	vin: vin {
+		compatible = "regulator-fixed";
+		regulator-name = "vin";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+	};
+};
+
+&bsec {
+	board_id: board_id@ec {
+		reg = <0xec 0x4>;
+		st,non-secure-otp;
+	};
+};
+
+&clk_hse {
+	st,digbypass;
+};
+
+&cpu0{
+	cpu-supply = <&vddcore>;
+};
+
+&cpu1{
+	cpu-supply = <&vddcore>;
+};
+
+&hash1 {
+	status = "okay";
 };
 
 &i2c4 {
@@ -41,7 +54,9 @@
 	pinctrl-0 = <&i2c4_pins_a>;
 	i2c-scl-rising-time-ns = <185>;
 	i2c-scl-falling-time-ns = <20>;
+	clock-frequency = <400000>;
 	status = "okay";
+	secure-status = "okay";
 
 	pmic: stpmic@33 {
 		compatible = "st,stpmic1";
@@ -50,18 +65,22 @@
 		interrupt-controller;
 		#interrupt-cells = <2>;
 		status = "okay";
-
-		st,main-control-register = <0x04>;
-		st,vin-control-register = <0xc0>;
-		st,usb-control-register = <0x30>;
+		secure-status = "okay";
 
 		regulators {
 			compatible = "st,stpmic1-regulators";
+			buck1-supply = <&vin>;
+			buck2-supply = <&vin>;
+			buck3-supply = <&vin>;
+			buck4-supply = <&vin>;
 			ldo1-supply = <&v3v3>;
 			ldo2-supply = <&v3v3>;
 			ldo3-supply = <&vdd_ddr>;
+			ldo4-supply = <&vin>;
 			ldo5-supply = <&v3v3>;
 			ldo6-supply = <&v3v3>;
+			vref_ddr-supply = <&vin>;
+			boost-supply = <&vin>;
 			pwr_sw1-supply = <&bst_out>;
 			pwr_sw2-supply = <&bst_out>;
 
@@ -116,10 +135,9 @@
 
 			vtt_ddr: ldo3 {
 				regulator-name = "vtt_ddr";
-				regulator-min-microvolt = <500000>;
-				regulator-max-microvolt = <750000>;
 				regulator-always-on;
 				regulator-over-current-protection;
+				st,regulator-sink-source;
 			};
 
 			vdd_usb: ldo4 {
@@ -144,7 +162,6 @@
 			vref_ddr: vref_ddr {
 				regulator-name = "vref_ddr";
 				regulator-always-on;
-				regulator-over-current-protection;
 			};
 
 			bst_out: boost {
@@ -169,13 +186,34 @@
 	secure-status = "okay";
 };
 
+&nvmem_layout {
+	nvmem-cells = <&cfg0_otp>,
+		      <&part_number_otp>,
+		      <&monotonic_otp>,
+		      <&nand_otp>,
+		      <&uid_otp>,
+		      <&package_otp>,
+		      <&hw2_otp>,
+		      <&pkh_otp>,
+		      <&board_id>;
+
+	nvmem-cell-names = "cfg0_otp",
+			   "part_number_otp",
+			   "monotonic_otp",
+			   "nand_otp",
+			   "uid_otp",
+			   "package_otp",
+			   "hw2_otp",
+			   "pkh_otp",
+			   "board_id";
+};
+
 &pwr_regulators {
 	vdd-supply = <&vdd>;
 	vdd_3v3_usbfs-supply = <&vdd_usb>;
 };
 
 &rcc {
-	secure-status = "disabled";
 	st,clksrc = <
 		CLK_MPU_PLL1P
 		CLK_AXI_PLL2P
@@ -206,7 +244,7 @@
 		CLK_CKPER_HSE
 		CLK_FMC_ACLK
 		CLK_QSPI_ACLK
-		CLK_ETH_DISABLED
+		CLK_ETH_PLL4P
 		CLK_SDMMC12_PLL4P
 		CLK_DSI_DSIPLL
 		CLK_STGEN_HSE
@@ -240,14 +278,6 @@
 		CLK_LPTIM45_LSE
 	>;
 
-	/* VCO = 1300.0 MHz => P = 650 (CPU) */
-	pll1: st,pll@0 {
-		compatible = "st,stm32mp1-pll";
-		reg = <0>;
-		cfg = <2 80 0 0 0 PQR(1,0,0)>;
-		frac = <0x800>;
-	};
-
 	/* VCO = 1066.0 MHz => P = 266 (AXI), Q = 533 (GPU), R = 533 (DDR) */
 	pll2: st,pll@1 {
 		compatible = "st,stm32mp1-pll";
@@ -264,11 +294,11 @@
 		frac = <0x1a04>;
 	};
 
-	/* VCO = 480.0 MHz => P = 120, Q = 40, R = 96 */
+	/* VCO = 594.0 MHz => P = 99, Q = 74, R = 74 */
 	pll4: st,pll@3 {
 		compatible = "st,stm32mp1-pll";
 		reg = <3>;
-		cfg = <1 39 3 11 4 PQR(1,1,1)>;
+		cfg = <3 98 5 7 7 PQR(1,1,1)>;
 	};
 };
 
@@ -285,26 +315,51 @@
 &sdmmc1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1_b4_pins_a &sdmmc1_dir_pins_a>;
+	disable-wp;
 	st,sig-dir;
 	st,neg-edge;
 	st,use-ckin;
 	bus-width = <4>;
 	vmmc-supply = <&vdd_sd>;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-ddr50;
 	status = "okay";
+};
+
+&sdmmc2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc2_b4_pins_a &sdmmc2_d47_pins_a>;
+	non-removable;
+	no-sd;
+	no-sdio;
+	st,neg-edge;
+	bus-width = <8>;
+	vmmc-supply = <&v3v3>;
+	vqmmc-supply = <&vdd>;
+	mmc-ddr-3_3v;
+	status = "okay";
+};
+
+&timers15 {
+	secure-status = "okay";
 };
 
 &uart4 {
-	/* On Low speed expansion header */
-	label = "LS-UART1";
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart4_pins_b>;
+	pinctrl-0 = <&uart4_pins_a>;
 	status = "okay";
 };
 
-&uart7 {
-	/* On Low speed expansion header */
-	label = "LS-UART0";
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart7_pins_a>;
-	status = "okay";
+&usbotg_hs {
+	vbus-supply = <&vbus_otg>;
+};
+
+&usbphyc_port0 {
+	phy-supply = <&vdd_usb>;
+};
+
+&usbphyc_port1 {
+	phy-supply = <&vdd_usb>;
 };
