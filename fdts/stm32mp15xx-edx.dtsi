@@ -215,7 +215,7 @@
 				regulator-max-microvolt = <3300000>;
 				regulator-always-on;
 				standby-ddr-sr {
-					regulator-on-in-suspend;
+					regulator-off-in-suspend;
 				};
 				standby-ddr-off {
 					regulator-off-in-suspend;
