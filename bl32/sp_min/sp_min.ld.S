@@ -92,6 +92,7 @@ SECTIONS
     __RW_START__ = . ;
 
     DATA_SECTION >RAM
+    RELA_SECTION >RAM
 
 #ifdef BL32_PROGBITS_LIMIT
     ASSERT(. <= BL32_PROGBITS_LIMIT, "BL32 progbits has exceeded its limit.")
@@ -100,8 +101,6 @@ SECTIONS
     STACK_SECTION >RAM
     BSS_SECTION >RAM
     XLAT_TABLE_SECTION >RAM
-
-     __BSS_SIZE__ = SIZEOF(.bss);
 
 #if USE_COHERENT_MEM
     /*
@@ -128,9 +127,6 @@ SECTIONS
         . = ALIGN(PAGE_SIZE);
         __COHERENT_RAM_END__ = .;
     } >RAM
-
-    __COHERENT_RAM_UNALIGNED_SIZE__ =
-        __COHERENT_RAM_END_UNALIGNED__ - __COHERENT_RAM_START__;
 #endif
 
     /*
@@ -140,6 +136,10 @@ SECTIONS
     __RW_END__ = .;
 
     __BL32_END__ = .;
+
+    /DISCARD/ : {
+        *(.dynsym .dynstr .hash .gnu.hash)
+    }
 
     ASSERT(. <= BL32_LIMIT, "BL32 image has exceeded its limit.")
 }
