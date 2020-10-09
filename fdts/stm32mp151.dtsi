@@ -41,7 +41,8 @@
 			      <&nand_otp>,
 			      <&uid_otp>,
 			      <&package_otp>,
-			      <&hw2_otp>;
+			      <&hw2_otp>,
+			      <&pkh_otp>;
 
 		nvmem-cell-names = "cfg0_otp",
 				   "part_number_otp",
@@ -49,7 +50,8 @@
 				   "nand_otp",
 				   "uid_otp",
 				   "package_otp",
-				   "hw2_otp";
+				   "hw2_otp",
+				   "pkh_otp";
 	};
 
 	psci {
