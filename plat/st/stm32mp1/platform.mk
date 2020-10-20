@@ -47,6 +47,10 @@ STM32MP15		:=	0
 # DDR controller with single AXI port and 16-bit interface
 STM32MP_DDR_DUAL_AXI_PORT:=	0
 STM32MP_DDR_32BIT_INTERFACE:=	0
+
+# STM32 image header version v2.0
+STM32_HEADER_VERSION_MAJOR:=	2
+STM32_HEADER_VERSION_MINOR:=	0
 else
 #STM32MP15
 STM32MP13		:=	0
@@ -55,11 +59,14 @@ STM32MP15		:=	1
 # DDR controller with dual AXI port and 32-bit interface
 STM32MP_DDR_DUAL_AXI_PORT:=	1
 STM32MP_DDR_32BIT_INTERFACE:=	1
-endif
 
 # STM32 image header version v1.0
 STM32_HEADER_VERSION_MAJOR:=	1
 STM32_HEADER_VERSION_MINOR:=	0
+endif
+
+# STM32 image header binary type for BL2
+STM32_HEADER_BL2_BINARY_TYPE:=	0x10
 
 ifeq ($(AARCH32_SP),sp_min)
 # Disable Neon support: sp_min runtime may conflict with non-secure world
@@ -488,5 +495,6 @@ tf-a-%.stm32: ${STM32IMAGE} tf-a-%.bin
 		-l $(LOADADDR) -e ${ENTRY} \
 		-v ${STM32_TF_VERSION} \
 		-m ${STM32_HEADER_VERSION_MAJOR} \
-		-n ${STM32_HEADER_VERSION_MINOR}
+		-n ${STM32_HEADER_VERSION_MINOR} \
+		-b ${STM32_HEADER_BL2_BINARY_TYPE}
 	@echo
