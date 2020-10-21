@@ -70,8 +70,8 @@
 #endif
 
 #if STM32MP13
-#define MAP_SRAM2	MAP_REGION_FLAT(SRAM2_BASE, \
-					SRAM2_SIZE, \
+#define MAP_SRAM_ALL	MAP_REGION_FLAT(SRAMS_BASE, \
+					SRAMS_SIZE_2MB_ALIGNED, \
 					MT_MEMORY | \
 					MT_RW | \
 					MT_SECURE | \
@@ -96,7 +96,7 @@
 static const mmap_region_t stm32mp1_mmap[] = {
 	MAP_SEC_SYSRAM,
 #if STM32MP13
-	MAP_SRAM2,
+	MAP_SRAM_ALL,
 #endif
 	MAP_DEVICE1,
 #if STM32MP_RAW_NAND
