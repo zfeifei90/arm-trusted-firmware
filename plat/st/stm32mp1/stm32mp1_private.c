@@ -725,7 +725,7 @@ bool stm32mp1_is_wakeup_from_standby(void)
 	}
 #endif
 
-	return true;
+	return stm32_pm_context_is_valid();
 }
 
 void stm32_save_boot_interface(uint32_t interface, uint32_t instance)
