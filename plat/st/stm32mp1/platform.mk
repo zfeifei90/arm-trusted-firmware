@@ -95,6 +95,9 @@ endif
 # STM32 image header binary type for BL2
 STM32_HEADER_BL2_BINARY_TYPE:=	0x10
 
+# STM32 Secure Secret Provisioning mode (SSP)
+STM32MP_SSP		?=	0
+
 ifeq ($(AARCH32_SP),sp_min)
 # Disable Neon support: sp_min runtime may conflict with non-secure world
 TF_CFLAGS		+=	-mfloat-abi=soft
@@ -231,6 +234,7 @@ $(eval $(call assert_booleans,\
 		STM32MP_SDMMC \
 		STM32MP_SPI_NAND \
 		STM32MP_SPI_NOR \
+		STM32MP_SSP \
 		STM32MP_UART_PROGRAMMER \
 		STM32MP_USB_PROGRAMMER \
 		STM32MP_USE_EXTERNAL_HEAP \
@@ -264,6 +268,7 @@ $(eval $(call add_defines,\
 		STM32MP_SDMMC \
 		STM32MP_SPI_NAND \
 		STM32MP_SPI_NOR \
+		STM32MP_SSP \
 		STM32MP_UART_PROGRAMMER \
 		STM32MP_USB_PROGRAMMER \
 		STM32MP_USE_EXTERNAL_HEAP \
@@ -464,6 +469,10 @@ BL2_SOURCES		+=	common/desc_image_load.c				\
 				plat/st/stm32mp1/plat_image_load.c
 
 BL2_SOURCES		+=	lib/optee/optee_utils.c
+
+ifeq ($(STM32MP_SSP),1)
+include plat/st/stm32mp1/stm32mp1_ssp.mk
+endif
 
 # Compilation rules
 .PHONY: check_dtc_version stm32image clean_stm32image check_boot_device

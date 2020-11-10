@@ -448,6 +448,10 @@ enum ddr_type {
 #define UID_OTP				"uid_otp"
 #define PKH_OTP				"pkh_otp"
 #define BOARD_ID_OTP			"board_id"
+#define CFG2_OTP			"cfg2_otp"
+#define SSP_OTP				"ssp_otp"
+#define CHIP_CERTIFICATE_OTP		"chip_otp"
+#define RMA_OTP				"rma_otp"
 
 /* OTP mask */
 /* CFG0 */
@@ -462,6 +466,26 @@ enum ddr_type {
 #if STM32MP15
 #define CFG0_CLOSED_DEVICE		BIT(6)
 #endif
+
+/* CFG2 */
+#define OTP_CFG2_SEC_COUNTER_MASK	GENMASK_32(27, 20)
+#define OTP_CFG2_SEC_COUNTER_SHIFT	U(20)
+#define OTP_CFG2_ST_KEY_MASK		GENMASK_32(31, 28)
+#define OTP_CFG2_ST_KEY_SHIFT		U(28)
+
+/* SSP */
+#define SSP_OTP_REQ			BIT(BOOT_API_OTP_SSP_REQ_BIT_POS)
+#define SSP_OTP_SUCCESS			BIT(BOOT_API_OTP_SSP_SUCCESS_BIT_POS)
+#define SSP_OTP_MASK			GENMASK_32(BOOT_API_OTP_SSP_SUCCESS_BIT_POS, \
+						   BOOT_API_OTP_SSP_REQ_BIT_POS)
+#define SSP_OTP_SECRET_BASE		U(59)
+#define SSP_OTP_SECRET_END		U(95)
+
+/* CHIP_CERT */
+#define CHIP_CERTIFICATE_MAX_SIZE	U(0x40)
+
+/* RMA */
+#define RMA_OTP_MASK			GENMASK_32(29, 0)
 
 /* PART NUMBER */
 #if STM32MP13
