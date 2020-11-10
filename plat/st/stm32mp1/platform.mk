@@ -38,6 +38,9 @@ STM32MP_DDR_DUAL_AXI_PORT:= 	1
 STM32_HEADER_VERSION_MAJOR:=	1
 STM32_HEADER_VERSION_MINOR:=	0
 
+# STM32 Secure Secret Provisioning mode (SSP)
+STM32MP_SSP		?=	0
+
 ifeq ($(AARCH32_SP),sp_min)
 # Disable Neon support: sp_min runtime may conflict with non-secure world
 TF_CFLAGS		+=	-mfloat-abi=soft
@@ -157,6 +160,7 @@ $(eval $(call assert_booleans,\
 		STM32MP_USB_PROGRAMMER \
 		STM32MP_USE_STM32IMAGE \
 		STM32MP_DDR_DUAL_AXI_PORT \
+		STM32MP_SSP \
 )))
 
 $(eval $(call assert_numerics,\
@@ -181,6 +185,7 @@ $(eval $(call add_defines,\
 		STM32_TF_VERSION \
 		STM32MP_USE_STM32IMAGE \
 		STM32MP_DDR_DUAL_AXI_PORT \
+		STM32MP_SSP \
 )))
 
 # Include paths and source files
@@ -346,6 +351,10 @@ BL2_SOURCES		+=	lib/optee/optee_utils.c
 
 BL2_SOURCES		+=	plat/st/stm32mp1/stm32mp1_critic_power.c
 BL2_SOURCES		+=	plat/st/stm32mp1/stm32mp1_critic_power_wrapper.S
+
+ifeq ($(STM32MP_SSP),1)
+include plat/st/stm32mp1/stm32mp1_ssp.mk
+endif
 
 # Compilation rules
 .PHONY: check_dtc_version stm32image clean_stm32image check_boot_device
