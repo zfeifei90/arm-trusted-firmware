@@ -47,6 +47,9 @@ static const uint8_t command_tab[] = {
 	GET_VER_COMMAND,
 	GET_ID_COMMAND,
 	PHASE_COMMAND,
+#if STM32MP_SSP
+	READ_PART_COMMAND,
+#endif
 	START_COMMAND,
 	DOWNLOAD_COMMAND
 };
@@ -58,6 +61,10 @@ struct stm32prog_uart_handle_s {
 	uint8_t *addr;
 	uint32_t len;
 	uint8_t phase;
+#if STM32MP_SSP
+	uintptr_t cert_base;
+	size_t cert_len;
+#endif
 	/* Error msg buffer: max 255 in UART protocol, reduced in TF-A */
 	uint8_t error[64];
 } handle;
@@ -398,6 +405,97 @@ static int uart_start_cmd(uintptr_t buffer)
 	return 0;
 }
 
+#if STM32MP_SSP
+static int uart_read_part(void)
+{
+	uint8_t byte = 0U;
+	uint8_t xor = 0U;
+	uint8_t partid = 0U;
+	uint16_t size = 0U;
+	uint32_t start_address = 0U;
+	uint32_t i;
+	size_t length;
+	uint8_t *buffer;
+
+	/* Get partition id */
+	if (uart_read_8(&partid) != 0) {
+		return -EIO;
+	}
+
+	if ((partid != PHASE_FLASHLAYOUT) && (partid != PHASE_SSP)) {
+		return -EPERM;
+	}
+
+	xor = partid;
+
+	/* Get address */
+	for (i = 4U; i > 0U; i--) {
+		if (uart_read_8(&byte) != 0) {
+			return -EIO;
+		}
+
+		xor ^= byte;
+		start_address = (start_address << 8) | byte;
+	}
+
+	/* Checksum */
+	if (uart_read_8(&byte) != 0) {
+		return -EIO;
+	}
+
+	if (xor != byte) {
+		WARN("UART: Start cmd: address checksum: %x != %x\n",
+		     xor, byte);
+		return -EPROTO;
+	}
+	/* OFFSET != 0 not supported */
+	if (start_address != 0U) {
+		return -EIO;
+	}
+
+	uart_write_8(ACK_BYTE);
+
+	/* Get number of bytes to send */
+	if (uart_read_8(&byte) != 0) {
+		return -EIO;
+	}
+
+	xor = byte;
+
+	/* Send Size + 1 */
+	size = byte++;
+
+	/* Checksum */
+	if (uart_read_8(&byte) != 0) {
+		return -EIO;
+	}
+
+	if ((xor ^ byte) != 0xFF) {
+		WARN("UART: Start cmd: length checksum: %x != %x\n", xor, byte);
+		return -EPROTO;
+	}
+
+	uart_write_8(ACK_BYTE);
+
+	if (partid != PHASE_SSP) {
+		WARN("Not supported\n");
+		return -EPROTO;
+	}
+
+	length = handle.cert_len;
+	buffer = (uint8_t *)handle.cert_base;
+
+	for (i = 0U; i < length; i++, buffer++) {
+		uart_write_8(*buffer);
+	}
+	for (; i < size; i++) {
+		uart_write_8(0x0);
+	}
+
+	return 0;
+}
+#endif /* STM32MP_SSP */
+
 static int uart_read(uint8_t id, uintptr_t buffer, size_t length)
 {
 	bool start_done = false;
@@ -456,11 +554,21 @@ static int uart_read(uint8_t id, uintptr_t buffer, size_t length)
 		case DOWNLOAD_COMMAND:
 			ret = uart_download_part();
 			break;
-
+#if STM32MP_SSP
+		case READ_PART_COMMAND:
+			ret = uart_read_part();
+			break;
+#endif
 		case START_COMMAND:
 			ret = uart_start_cmd(buffer);
 			if ((ret == 0) && (handle.phase == id)) {
 				INFO("UART: Start phase %u\n", handle.phase);
+#if STM32MP_SSP
+				if (handle.phase == PHASE_SSP) {
+					handle.phase = PHASE_RESET;
+					break;
+				}
+#endif
 				start_done = true;
 			}
 			break;
@@ -495,6 +603,39 @@ const struct stm32_uart_init_s init = {
 	.over_sampling = STM32_UART_OVERSAMPLING_16,
 	.fifo_mode = STM32_UART_FIFOMODE_EN,
 };
+
+#if STM32MP_SSP
+int stm32cubeprog_uart_ssp(uintptr_t instance,
+			   uintptr_t cert_base,
+			   size_t cert_len,
+			   uintptr_t ssp_base,
+			   size_t ssp_len)
+{
+	int ret;
+
+	if (stm32_uart_init(&handle.uart, instance, &init) != 0U) {
+		return -EIO;
+	}
+
+	/* NACK to synchronize STM32CubeProgrammer */
+	ret = uart_flush_and_nack();
+	if (ret != 0) {
+		return ret;
+	}
+
+	if (cert_base == UNDEFINED_DOWN_ADDR) {
+		/* Send Provisioning message to programmer for reboot */
+		STM32PROG_ERROR("Provisioning\n");
+	} else {
+		handle.cert_base = cert_base;
+		handle.cert_len  = cert_len;
+		handle.phase = PHASE_SSP;
+	}
+
+	return uart_read(MAX_IMAGE_IDS, handle.phase, ssp_base, ssp_len);
+
+}
+#endif
 
 int stm32cubeprog_uart_load(uintptr_t instance, uintptr_t base, size_t len)
 {

@@ -15,6 +15,7 @@
 #define PHASE_FLASHLAYOUT	0U
 #define PHASE_SSBL		3U
 #define PHASE_CMD		0xF1U
+#define PHASE_SSP		0xF3U
 #define PHASE_RESET		0xFFU
 
 /* Functions provided by plat */
@@ -25,5 +26,17 @@ int stm32cubeprog_usb_load(struct usb_handle *usb_core_handle,
 			   size_t ssbl_len);
 
 int stm32cubeprog_uart_load(uintptr_t instance, uintptr_t base, size_t len);
+
+int stm32cubeprog_usb_ssp(struct usb_handle *usb_core_handle,
+			  uintptr_t cert_base,
+			  size_t cert_len,
+			  uintptr_t ssp_base,
+			  size_t ssp_len);
+
+int stm32cubeprog_uart_ssp(uintptr_t instance,
+			   uintptr_t cert_base,
+			   size_t cert_len,
+			   uintptr_t ssp_base,
+			   size_t ssp_len);
 
 #endif /* STM32CUBEPROGRAMMER_H */
