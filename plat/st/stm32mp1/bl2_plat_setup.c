@@ -174,6 +174,7 @@ void bl2_platform_setup(void)
 #endif /* STM32MP_USE_STM32IMAGE */
 }
 
+#if STM32MP15
 static void update_monotonic_counter(void)
 {
 	uint32_t version;
@@ -207,6 +208,7 @@ static void update_monotonic_counter(void)
 		     version);
 	}
 }
+#endif
 
 void bl2_el3_plat_arch_setup(void)
 {
@@ -365,7 +367,9 @@ skip_console_init:
 
 	print_reset_reason();
 
+#if STM32MP15
 	update_monotonic_counter();
+#endif
 
 	stm32mp1_syscfg_enable_io_compensation_finish();
 
