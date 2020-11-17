@@ -43,8 +43,11 @@
  * SYSCFG_BOOTR Register
  */
 #define SYSCFG_BOOTR_BOOT_MASK			GENMASK(2, 0)
+#if STM32MP15
 #define SYSCFG_BOOTR_BOOTPD_MASK		GENMASK(6, 4)
 #define SYSCFG_BOOTR_BOOTPD_SHIFT		4
+#endif
+
 /*
  * SYSCFG_IOCTRLSETR Register
  */
@@ -183,7 +186,9 @@ static void stm32mp1_syscfg_set_hslv(void)
 
 void stm32mp1_syscfg_init(void)
 {
+#if STM32MP15
 	uint32_t bootr;
+#endif
 
 	/*
 	 * Interconnect update : select master using the port 1.
@@ -191,11 +196,13 @@ void stm32mp1_syscfg_init(void)
 	 */
 	mmio_write_32(SYSCFG_BASE + SYSCFG_ICNR, SYSCFG_ICNR_AXI_M9);
 
+#if STM32MP15
 	/* Disable Pull-Down for boot pin connected to VDD */
 	bootr = mmio_read_32(SYSCFG_BASE + SYSCFG_BOOTR) &
 		SYSCFG_BOOTR_BOOT_MASK;
 	mmio_clrsetbits_32(SYSCFG_BASE + SYSCFG_BOOTR, SYSCFG_BOOTR_BOOTPD_MASK,
 			   bootr << SYSCFG_BOOTR_BOOTPD_SHIFT);
+#endif
 
 	stm32mp1_syscfg_set_hslv();
 
