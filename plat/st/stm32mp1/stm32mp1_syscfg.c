@@ -26,6 +26,9 @@
 #define SYSCFG_CMPENSETR			0x24U
 #define SYSCFG_CMPENCLRR			0x28U
 
+#define CMPCR_CMPENSETR_OFFSET			0x4U
+#define CMPCR_CMPENCLRR_OFFSET			0x8U
+
 /*
  * SYSCFG_BOOTR Register
  */
@@ -62,6 +65,45 @@
  * SYSCFG_CMPENSETR Register
  */
 #define SYSCFG_CMPENSETR_MPU_EN			BIT(0)
+
+static void enable_io_comp_cell_finish(uintptr_t cmpcr_off)
+{
+	uint64_t start;
+
+	start = timeout_init_us(SYSCFG_CMPCR_READY_TIMEOUT_US);
+
+	while ((mmio_read_32(SYSCFG_BASE + cmpcr_off) & SYSCFG_CMPCR_READY) == 0U) {
+		if (timeout_elapsed(start)) {
+			/* Failure on IO compensation enable is not a issue: warn only. */
+			WARN("IO compensation cell not ready\n");
+			break;
+		}
+	}
+
+	mmio_clrbits_32(SYSCFG_BASE + cmpcr_off, SYSCFG_CMPCR_SW_CTRL);
+}
+
+static void disable_io_comp_cell(uintptr_t cmpcr_off)
+{
+	uint32_t value;
+
+	if (((mmio_read_32(SYSCFG_BASE + cmpcr_off) & SYSCFG_CMPCR_READY) == 0U) ||
+	    ((mmio_read_32(SYSCFG_BASE + cmpcr_off + CMPCR_CMPENSETR_OFFSET) &
+	     SYSCFG_CMPENSETR_MPU_EN) == 0U)) {
+		return;
+	}
+
+	value = mmio_read_32(SYSCFG_BASE + cmpcr_off) >> SYSCFG_CMPCR_ANSRC_SHIFT;
+
+	mmio_clrbits_32(SYSCFG_BASE + cmpcr_off, SYSCFG_CMPCR_RANSRC | SYSCFG_CMPCR_RAPSRC);
+
+	value <<= SYSCFG_CMPCR_RANSRC_SHIFT;
+	value |= mmio_read_32(SYSCFG_BASE + cmpcr_off);
+
+	mmio_write_32(SYSCFG_BASE + cmpcr_off, value | SYSCFG_CMPCR_SW_CTRL);
+
+	mmio_setbits_32(SYSCFG_BASE + cmpcr_off + CMPCR_CMPENCLRR_OFFSET, SYSCFG_CMPENSETR_MPU_EN);
+}
 
 void stm32mp1_syscfg_init(void)
 {
@@ -141,35 +183,17 @@ void stm32mp1_syscfg_enable_io_compensation_start(void)
 	 */
 	stm32mp1_clk_force_enable(SYSCFG);
 
-	mmio_setbits_32(SYSCFG_BASE + SYSCFG_CMPENSETR,
+	mmio_setbits_32(SYSCFG_BASE + CMPCR_CMPENSETR_OFFSET + SYSCFG_CMPCR,
 			SYSCFG_CMPENSETR_MPU_EN);
 }
 
 void stm32mp1_syscfg_enable_io_compensation_finish(void)
 {
-	uint64_t start;
-
-	start = timeout_init_us(SYSCFG_CMPCR_READY_TIMEOUT_US);
-
-	while ((mmio_read_32(SYSCFG_BASE + SYSCFG_CMPCR) &
-		SYSCFG_CMPCR_READY) == 0U) {
-		if (timeout_elapsed(start)) {
-			/*
-			 * Failure on IO compensation enable is not a issue:
-			 * warn only.
-			 */
-			WARN("IO compensation cell not ready\n");
-			break;
-		}
-	}
-
-	mmio_clrbits_32(SYSCFG_BASE + SYSCFG_CMPCR, SYSCFG_CMPCR_SW_CTRL);
+	enable_io_comp_cell_finish(SYSCFG_CMPCR);
 }
 
 void stm32mp1_syscfg_disable_io_compensation(void)
 {
-	uint32_t value;
-
 	stm32mp1_clk_force_enable(SYSCFG);
 
 	/*
@@ -178,18 +202,7 @@ void stm32mp1_syscfg_disable_io_compensation(void)
 	 * requested for other usages and always OFF in STANDBY.
 	 * Disable non-secure SYSCFG clock, we assume non-secure is suspended.
 	 */
-	value = mmio_read_32(SYSCFG_BASE + SYSCFG_CMPCR) >>
-	      SYSCFG_CMPCR_ANSRC_SHIFT;
-
-	mmio_clrbits_32(SYSCFG_BASE + SYSCFG_CMPCR,
-			SYSCFG_CMPCR_RANSRC | SYSCFG_CMPCR_RAPSRC);
-
-	value = mmio_read_32(SYSCFG_BASE + SYSCFG_CMPCR) |
-		(value << SYSCFG_CMPCR_RANSRC_SHIFT);
-
-	mmio_write_32(SYSCFG_BASE + SYSCFG_CMPCR, value | SYSCFG_CMPCR_SW_CTRL);
-
-	mmio_setbits_32(SYSCFG_BASE + SYSCFG_CMPENCLRR, SYSCFG_CMPENSETR_MPU_EN);
+	disable_io_comp_cell(SYSCFG_CMPCR);
 
 	stm32mp1_clk_force_disable(SYSCFG);
 }
