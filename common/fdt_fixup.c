@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -195,23 +195,51 @@ int fdt_add_reserved_memory(void *dtb, const char *node_name,
 			    uintptr_t base, size_t size)
 {
 	int offs = fdt_path_offset(dtb, "/reserved-memory");
-	uint32_t addresses[3];
+	uint32_t addr_len = sizeof(base) / sizeof(uint32_t);
+	uint32_t size_len = sizeof(size) / sizeof(uint32_t);
+	uint32_t addresses[4];
 
 	if (offs < 0) {			/* create if not existing yet */
 		offs = fdt_add_subnode(dtb, 0, "reserved-memory");
 		if (offs < 0)
 			return offs;
-		fdt_setprop_u32(dtb, offs, "#address-cells", 2);
-		fdt_setprop_u32(dtb, offs, "#size-cells", 1);
+
+		fdt_setprop_u32(dtb, offs, "#address-cells", addr_len);
+		fdt_setprop_u32(dtb, offs, "#size-cells", size_len);
 		fdt_setprop(dtb, offs, "ranges", NULL, 0);
+	} else {
+		const fdt32_t *prop;
+		int len;
+
+		prop = fdt_getprop(dtb, offs, "#address-cells", &len);
+		if ((prop == NULL) || (fdt32_to_cpu(*prop) != addr_len)) {
+			return -1;
+		}
+
+		prop = fdt_getprop(dtb, offs, "#size-cells", &len);
+		if ((prop == NULL) || (fdt32_to_cpu(*prop) != size_len)) {
+			return -1;
+		}
 	}
 
-	addresses[0] = cpu_to_fdt32(HIGH_BITS(base));
-	addresses[1] = cpu_to_fdt32(base & 0xffffffff);
-	addresses[2] = cpu_to_fdt32(size & 0xffffffff);
+	if (addr_len == 1U) {
+		addresses[0] = cpu_to_fdt32(base & 0xffffffff);
+	} else {
+		addresses[0] = cpu_to_fdt32(HIGH_BITS(base));
+		addresses[1] = cpu_to_fdt32(base & 0xffffffff);
+	}
+
+	if (size_len == 1U) {
+		addresses[addr_len] = cpu_to_fdt32(size & 0xffffffff);
+	} else {
+		addresses[addr_len] = cpu_to_fdt32(HIGH_BITS(size));
+		addresses[addr_len + 1U] = cpu_to_fdt32(size & 0xffffffff);
+	}
+
 	offs = fdt_add_subnode(dtb, offs, node_name);
 	fdt_setprop(dtb, offs, "no-map", NULL, 0);
-	fdt_setprop(dtb, offs, "reg", addresses, 12);
+	fdt_setprop(dtb, offs, "reg", addresses,
+		    (addr_len + size_len) * sizeof(uint32_t));
 
 	return 0;
 }
