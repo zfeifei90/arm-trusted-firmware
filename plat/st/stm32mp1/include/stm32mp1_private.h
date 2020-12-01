@@ -45,4 +45,8 @@ uint32_t stm32mp_get_ddr_ns_size(void);
 #endif /* STM32MP_USE_STM32IMAGE */
 
 void stm32mp1_init_scmi_server(void);
+
+#if defined(IMAGE_BL32) && DEBUG
+void stm32mp_dump_core_registers(bool fcore);
+#endif
 #endif /* STM32MP1_PRIVATE_H */
