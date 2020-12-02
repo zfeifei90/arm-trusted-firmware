@@ -315,6 +315,10 @@ BL2_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/st/crypto/stm32_hash.c				\
 				plat/st/stm32mp1/bl2_plat_setup.c
 
+ifeq ($(STM32MP13),1)
+BL2_SOURCES		+=	drivers/st/mce/stm32_mce.c
+endif
+
 ifeq (${TRUSTED_BOARD_BOOT},1)
 AUTH_SOURCES		:=	drivers/auth/auth_mod.c					\
 				drivers/auth/crypto_mod.c				\
