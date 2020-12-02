@@ -285,7 +285,8 @@ PLAT_BL_COMMON_SOURCES	+=	drivers/arm/tzc/tzc400.c				\
 
 ifeq ($(STM32MP13),1)
 PLAT_BL_COMMON_SOURCES	+=	drivers/st/clk/clk-stm32-core.c				\
-				drivers/st/clk/clk-stm32mp13.c
+				drivers/st/clk/clk-stm32mp13.c				\
+				drivers/st/rng/stm32_rng.c
 else
 PLAT_BL_COMMON_SOURCES	+=	drivers/st/clk/stm32mp1_clk.c
 endif

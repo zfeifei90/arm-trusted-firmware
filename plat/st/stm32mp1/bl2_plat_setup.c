@@ -19,6 +19,9 @@
 #include <drivers/st/bsec.h>
 #include <drivers/st/regulator_fixed.h>
 #include <drivers/st/stm32_iwdg.h>
+#if STM32MP13
+#include <drivers/st/stm32_rng.h>
+#endif
 #include <drivers/st/stm32_uart.h>
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp1_clk.h>
@@ -362,6 +365,12 @@ skip_console_init:
 			NOTICE("\n%s", debug_msg);
 		}
 	}
+
+#if STM32MP13
+	if (stm32_rng_init() != 0) {
+		panic();
+	}
+#endif
 
 	stm32mp1_arch_security_setup();
 
