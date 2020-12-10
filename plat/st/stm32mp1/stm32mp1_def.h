@@ -485,7 +485,12 @@ enum ddr_type {
 #define CHIP_CERTIFICATE_MAX_SIZE	U(0x40)
 
 /* RMA */
+#if STM32MP13
+#define RMA_OTP_MASK			GENMASK_32(31, 0)
+#endif
+#if STM32MP15
 #define RMA_OTP_MASK			GENMASK_32(29, 0)
+#endif
 
 /* PART NUMBER */
 #if STM32MP13
