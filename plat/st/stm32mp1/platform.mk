@@ -212,6 +212,8 @@ PLAT_BL_COMMON_SOURCES	:=	common/fdt_wrappers.c					\
 				plat/st/common/stm32mp_common.c				\
 				plat/st/stm32mp1/stm32mp1_private.c
 
+PLAT_BL_COMMON_SOURCES	+=	drivers/regulator/regulator_core.c
+
 PLAT_BL_COMMON_SOURCES	+=	drivers/st/uart/aarch32/stm32_console.S
 
 ifneq (${ENABLE_STACK_PROTECTOR},0)

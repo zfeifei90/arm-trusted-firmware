@@ -651,6 +651,14 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
 #define PLAT_MAX_PLLCFG_NB		U(6)
 
 /*******************************************************************************
+ * REGULATORS
+ ******************************************************************************/
+/* 3 PWR + 1 VREFBUF + 14 PMIC regulators + 1 FIXED */
+#define PLAT_NB_RDEVS			U(19)
+/* Number of low power modes defined in the device tree */
+#define PLAT_NB_SUSPEND_MODES		7
+
+/*******************************************************************************
  * DEBUG
  ******************************************************************************/
 /*#define  ICACHE_OFF*/

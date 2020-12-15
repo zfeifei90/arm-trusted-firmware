@@ -18,6 +18,7 @@
 #include <drivers/arm/tzc400.h>
 #include <drivers/clk.h>
 #include <drivers/generic_delay_timer.h>
+#include <drivers/regulator.h>
 #include <drivers/st/bsec.h>
 #include <drivers/st/etzpc.h>
 #include <drivers/st/stm32_console.h>
@@ -543,6 +544,11 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 		initialize_pmic();
 	}
 
+	if (regulator_core_config() != 0) {
+		ERROR("Regulator core config error\n");
+		panic();
+	}
+
 	disable_usb_phy_regulator();
 
 	initialize_pll1_settings();
@@ -608,6 +614,8 @@ void sp_min_platform_setup(void)
 	stm32mp_lock_periph_registering();
 
 	stm32mp1_init_scmi_server();
+
+	regulator_core_cleanup();
 }
 
 void sp_min_plat_arch_setup(void)
