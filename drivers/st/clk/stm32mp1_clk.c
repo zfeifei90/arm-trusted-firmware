@@ -2293,6 +2293,17 @@ void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
 }
 #endif /* STM32MP_SHARED_RESOURCES */
 
+void stm32mp1_clk_mcuss_protect(bool enable)
+{
+	uintptr_t rcc_base = stm32mp_rcc_base();
+
+	if (enable) {
+		mmio_setbits_32(rcc_base + RCC_TZCR, RCC_TZCR_MCKPROT);
+	} else {
+		mmio_clrbits_32(rcc_base + RCC_TZCR, RCC_TZCR_MCKPROT);
+	}
+}
+
 static void sync_earlyboot_clocks_state(void)
 {
 	unsigned int idx;
