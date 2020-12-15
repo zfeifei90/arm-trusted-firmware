@@ -537,6 +537,8 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	}
 #endif
 
+	generic_delay_timer_init();
+
 	if (dt_pmic_status() > 0) {
 		initialize_pmic();
 	}
@@ -592,8 +594,6 @@ void sp_min_platform_setup(void)
 	stm32_init_low_power();
 
 	ddr_save_sr_mode();
-
-	generic_delay_timer_init();
 
 	stm32_gic_init();
 
