@@ -186,9 +186,8 @@ static void stm32_sdmmc2_init(void)
 		freq = MIN(sdmmc2_params.max_freq, freq);
 	}
 
-	if (sdmmc2_params.vmmc_regu.id != -1) {
-		stm32mp_regulator_register(&sdmmc2_params.vmmc_regu);
-		stm32mp_regulator_disable(&sdmmc2_params.vmmc_regu);
+	if (sdmmc2_params.vmmc_regu != NULL) {
+		regulator_disable(sdmmc2_params.vmmc_regu);
 	}
 
 	mdelay(VCC_POWER_OFF_DELAY);
@@ -197,8 +196,8 @@ static void stm32_sdmmc2_init(void)
 		      SDMMC_POWER_PWRCTRL_PWR_CYCLE | sdmmc2_params.dirpol);
 	mdelay(POWER_CYCLE_DELAY);
 
-	if (sdmmc2_params.vmmc_regu.id != -1) {
-		stm32mp_regulator_enable(&sdmmc2_params.vmmc_regu);
+	if (sdmmc2_params.vmmc_regu != NULL) {
+		regulator_enable(sdmmc2_params.vmmc_regu);
 	}
 
 	mdelay(VCC_POWER_ON_DELAY);
@@ -758,10 +757,7 @@ static int stm32_sdmmc2_dt_get_config(void)
 		sdmmc2_params.max_freq = fdt32_to_cpu(*cuint);
 	}
 
-	cuint = fdt_getprop(fdt, sdmmc_node, "vmmc-supply", NULL);
-	if (cuint != NULL) {
-		sdmmc2_params.vmmc_regu.id = fdt32_to_cpu(*cuint);
-	}
+	sdmmc2_params.vmmc_regu = regulator_get_by_supply_name(fdt, sdmmc_node, "vmmc");
 
 	return 0;
 }
@@ -783,7 +779,7 @@ int stm32_sdmmc2_mmc_init(struct stm32_sdmmc2_params *params)
 
 	memcpy(&sdmmc2_params, params, sizeof(struct stm32_sdmmc2_params));
 
-	sdmmc2_params.vmmc_regu.id = -1;
+	sdmmc2_params.vmmc_regu = NULL;
 
 	if (stm32_sdmmc2_dt_get_config() != 0) {
 		ERROR("%s: DT error\n", __func__);
