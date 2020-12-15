@@ -174,6 +174,12 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	stm32mp1_etzpc_early_setup();
 }
 
+static void init_sec_peripherals(void)
+{
+	/* Disable MCU subsystem protection */
+	stm32mp1_clk_mcuss_protect(false);
+}
+
 /*******************************************************************************
  * Initialize the MMU, security and the GIC.
  ******************************************************************************/
@@ -182,6 +188,8 @@ void sp_min_platform_setup(void)
 	generic_delay_timer_init();
 
 	stm32mp1_gic_init();
+
+	init_sec_peripherals();
 
 	if (stm32_iwdg_init() < 0) {
 		panic();
