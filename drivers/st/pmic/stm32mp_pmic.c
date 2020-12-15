@@ -13,10 +13,12 @@
 
 #include <common/debug.h>
 #include <drivers/delay_timer.h>
+#include <drivers/regulator.h>
 #include <drivers/st/stm32_i2c.h>
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stpmic1.h>
 #include <lib/mmio.h>
+#include <lib/spinlock.h>
 #include <lib/utils_def.h>
 
 #define STPMIC1_LDO12356_OUTPUT_MASK	(uint8_t)(GENMASK(6, 2))
@@ -37,6 +39,11 @@
 
 static struct i2c_handle_s i2c_handle;
 static uint32_t pmic_i2c_addr;
+#if defined(IMAGE_BL32)
+static struct spinlock lock;
+#endif
+
+static int register_pmic(void);
 
 static int dt_get_pmic_node(void *fdt)
 {
@@ -547,6 +554,15 @@ void initialize_pmic(void)
 	}
 
 	register_pmic_shared_peripherals();
+
+	if (register_pmic() < 0) {
+		panic();
+	}
+
+	if (stpmic1_powerctrl_on() < 0) {
+		panic();
+	}
+
 }
 
 void configure_pmic(void)
@@ -567,6 +583,11 @@ void print_pmic_info_and_debug(void)
 	}
 
 	INFO("PMIC version = 0x%02lx\n", pmic_version);
+#if defined(IMAGE_BL32)
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+	regulator_core_dump();
+#endif
+#endif
 	stpmic1_dump_regulators();
 }
 #endif
@@ -699,6 +720,228 @@ int pmic_ddr_power_init(enum ddr_type ddr_type)
 	default:
 		break;
 	};
+
+	return 0;
+}
+
+enum {
+	STPMIC1_BUCK1 = 0,
+	STPMIC1_BUCK2,
+	STPMIC1_BUCK3,
+	STPMIC1_BUCK4,
+	STPMIC1_LDO1,
+	STPMIC1_LDO2,
+	STPMIC1_LDO3,
+	STPMIC1_LDO4,
+	STPMIC1_LDO5,
+	STPMIC1_LDO6,
+	STPMIC1_VREF_DDR,
+	STPMIC1_BOOST,
+	STPMIC1_VBUS_OTG,
+	STPMIC1_SW_OUT,
+};
+
+static int pmic_set_state(const struct regul_description *desc, bool enable)
+{
+	VERBOSE("%s: set state to %u\n", desc->node_name, enable);
+
+	if (enable == STATE_ENABLE) {
+		return stpmic1_regulator_enable(desc->node_name);
+	} else {
+		return stpmic1_regulator_disable(desc->node_name);
+	}
+}
+
+static int pmic_get_state(const struct regul_description *desc)
+{
+	VERBOSE("%s: get state\n", desc->node_name);
+
+	return stpmic1_is_regulator_enabled(desc->node_name);
+}
+
+static int pmic_get_voltage(const struct regul_description *desc)
+{
+	VERBOSE("%s: get volt\n", desc->node_name);
+
+	return stpmic1_regulator_voltage_get(desc->node_name);
+}
+
+static int pmic_set_voltage(const struct regul_description *desc, uint16_t mv)
+{
+	VERBOSE("%s: get volt\n", desc->node_name);
+
+	return stpmic1_regulator_voltage_set(desc->node_name, mv);
+}
+
+static int pmic_list_voltages(const struct regul_description *desc,
+			      const uint16_t **levels, size_t *count)
+{
+	VERBOSE("%s: list volt\n", desc->node_name);
+
+	return stpmic1_regulator_levels_mv(desc->node_name, levels, count);
+}
+
+static int pmic_set_flag(const struct regul_description *desc, uint16_t flag)
+{
+	VERBOSE("%s: set_flag 0x%x\n", desc->node_name, flag);
+
+	switch (flag) {
+	case REGUL_OCP:
+		return stpmic1_regulator_icc_set(desc->node_name);
+
+	case REGUL_ACTIVE_DISCHARGE:
+		return stpmic1_active_discharge_mode_set(desc->node_name);
+
+	case REGUL_PULL_DOWN:
+		return stpmic1_regulator_pull_down_set(desc->node_name);
+
+	case REGUL_MASK_RESET:
+		return stpmic1_regulator_mask_reset_set(desc->node_name);
+
+	case REGUL_SINK_SOURCE:
+		return stpmic1_regulator_sink_mode_set(desc->node_name);
+
+	case REGUL_ENABLE_BYPASS:
+		return stpmic1_regulator_bypass_mode_set(desc->node_name);
+
+	default:
+		return -EINVAL;
+	}
+}
+
+#if defined(IMAGE_BL32)
+static int driver_suspend(const struct regul_description *desc, uint8_t state, uint16_t mv)
+{
+	int ret;
+
+	VERBOSE("%s: suspend state:%d volt:%d\n", desc->node_name, (int)state, mv);
+
+	ret = stpmic1_lp_copy_reg(desc->node_name);
+	if (ret != 0) {
+		return ret;
+	}
+
+	if ((state & LP_STATE_OFF) != 0U) {
+		ret = stpmic1_lp_reg_on_off(desc->node_name, 0);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	if ((state & LP_STATE_ON) != 0U) {
+		ret = stpmic1_lp_reg_on_off(desc->node_name, 1);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	if ((state & LP_STATE_SET_VOLT) != 0U) {
+		ret = stpmic1_lp_set_voltage(desc->node_name, mv);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
+static void driver_lock(const struct regul_description *desc)
+{
+	if (stm32mp_lock_available()) {
+		spin_lock(&lock);
+	}
+}
+
+static void driver_unlock(const struct regul_description *desc)
+{
+	if (stm32mp_lock_available()) {
+		spin_unlock(&lock);
+	}
+}
+#endif
+
+struct regul_ops pmic_ops = {
+	.set_state = pmic_set_state,
+	.get_state = pmic_get_state,
+	.set_voltage = pmic_set_voltage,
+	.get_voltage = pmic_get_voltage,
+	.list_voltages = pmic_list_voltages,
+	.set_flag = pmic_set_flag,
+#if defined(IMAGE_BL32)
+	.lock = driver_lock,
+	.unlock = driver_unlock,
+	.suspend = driver_suspend,
+#endif
+};
+
+#define DEFINE_REGU(name) { \
+	.node_name = name, \
+	.ops = &pmic_ops, \
+	.driver_data = NULL, \
+	.enable_ramp_delay = 1000, \
+}
+
+static const struct regul_description pmic_regs[] = {
+	[STPMIC1_BUCK1] = DEFINE_REGU("buck1"),
+	[STPMIC1_BUCK2] = DEFINE_REGU("buck2"),
+	[STPMIC1_BUCK3] = DEFINE_REGU("buck3"),
+	[STPMIC1_BUCK4] = DEFINE_REGU("buck4"),
+	[STPMIC1_LDO1] = DEFINE_REGU("ldo1"),
+	[STPMIC1_LDO2] = DEFINE_REGU("ldo2"),
+	[STPMIC1_LDO3] = DEFINE_REGU("ldo3"),
+	[STPMIC1_LDO4] = DEFINE_REGU("ldo4"),
+	[STPMIC1_LDO5] = DEFINE_REGU("ldo5"),
+	[STPMIC1_LDO6] = DEFINE_REGU("ldo6"),
+	[STPMIC1_VREF_DDR] = DEFINE_REGU("vref_ddr"),
+	[STPMIC1_BOOST] = DEFINE_REGU("boost"),
+	[STPMIC1_VBUS_OTG] = DEFINE_REGU("pwr_sw1"),
+	[STPMIC1_SW_OUT] = DEFINE_REGU("pwr_sw2"),
+};
+
+#define NB_REG ARRAY_SIZE(pmic_regs)
+
+static int register_pmic(void)
+{
+	void *fdt;
+	int pmic_node, regulators_node, subnode;
+
+	VERBOSE("Register pmic\n");
+
+	if (fdt_get_address(&fdt) == 0) {
+		return -FDT_ERR_NOTFOUND;
+	}
+
+	pmic_node = dt_get_pmic_node(fdt);
+	if (pmic_node < 0) {
+		return pmic_node;
+	}
+
+	regulators_node = fdt_subnode_offset(fdt, pmic_node, "regulators");
+	if (regulators_node < 0) {
+		return -ENOENT;
+	}
+
+	fdt_for_each_subnode(subnode, fdt, regulators_node) {
+		const char *reg_name = fdt_get_name(fdt, subnode, NULL);
+		const struct regul_description *desc;
+		unsigned int i;
+		int ret;
+
+		for (i = 0; i < NB_REG; i++) {
+			desc = &pmic_regs[i];
+			if (strcmp(desc->node_name, reg_name) == 0) {
+				break;
+			}
+		}
+		assert(i < NB_REG);
+
+		ret = regulator_register(desc, subnode);
+		if (ret != 0) {
+			WARN("%s:%d failed to register %s\n", __func__,
+			     __LINE__, reg_name);
+			return ret;
+		}
+	}
 
 	return 0;
 }
