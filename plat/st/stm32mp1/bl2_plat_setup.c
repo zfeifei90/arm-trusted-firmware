@@ -363,6 +363,8 @@ skip_console_init:
 
 	update_monotonic_counter();
 
+	stm32mp1_syscfg_enable_io_compensation_finish();
+
 #if !STM32MP_USE_STM32IMAGE
 	fconf_populate("TB_FW", STM32MP_DTB_BASE);
 #endif /* !STM32MP_USE_STM32IMAGE */

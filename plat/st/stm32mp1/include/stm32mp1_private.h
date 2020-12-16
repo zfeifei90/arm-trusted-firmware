@@ -15,7 +15,8 @@ void stm32mp1_arch_security_setup(void);
 void stm32mp1_security_setup(void);
 
 void stm32mp1_syscfg_init(void);
-void stm32mp1_syscfg_enable_io_compensation(void);
+void stm32mp1_syscfg_enable_io_compensation_start(void);
+void stm32mp1_syscfg_enable_io_compensation_finish(void);
 void stm32mp1_syscfg_disable_io_compensation(void);
 
 void stm32mp1_deconfigure_uart_pins(void);
