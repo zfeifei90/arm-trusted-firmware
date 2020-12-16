@@ -128,5 +128,6 @@ int stm32mp_unmap_ddr(void);
 /* Functions to save and get boot peripheral info */
 void stm32_save_boot_interface(uint32_t interface, uint32_t instance);
 void stm32_get_boot_interface(uint32_t *interface, uint32_t *instance);
+bool stm32_boot_is_serial(void);
 
 #endif /* STM32MP_COMMON_H */
