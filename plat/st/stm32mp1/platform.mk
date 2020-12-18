@@ -40,9 +40,22 @@ STM32_TF_VERSION	?=	0
 # Enable dynamic memory mapping
 PLAT_XLAT_TABLES_DYNAMIC :=	1
 
+ifeq ($(STM32MP13),1)
+STM32MP13		:=	1
+STM32MP15		:=	0
+
+# DDR controller with single AXI port and 16-bit interface
+STM32MP_DDR_DUAL_AXI_PORT:=	0
+STM32MP_DDR_32BIT_INTERFACE:=	0
+else
+#STM32MP15
+STM32MP13		:=	0
+STM32MP15		:=	1
+
 # DDR controller with dual AXI port and 32-bit interface
 STM32MP_DDR_DUAL_AXI_PORT:=	1
 STM32MP_DDR_32BIT_INTERFACE:=	1
+endif
 
 # STM32 image header version v1.0
 STM32_HEADER_VERSION_MAJOR:=	1
@@ -181,6 +194,8 @@ $(eval $(call assert_booleans,\
 		STM32MP_UART_PROGRAMMER \
 		STM32MP_USB_PROGRAMMER \
 		STM32MP_USE_STM32IMAGE \
+		STM32MP13 \
+		STM32MP15 \
 )))
 
 $(eval $(call assert_numerics,\
@@ -209,6 +224,8 @@ $(eval $(call add_defines,\
 		STM32MP_UART_PROGRAMMER \
 		STM32MP_USB_PROGRAMMER \
 		STM32MP_USE_STM32IMAGE \
+		STM32MP13 \
+		STM32MP15 \
 )))
 
 # Include paths and source files
