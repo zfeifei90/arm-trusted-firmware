@@ -8,10 +8,16 @@
 #define STM32_HASH_H
 
 enum stm32_hash_algo_mode {
+#if STM32MP15
 	HASH_MD5SUM,
+#endif
 	HASH_SHA1,
 	HASH_SHA224,
-	HASH_SHA256
+	HASH_SHA256,
+#if STM32MP13
+	HASH_SHA384,
+	HASH_SHA512,
+#endif
 };
 
 int stm32_hash_update(const uint8_t *buffer, size_t length);
