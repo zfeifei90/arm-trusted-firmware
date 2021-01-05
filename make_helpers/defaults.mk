@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016-2020, ARM Limited. All rights reserved.
+# Copyright (c) 2016-2021, ARM Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -325,9 +325,6 @@ RAS_TRAP_LOWER_EL_ERR_ACCESS	:= 0
 
 # Build option to create cot descriptors using fconf
 COT_DESC_IN_DTB			:= 0
-
-# Build option to provide openssl directory path
-OPENSSL_DIR			:= /usr
 
 # Build option to use the SP804 timer instead of the generic one
 USE_SP804_TIMER			:= 0
