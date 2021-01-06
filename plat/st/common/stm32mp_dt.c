@@ -13,6 +13,7 @@
 
 #include <common/debug.h>
 #include <common/fdt_wrappers.h>
+#include <drivers/regulator.h>
 #include <drivers/st/stm32_gpio.h>
 
 #include <stm32mp_dt.h>
@@ -458,61 +459,23 @@ int dt_get_all_opp_freqvolt(uint32_t *count, uint32_t *freq_khz_array,
  ******************************************************************************/
 uint32_t dt_get_pwr_vdd_voltage(void)
 {
-	int node;
-	const fdt32_t *cuint;
+	struct rdev *regul = dt_get_vdd_regulator();
+	uint16_t min;
 
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_PWR_COMPAT);
-	if (node < 0) {
+	if (regul == NULL) {
 		return 0;
 	}
 
-	cuint = fdt_getprop(fdt, node, "vdd-supply", NULL);
-	if (cuint == NULL) {
-		return 0;
-	}
+	regulator_get_range(regul, &min, NULL);
 
-	node = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*cuint));
-	if (node < 0) {
-		return 0;
-	}
-
-	cuint = fdt_getprop(fdt, node, "regulator-min-microvolt", NULL);
-	if (cuint == NULL) {
-		return 0;
-	}
-
-	return fdt32_to_cpu(*cuint);
+	return (uint32_t)min * 1000U;
 }
 
 /*******************************************************************************
- * This function return the real regulator name from DT.
+ * This function retrieves VDD supply regulator from DT.
+ * Returns an rdev taken from supply node, NULL otherwise.
  ******************************************************************************/
-static const char *dt_get_regulator_name(int node, const char *regu_name)
-{
-	const fdt32_t *cuint;
-
-	if ((node < 0) || (regu_name == NULL)) {
-		return NULL;
-	}
-
-	cuint = fdt_getprop(fdt, node, regu_name, NULL);
-	if (cuint == NULL) {
-		return NULL;
-	}
-
-	node = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*cuint));
-	if (node < 0) {
-		return NULL;
-	}
-
-	return (const char *)fdt_getprop(fdt, node, "regulator-name", NULL);
-}
-
-/*******************************************************************************
- * This function retrieves VDD regulator name from DT.
- * Returns string taken from supply node, NULL otherwise.
- ******************************************************************************/
-const char *dt_get_vdd_regulator_name(void)
+struct rdev *dt_get_vdd_regulator(void)
 {
 	int node = fdt_node_offset_by_compatible(fdt, -1, DT_PWR_COMPAT);
 
@@ -520,14 +483,14 @@ const char *dt_get_vdd_regulator_name(void)
 		return NULL;
 	}
 
-	return dt_get_regulator_name(node, "vdd-supply");
+	return regulator_get_by_supply_name(fdt, node, "vdd");
 }
 
 /*******************************************************************************
- * This function retrieves CPU regulator name from DT.
- * Returns string taken from supply node, NULL otherwise.
+ * This function retrieves CPU supply regulator from DT.
+ * Returns an rdev taken from supply node, NULL otherwise.
  ******************************************************************************/
-const char *dt_get_cpu_regulator_name(void)
+struct rdev *dt_get_cpu_regulator(void)
 {
 	int node = fdt_path_offset(fdt, "/cpus/cpu@0");
 
@@ -535,27 +498,27 @@ const char *dt_get_cpu_regulator_name(void)
 		return NULL;
 	}
 
-	return dt_get_regulator_name(node, "cpu-supply");
+	return regulator_get_by_supply_name(fdt, node, "cpu");
 }
 
 /*******************************************************************************
  * This function retrieves USB phy regulator name from DT.
  * Returns string taken from supply node, NULL otherwise.
  ******************************************************************************/
-const char *dt_get_usb_phy_regulator_name(void)
+struct rdev *dt_get_usb_phy_regulator(void)
 {
 	int node = fdt_node_offset_by_compatible(fdt, -1, DT_USBPHYC_COMPAT);
 	int subnode;
-	const char *reg_name = NULL;
 
 	if (node < 0) {
 		return NULL;
 	}
 
 	fdt_for_each_subnode(subnode, fdt, node) {
-		reg_name = dt_get_regulator_name(subnode, "phy-supply");
-		if (reg_name != NULL) {
-			return reg_name;
+		struct rdev *supply = regulator_get_by_supply_name(fdt, node, "phy");
+
+		if (supply != NULL) {
+			return supply;
 		}
 	}
 

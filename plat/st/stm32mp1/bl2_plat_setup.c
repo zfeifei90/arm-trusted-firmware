@@ -18,6 +18,7 @@
 #include <drivers/delay_timer.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/mmc.h>
+#include <drivers/regulator.h>
 #include <drivers/st/bsec.h>
 #include <drivers/st/stm32_console.h>
 #include <drivers/st/stm32_iwdg.h>
@@ -266,21 +267,21 @@ static void initialize_clock(void)
 
 		if (dt_pmic_status() > 0) {
 			int read_voltage;
-			const char *name;
+			struct rdev *regul;
 
-			name = stm32mp_get_cpu_supply_name();
-			if (name == NULL) {
+			regul = dt_get_cpu_regulator();
+			if (regul == NULL) {
 				panic();
 			}
 
-			read_voltage = stpmic1_regulator_voltage_get(name);
+			read_voltage = regulator_get_voltage(regul);
 			if (read_voltage < 0) {
 				panic();
 			}
 
 			if (voltage_mv != (uint32_t)read_voltage) {
-				if (stpmic1_regulator_voltage_set(name,
-						(uint16_t)voltage_mv) != 0) {
+				if (regulator_set_voltage(regul,
+							  (uint16_t)voltage_mv) != 0) {
 					panic();
 				}
 			}

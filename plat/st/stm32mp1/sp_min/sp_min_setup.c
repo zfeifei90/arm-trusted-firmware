@@ -142,14 +142,15 @@ static void initialize_pll1_settings(void)
 	}
 
 	if (dt_pmic_status() > 0) {
-		const char *name = stm32mp_get_cpu_supply_name();
+		struct rdev *regul;
 		int ret;
 
-		if (name == NULL) {
+		regul = dt_get_cpu_regulator();
+		if (regul == NULL) {
 			panic();
 		}
 
-		ret = stpmic1_regulator_voltage_get(name);
+		ret = regulator_get_voltage(regul);
 		if (ret < 0) {
 			panic();
 		}
@@ -165,16 +166,18 @@ static void initialize_pll1_settings(void)
 static void disable_usb_phy_regulator(void)
 {
 	if (dt_pmic_status() > 0) {
-		const char *name = stm32mp_get_usb_phy_supply_name();
+		struct rdev *regul = dt_get_usb_phy_regulator();
 		int ret;
 
-		if (name == NULL) {
+		if (regul == NULL) {
 			return;
 		}
 
-		ret = stpmic1_regulator_disable(name);
-		if (ret < 0) {
-			WARN("USBPHYC phy-supply (%s) disable failed\n", name);
+		if (regulator_is_enabled(regul) == 1) {
+			ret = regulator_disable(regul);
+			if (ret < 0) {
+				WARN("USBPHYC phy-supply (%s) disable failed\n", regul->reg_name);
+			}
 		}
 	}
 }

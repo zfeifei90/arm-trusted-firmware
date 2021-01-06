@@ -12,6 +12,7 @@
 #include <arch_helpers.h>
 #include <common/debug.h>
 #include <common/runtime_svc.h>
+#include <drivers/regulator.h>
 #include <drivers/st/bsec.h>
 #include <drivers/st/bsec2_reg.h>
 #include <drivers/st/stm32mp_pmic.h>
@@ -87,16 +88,18 @@ static enum bsec_ssp_status bsec_check_ssp(uint32_t otp, uint32_t update)
 				   sizeof(boot_api_ssp_config_t));
 #endif
 		if (dt_pmic_status() > 0) {
-			const char *name;
+			struct rdev *regul;
 
 			initialize_pmic();
 
-			name = stm32mp_get_cpu_supply_name();
-			if (name == NULL) {
+			regul = dt_get_cpu_regulator();
+			if (regul == NULL) {
 				return BSEC_SSP_ERROR;
 			}
 
-			stpmic1_regulator_mask_reset_set(name);
+			if (regulator_set_flag(regul, REGUL_MASK_RESET) < 0) {
+				return BSEC_SSP_ERROR;
+			}
 		}
 
 		return BSEC_SSP_SET;

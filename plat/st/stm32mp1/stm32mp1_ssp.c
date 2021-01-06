@@ -17,6 +17,7 @@
 #include <drivers/clk.h>
 #include <drivers/delay_timer.h>
 #include <drivers/generic_delay_timer.h>
+#include <drivers/regulator.h>
 #include <drivers/st/bsec.h>
 #include <drivers/st/stm32_console.h>
 #include <drivers/st/stm32_hash.h>
@@ -803,24 +804,24 @@ static void ssp_start(boot_api_context_t *boot_context)
 	 * the required MPSYSRST.
 	 */
 	if (dt_pmic_status() > 0) {
-		const char *name;
+		struct rdev *regul;
 
-		name = stm32mp_get_cpu_supply_name();
-		if (name == NULL) {
+		regul = dt_get_cpu_regulator();
+		if (regul == NULL) {
+			panic();
+		}
+
+		if (regulator_set_flag(regul, REGUL_MASK_RESET) < 0) {
+			WARN("Failed to write cpu-supply reset mask\n");
+		}
+
+		regul = dt_get_vdd_regulator();
+		if (regul == NULL) {
 			goto out;
 		}
 
-		if (stpmic1_regulator_mask_reset_set(name) != 0) {
-			WARN("Failed to write %s reset mask\n", name);
-		}
-
-		name = stm32mp_get_vdd_supply_name();
-		if (name == NULL) {
-			goto out;
-		}
-
-		if (stpmic1_regulator_mask_reset_set(name) != 0) {
-			WARN("Failed to write %s reset mask\n", name);
+		if (regulator_set_flag(regul, REGUL_MASK_RESET) < 0) {
+			WARN("Failed to write vdd-supply reset mask\n");
 		}
 	} else {
 		static const char debug_msg[] = {

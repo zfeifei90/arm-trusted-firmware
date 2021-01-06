@@ -147,58 +147,6 @@ int stm32mp_check_header(boot_api_image_header_t *header, uintptr_t buffer)
 }
 #endif
 
-/* Return CPU supply name */
-const char *stm32mp_get_cpu_supply_name(void)
-{
-	const char *regulator;
-	const char *supply = NULL;
-
-	regulator = dt_get_cpu_regulator_name();
-	if (regulator == NULL) {
-		return NULL;
-	}
-
-	if (dt_pmic_status() > 0) {
-		if (dt_pmic_find_supply(&supply, regulator) != 0) {
-			return NULL;
-		}
-	}
-
-	return supply;
-}
-
-/* Return VDD supply name */
-const char *stm32mp_get_vdd_supply_name(void)
-{
-	const char *supply = NULL;
-
-	if (dt_pmic_status() > 0) {
-		const char *regulator = dt_get_vdd_regulator_name();
-
-		if (regulator != NULL) {
-			dt_pmic_find_supply(&supply, regulator);
-		}
-	}
-
-	return supply;
-}
-
-/* Return USB phy supply name */
-const char *stm32mp_get_usb_phy_supply_name(void)
-{
-	const char *supply = NULL;
-
-	if (dt_pmic_status() > 0) {
-		const char *regulator = dt_get_usb_phy_regulator_name();
-
-		if (regulator != NULL) {
-			dt_pmic_find_supply(&supply, regulator);
-		}
-	}
-
-	return supply;
-}
-
 #if TRUSTED_BOARD_BOOT && STM32MP_USE_STM32IMAGE
 /* Save pointer to last loaded header */
 static boot_api_image_header_t *latest_stm32_header;
