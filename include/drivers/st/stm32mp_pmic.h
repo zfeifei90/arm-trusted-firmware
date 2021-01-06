@@ -11,8 +11,6 @@
 
 #include <platform_def.h>
 
-#include <drivers/st/stm32mp_regulator.h>
-
 /*
  * dt_pmic_status - Check PMIC status from device tree
  *

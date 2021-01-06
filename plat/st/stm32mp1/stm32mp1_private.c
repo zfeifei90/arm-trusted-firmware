@@ -14,9 +14,7 @@
 #include <drivers/arm/gicv2.h>
 #include <drivers/clk.h>
 #include <drivers/st/stm32_iwdg.h>
-#include <drivers/st/stm32mp_dummy_regulator.h>
 #include <drivers/st/stm32mp_pmic.h>
-#include <drivers/st/stm32mp_regulator.h>
 #include <drivers/st/stm32mp_reset.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
