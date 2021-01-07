@@ -336,6 +336,10 @@ BL2_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/st/crypto/stm32_hash.c				\
 				plat/st/stm32mp1/bl2_plat_setup.c
 
+ifneq (${DECRYPTION_SUPPORT},none)
+BL2_SOURCES		+=	drivers/io/io_encrypted.c
+endif
+
 ifeq ($(STM32MP13),1)
 BL2_SOURCES		+=	drivers/st/mce/stm32_mce.c
 endif
@@ -364,6 +368,7 @@ AUTH_SOURCES		+=	drivers/auth/tbbr/tbbr_cot_common.c			\
 
 ifeq ($(STM32MP13),1)
 AUTH_SOURCES		+=	drivers/st/crypto/stm32_pka.c
+AUTH_SOURCES		+=	drivers/st/crypto/stm32_saes.c
 endif
 
 BL2_SOURCES		+=	drivers/auth/tbbr/tbbr_cot_bl2.c

@@ -13,11 +13,15 @@
 /* IO devices handle */
 extern uintptr_t storage_dev_handle;
 extern uintptr_t fip_dev_handle;
+extern uintptr_t enc_dev_handle;
 
 extern io_block_spec_t image_block_spec;
 
 /* Function declarations */
 int open_fip(const uintptr_t spec);
+#ifndef DECRYPTION_SUPPORT_none
+int open_enc_fip(const uintptr_t spec);
+#endif
 int open_storage(const uintptr_t spec);
 
 #endif /* STM32MP_IO_STORAGE_H */

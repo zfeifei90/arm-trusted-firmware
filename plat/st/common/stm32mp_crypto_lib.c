@@ -5,6 +5,7 @@
  */
 
 #include <assert.h>
+#include <endian.h>
 #include <errno.h>
 
 #include <mbedtls/asn1.h>
@@ -21,6 +22,7 @@
 #if STM32MP13
 #include <drivers/st/stm32_pka.h>
 #include <drivers/st/stm32_rng.h>
+#include <drivers/st/stm32_saes.h>
 #endif
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/common/platform.h>
@@ -30,6 +32,7 @@
 #define CRYPTO_HASH_MAX_SIZE	32U
 #define CRYPTO_SIGN_MAX_SIZE	64U
 #define CRYPTO_PUBKEY_MAX_SIZE	64U
+#define CRYPTO_MAX_TAG_SIZE	16U
 
 #if STM32MP15
 struct stm32mp_auth_ops {
@@ -62,6 +65,11 @@ static void crypto_lib_init(void)
 	if (stm32_pka_init() != 0) {
 		panic();
 	}
+#ifndef DECRYPTION_SUPPORT_none
+	if (stm32_saes_driver_init() != 0) {
+		panic();
+	}
+#endif
 #endif
 
 #if STM32MP15
@@ -433,8 +441,107 @@ static int crypto_verify_hash(void *data_ptr, unsigned int data_len,
 	return ret;
 }
 
+#ifndef DECRYPTION_SUPPORT_none
+static enum stm32_saes_key_selection select_key(unsigned int key_flags)
+{
+	/* Currently we only use the software one. */
+	return STM32_SAES_KEY_SOFT;
+}
+
+static int stm32_decrypt_aes_gcm(void *data, size_t data_len,
+				 const void *key, unsigned int key_len,
+				 unsigned int key_flags,
+				 const void *iv, unsigned int iv_len,
+				 const void *tag, unsigned int tag_len)
+{
+	int ret;
+	struct stm32_saes_context ctx;
+	unsigned char tag_buf[CRYPTO_MAX_TAG_SIZE];
+	enum stm32_saes_key_selection key_mode;
+	unsigned int diff, i;
+
+	key_mode = select_key(key_flags);
+
+	ret = stm32_saes_init(&ctx, true, STM32_SAES_MODE_GCM, key_mode, key,
+			      key_len, iv, iv_len);
+	if (ret != 0) {
+		return CRYPTO_ERR_INIT;
+	}
+
+	ret = stm32_saes_update_assodata(&ctx, true, NULL, 0U);
+	if (ret != 0) {
+		return CRYPTO_ERR_DECRYPTION;
+	}
+
+	ret = stm32_saes_update_load(&ctx, true, data, data, data_len);
+	if (ret != 0) {
+		return CRYPTO_ERR_DECRYPTION;
+	}
+
+	ret = stm32_saes_final(&ctx, tag_buf, sizeof(tag_buf));
+	if (ret != 0) {
+		return CRYPTO_ERR_DECRYPTION;
+	}
+
+	/* Check tag in "constant-time" */
+	for (diff = 0U, i = 0U; i < tag_len; i++) {
+		diff |= ((const unsigned char *)tag)[i] ^ tag_buf[i];
+	}
+
+	if (diff != 0U) {
+		return CRYPTO_ERR_DECRYPTION;
+	}
+
+	return CRYPTO_SUCCESS;
+}
+
+/*
+ * Authenticated decryption of an image
+ *
+ */
+static int crypto_auth_decrypt(enum crypto_dec_algo dec_algo, void *data_ptr, size_t len,
+			       const void *key, unsigned int key_len, unsigned int key_flags,
+			       const void *iv, unsigned int iv_len, const void *tag,
+			       unsigned int tag_len)
+{
+	int rc;
+	uint32_t real_iv[4];
+
+	switch (dec_algo) {
+	case CRYPTO_GCM_DECRYPT:
+		/*
+		 * GCM expect a Nonce
+		 * The AES IV is the nonce (a uint32_t[3])
+		 * then a counter (a uint32_t big endian)
+		 * The counter starts at 2.
+		 */
+		memcpy(real_iv, iv, iv_len);
+		real_iv[3] = htobe32(0x2U);
+
+		rc = stm32_decrypt_aes_gcm(data_ptr, len, key, key_len, key_flags,
+					   real_iv, sizeof(real_iv), tag, tag_len);
+		if (rc != 0) {
+			return rc;
+		}
+		break;
+	default:
+		return CRYPTO_ERR_DECRYPTION;
+	}
+
+	return CRYPTO_SUCCESS;
+}
+
+REGISTER_CRYPTO_LIB("stm32_crypto_lib",
+		    crypto_lib_init,
+		    crypto_verify_signature,
+		    crypto_verify_hash,
+		    crypto_auth_decrypt);
+
+#else /* No decryption support */
 REGISTER_CRYPTO_LIB("stm32_crypto_lib",
 		    crypto_lib_init,
 		    crypto_verify_signature,
 		    crypto_verify_hash,
 		    NULL);
+
+#endif
