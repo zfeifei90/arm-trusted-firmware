@@ -3,7 +3,8 @@ ST,stm32mp1 DDR3/LPDDR2/LPDDR3 Controller (DDRCTRL and DDRPHYC)
 --------------------
 Required properties:
 --------------------
-- compatible	: Should be "st,stm32mp1-ddr"
+- compatible	: Should be "st,stm32mp1-ddr" for STM32MP15x
+		  Should be "st,stm32mp13-ddr" for STM32MP13x
 - reg		: controleur (DDRCTRL) and phy (DDRPHYC) base address
 - clocks	: controller clocks handle
 - clock-names	: associated controller clock names
@@ -24,7 +25,7 @@ controlleur attributes:
 -----------------------
 - st,ctl-reg	: controleur values depending of the DDR type
 		  (DDR3/LPDDR2/LPDDR3)
-	for STM32MP15x: 25 values are requested in this order
+	for STM32MP13x and STM32MP15x: 25 values are requested in this order
 		MSTR
 		MRCTRL0
 		MRCTRL1
@@ -53,7 +54,7 @@ controlleur attributes:
 
 - st,ctl-timing	: controleur values depending of frequency and timing parameter
 		  of DDR
-	for STM32MP15x: 12 values are requested in this order
+	for STM32MP13x and STM32MP15x: 12 values are requested in this order
 		RFSHTMG
 		DRAMTMG0
 		DRAMTMG1
@@ -68,7 +69,7 @@ controlleur attributes:
 		ODTCFG
 
 - st,ctl-map	: controleur values depending of address mapping
-	for STM32MP15x: 9 values are requested in this order
+	for STM32MP13x and STM32MP15x: 9 values are requested in this order
 		ADDRMAP1
 		ADDRMAP2
 		ADDRMAP3
@@ -80,6 +81,19 @@ controlleur attributes:
 		ADDRMAP11
 
 - st,ctl-perf	: controleur values depending of performance and scheduling
+	for STM32MP13x: 11 values are requested in this order
+		SCHED
+		SCHED1
+		PERFHPR1
+		PERFLPR1
+		PERFWR1
+		PCFGR_0
+		PCFGW_0
+		PCFGQOS0_0
+		PCFGQOS1_0
+		PCFGWQOS0_0
+		PCFGWQOS1_0
+
 	for STM32MP15x: 17 values are requested in this order
 		SCHED
 		SCHED1
@@ -102,6 +116,17 @@ controlleur attributes:
 phyc attributes:
 ----------------
 - st,phy-reg	: phy values depending of the DDR type (DDR3/LPDDR2/LPDDR3)
+	for STM32MP13x: 9 values are requested in this order
+		PGCR
+		ACIOCR
+		DXCCR
+		DSGCR
+		DCR
+		ODTCR
+		ZQ0CR1
+		DX0GCR
+		DX1GCR
+
 	for STM32MP15x: 11 values are requested in this order
 		PGCR
 		ACIOCR
@@ -116,7 +141,7 @@ phyc attributes:
 		DX3GCR
 
 - st,phy-timing	: phy values depending of frequency and timing parameter of DDR
-	for STM32MP15x: 10 values are requested in this order
+	for STM32MP13x and STM32MP15x: 10 values are requested in this order
 		PTR0
 		PTR1
 		PTR2
@@ -132,12 +157,7 @@ Example:
 
 / {
 	soc {
-		u-boot,dm-spl;
-
 		ddr: ddr@0x5A003000{
-			u-boot,dm-spl;
-			u-boot,dm-pre-reloc;
-
 			compatible = "st,stm32mp1-ddr";
 
 			reg = <0x5A003000 0x550

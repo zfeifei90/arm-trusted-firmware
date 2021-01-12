@@ -10,8 +10,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define DT_DDR_COMPAT	"st,stm32mp1-ddr"
-
 #include <drivers/st/stm32mp_ddr.h>
 
 struct stm32mp1_ddrctrl_reg {
