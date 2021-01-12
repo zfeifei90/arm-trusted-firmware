@@ -21,8 +21,10 @@
  * SYSCFG register offsets (base relative)
  */
 #define SYSCFG_BOOTR				0x00U
+#if STM32MP15
 #define SYSCFG_IOCTRLSETR			0x18U
 #define SYSCFG_ICNR				0x1CU
+#endif
 #define SYSCFG_CMPCR				0x20U
 #define SYSCFG_CMPENSETR			0x24U
 #define SYSCFG_CMPENCLRR			0x28U
@@ -127,12 +129,14 @@ static void disable_io_comp_cell(uintptr_t cmpcr_off)
 
 static void enable_high_speed_mode_low_voltage(void)
 {
+#if STM32MP15
 	mmio_write_32(SYSCFG_BASE + SYSCFG_IOCTRLSETR,
 		      SYSCFG_IOCTRLSETR_HSLVEN_TRACE |
 		      SYSCFG_IOCTRLSETR_HSLVEN_QUADSPI |
 		      SYSCFG_IOCTRLSETR_HSLVEN_ETH |
 		      SYSCFG_IOCTRLSETR_HSLVEN_SDMMC |
 		      SYSCFG_IOCTRLSETR_HSLVEN_SPI);
+#endif
 }
 
 static void stm32mp1_syscfg_set_hslv(void)
@@ -188,7 +192,6 @@ void stm32mp1_syscfg_init(void)
 {
 #if STM32MP15
 	uint32_t bootr;
-#endif
 
 	/*
 	 * Interconnect update : select master using the port 1.
@@ -196,7 +199,6 @@ void stm32mp1_syscfg_init(void)
 	 */
 	mmio_write_32(SYSCFG_BASE + SYSCFG_ICNR, SYSCFG_ICNR_AXI_M9);
 
-#if STM32MP15
 	/* Disable Pull-Down for boot pin connected to VDD */
 	bootr = mmio_read_32(SYSCFG_BASE + SYSCFG_BOOTR) &
 		SYSCFG_BOOTR_BOOT_MASK;
