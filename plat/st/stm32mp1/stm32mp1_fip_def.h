@@ -78,7 +78,11 @@
 /*******************************************************************************
  * STM32MP1 RAW partition offset for MTD devices
  ******************************************************************************/
+#ifndef STM32MP_NOR_FIP_OFFSET
 #define STM32MP_NOR_FIP_OFFSET		U(0x00080000)
+#endif
+#ifndef STM32MP_NAND_FIP_OFFSET
 #define STM32MP_NAND_FIP_OFFSET		U(0x00200000)
+#endif
 
 #endif /* STM32MP1_FIP_DEF_H */
