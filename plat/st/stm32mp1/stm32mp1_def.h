@@ -162,8 +162,8 @@ enum ddr_type {
 #define STM32MP_BL2_RO_SIZE		U(0x00014000)	/* 80 KB */
 #define STM32MP_BL2_SIZE		U(0x0001B000)	/* 108 KB for BL2 */
 #else
-#define STM32MP_BL2_RO_SIZE		U(0x00010000)	/* 64 KB */
-#define STM32MP_BL2_SIZE		U(0x00015000)	/* 84 KB for BL2 */
+#define STM32MP_BL2_RO_SIZE		U(0x00011000)	/* 68 KB */
+#define STM32MP_BL2_SIZE		U(0x00016000)	/* 88 KB for BL2 */
 #endif
 
 #define STM32MP_BL2_BASE		(STM32MP_SEC_SYSRAM_BASE + \
@@ -182,7 +182,7 @@ enum ddr_type {
 #if STM32MP_SP_MIN_IN_DDR
 #define STM32MP_BL32_SIZE		U(0x00025000)	/* 148 KB for BL32 */
 #else
-#define STM32MP_BL32_SIZE		U(0x0001A000)	/* 100 KB for BL32 */
+#define STM32MP_BL32_SIZE		U(0x0001B000)	/* 108 KB for BL32 */
 #endif
 #endif /* STM32MP_USE_STM32IMAGE */
 #endif /* STM32MP_SSP */
