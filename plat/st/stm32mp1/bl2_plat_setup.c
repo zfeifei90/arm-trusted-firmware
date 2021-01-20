@@ -190,10 +190,6 @@ void bl2_platform_setup(void)
 
 		/* Clear the context in BKPSRAM */
 		stm32_clean_context();
-
-		if (dt_pmic_status() > 0) {
-			configure_pmic();
-		}
 	}
 
 	/* Map DDR for binary load, now with cacheable attribute */
