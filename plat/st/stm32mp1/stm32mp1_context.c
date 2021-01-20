@@ -13,6 +13,7 @@
 #include <common/bl_common.h>
 #include <context.h>
 #include <drivers/clk.h>
+#include <drivers/regulator.h>
 #include <drivers/st/stm32_rtc.h>
 #include <drivers/st/stm32mp_clkfunc.h>
 #include <drivers/st/stm32mp1_ddr_regs.h>
@@ -92,6 +93,7 @@ struct backup_bl32_data_s {
 	unsigned long long stgen;
 	uint8_t clock_cfg[CLOCK_CONTEXT_SIZE];
 	uint8_t scmi_context[SCMI_CONTEXT_SIZE];
+	uint8_t regul_context[PLAT_BACKUP_REGULATOR_SIZE];
 };
 
 static struct backup_bl32_data_s *get_bl32_backup_data(void)
@@ -227,6 +229,9 @@ int stm32_save_context(uint32_t zq0cr0_zdata,
 
 	save_clock_pm_context();
 
+	regulator_core_backup_context(backup_bl32_data->regul_context,
+				      sizeof(backup_bl32_data->regul_context));
+
 	clk_disable(BKPSRAM);
 
 	return 0;
@@ -278,6 +283,9 @@ int stm32_restore_context(void)
 	stdby_time_in_ms = stm32_rtc_diff_calendar(&current_calendar,
 						   &backup_bl32_data->rtc);
 	stm32mp_stgen_restore_counter(backup_bl32_data->stgen, stdby_time_in_ms);
+
+	regulator_core_restore_context(backup_bl32_data->regul_context,
+				       sizeof(backup_bl32_data->regul_context));
 
 	clk_disable(BKPSRAM);
 
