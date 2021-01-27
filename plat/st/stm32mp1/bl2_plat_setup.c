@@ -503,7 +503,7 @@ skip_console_init:
 	stm32mp1_syscfg_enable_io_compensation_finish();
 
 	if (dt_pmic_status() > 0) {
-		initialize_pmic();
+		initialize_pmic_i2c();
 		print_pmic_info_and_debug();
 	}
 
