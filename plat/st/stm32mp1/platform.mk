@@ -44,9 +44,18 @@ ifeq ($(STM32MP13),1)
 STM32MP13		:=	1
 STM32MP15		:=	0
 
+# Will use SRAM2 as mbedtls heap
+STM32MP_USE_EXTERNAL_HEAP :=	1
+
 # DDR controller with single AXI port and 16-bit interface
 STM32MP_DDR_DUAL_AXI_PORT:=	0
 STM32MP_DDR_32BIT_INTERFACE:=	0
+
+# PKA algo to include
+ifeq (${TRUSTED_BOARD_BOOT},1)
+PKA_USE_NIST_P256	:=	1
+PKA_USE_BRAINPOOL_P256T1:=	1
+endif
 
 # STM32 image header version v2.0
 STM32_HEADER_VERSION_MAJOR:=	2
@@ -194,6 +203,8 @@ endif
 $(eval $(call assert_booleans,\
 	$(sort \
 		BL33_HYP \
+		PKA_USE_BRAINPOOL_P256T1 \
+		PKA_USE_NIST_P256 \
 		PLAT_XLAT_TABLES_DYNAMIC \
 		STM32MP_DDR_32BIT_INTERFACE \
 		STM32MP_DDR_DUAL_AXI_PORT \
@@ -206,6 +217,7 @@ $(eval $(call assert_booleans,\
 		STM32MP_SPI_NOR \
 		STM32MP_UART_PROGRAMMER \
 		STM32MP_USB_PROGRAMMER \
+		STM32MP_USE_EXTERNAL_HEAP \
 		STM32MP_USE_STM32IMAGE \
 		STM32MP13 \
 		STM32MP15 \
@@ -221,6 +233,8 @@ $(eval $(call assert_numerics,\
 $(eval $(call add_defines,\
 	$(sort \
 		BL33_HYP \
+		PKA_USE_BRAINPOOL_P256T1 \
+		PKA_USE_NIST_P256 \
 		PLAT_PARTITION_MAX_ENTRIES \
 		PLAT_XLAT_TABLES_DYNAMIC \
 		STM32_TF_A_COPIES \
@@ -236,6 +250,7 @@ $(eval $(call add_defines,\
 		STM32MP_SPI_NOR \
 		STM32MP_UART_PROGRAMMER \
 		STM32MP_USB_PROGRAMMER \
+		STM32MP_USE_EXTERNAL_HEAP \
 		STM32MP_USE_STM32IMAGE \
 		STM32MP13 \
 		STM32MP15 \
@@ -346,6 +361,10 @@ include drivers/auth/mbedtls/mbedtls_x509.mk
 AUTH_SOURCES		+=	drivers/auth/tbbr/tbbr_cot_common.c			\
 				lib/fconf/fconf_tbbr_getter.c				\
 				plat/st/common/stm32mp_crypto_lib.c
+
+ifeq ($(STM32MP13),1)
+AUTH_SOURCES		+=	drivers/st/crypto/stm32_pka.c
+endif
 
 BL2_SOURCES		+=	drivers/auth/tbbr/tbbr_cot_bl2.c
 

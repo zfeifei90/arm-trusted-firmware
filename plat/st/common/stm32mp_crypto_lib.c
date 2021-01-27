@@ -18,6 +18,10 @@
 #include <drivers/io/io_storage.h>
 #include <drivers/st/bsec.h>
 #include <drivers/st/stm32_hash.h>
+#if STM32MP13
+#include <drivers/st/stm32_pka.h>
+#include <drivers/st/stm32_rng.h>
+#endif
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/common/platform.h>
 
@@ -27,6 +31,7 @@
 #define CRYPTO_SIGN_MAX_SIZE	64U
 #define CRYPTO_PUBKEY_MAX_SIZE	64U
 
+#if STM32MP15
 struct stm32mp_auth_ops {
 	uint32_t (*verify_signature)(uint8_t *hash_in, uint8_t *pubkey_in,
 				     uint8_t *signature, uint32_t ecc_algo);
@@ -34,18 +39,35 @@ struct stm32mp_auth_ops {
 
 static struct stm32mp_auth_ops auth_ops;
 
+#endif
+
 static void crypto_lib_init(void)
 {
+#if STM32MP15
 	boot_api_context_t *boot_context =
 		(boot_api_context_t *)stm32mp_get_boot_ctx_address();
+#endif
+
 	int ret;
 
 	if (!stm32mp_is_auth_supported()) {
 		return;
 	}
 
+#if STM32MP13
+	if (stm32_rng_init() != 0) {
+		panic();
+	}
+
+	if (stm32_pka_init() != 0) {
+		panic();
+	}
+#endif
+
+#if STM32MP15
 	auth_ops.verify_signature =
 		boot_context->bootrom_ecdsa_verify_signature;
+#endif
 
 	ret = stm32_hash_register();
 	if (ret != 0) {
@@ -111,6 +133,78 @@ int get_plain_pk_from_asn1(void *pk_ptr, unsigned int pk_len, void **plain_pk,
 	return 0;
 }
 
+#if STM32MP13
+static uint32_t verify_signature(uint8_t *hash_in, uint8_t *pubkey_in,
+				 uint8_t *signature, uint32_t ecc_algo)
+{
+	int ret;
+	enum stm32_pka_ecdsa_curve_id cid;
+
+	switch (ecc_algo) {
+	case BOOT_API_ECDSA_ALGO_TYPE_P256NIST:
+#if PKA_USE_NIST_P256
+		cid = PKA_NIST_P256;
+		break;
+#else
+		WARN("%s nist_p256 requested but not included\n", __func__);
+		return CRYPTO_ERR_SIGNATURE;
+#endif
+	case BOOT_API_ECDSA_ALGO_TYPE_BRAINPOOL256:
+#if PKA_USE_BRAINPOOL_P256T1
+		cid = PKA_BRAINPOOL_P256T1;
+		break;
+#else
+		WARN("%s brainpool_p256t1 requested but not included\n", __func__);
+		return CRYPTO_ERR_SIGNATURE;
+#endif
+	default:
+		WARN("%s unexpected ecc_algo(%d)\n", __func__, ecc_algo);
+		return CRYPTO_ERR_SIGNATURE;
+	}
+
+	ret = stm32_pka_ecdsa_verif(hash_in,
+				    BOOT_API_SHA256_DIGEST_SIZE_IN_BYTES,
+				    signature, BOOT_API_ECDSA_SIGNATURE_LEN_IN_BYTES / 2U,
+				    signature + BOOT_API_ECDSA_SIGNATURE_LEN_IN_BYTES / 2U,
+				    BOOT_API_ECDSA_SIGNATURE_LEN_IN_BYTES / 2U,
+				    pubkey_in, BOOT_API_ECDSA_PUB_KEY_LEN_IN_BYTES / 2U,
+				    pubkey_in + BOOT_API_ECDSA_PUB_KEY_LEN_IN_BYTES / 2U,
+				    BOOT_API_ECDSA_PUB_KEY_LEN_IN_BYTES / 2U, cid);
+	if (ret < 0) {
+		return CRYPTO_ERR_SIGNATURE;
+	}
+
+	return 0;
+}
+
+int plat_get_hashed_pk(void *full_pk_ptr, unsigned int full_pk_len,
+		       void **hashed_pk_ptr, unsigned int *hashed_pk_len)
+{
+	static uint8_t st_pk[CRYPTO_PUBKEY_MAX_SIZE + sizeof(uint32_t)];
+	int ret;
+	void *plain_pk;
+	unsigned int len;
+	int curve_id;
+	uint32_t cid;
+
+	ret = get_plain_pk_from_asn1(full_pk_ptr, full_pk_len, &plain_pk, &len, &curve_id);
+	if ((ret != 0) || (len > CRYPTO_PUBKEY_MAX_SIZE))  {
+		return -EINVAL;
+	}
+
+	cid = curve_id; /* we want value of curve_id (1 or 2) in a uint32_t */
+
+	memcpy(st_pk, &cid, sizeof(cid));
+	memcpy(st_pk + sizeof(cid), plain_pk, len);
+
+	*hashed_pk_ptr = st_pk;
+	*hashed_pk_len = len + sizeof(cid);
+
+	return 0;
+}
+#endif
+
+#if STM32MP15
 uint32_t verify_signature(uint8_t *hash_in, uint8_t *pubkey_in,
 			  uint8_t *signature, uint32_t ecc_algo)
 {
@@ -142,6 +236,7 @@ int plat_get_hashed_pk(void *full_pk_ptr, unsigned int full_pk_len,
 {
 	return get_plain_pk_from_asn1(full_pk_ptr, full_pk_len, hashed_pk_ptr, hashed_pk_len, NULL);
 }
+#endif
 
 static int get_plain_digest_from_asn1(void *digest_ptr, unsigned int digest_len,
 				      uint8_t **out, size_t *out_len, mbedtls_md_type_t *md_alg)
