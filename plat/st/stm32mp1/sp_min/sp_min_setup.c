@@ -53,43 +53,25 @@
 static entry_point_info_t bl33_image_ep_info;
 
 static console_t console;
-static void stm32mp1_tamper_action(int id);
 
-static const char *tamper_name[PLAT_MAX_TAMP_INT] = {
-	"RTC power domain",
-	"Temperature monitoring",
-	"LSE monitoring",
-	"HSE monitoring",
-	"RTC calendar overflow",
-	"Monotonic counter"
+static const char * const tamper_name[] = {
+	[INT_TAMP1] = "RTC power domain",
+	[INT_TAMP2] = "Temperature monitoring",
+	[INT_TAMP3] = "LSE monitoring",
+	[INT_TAMP4] = "HSE monitoring",
 };
 
-static struct stm32_tamp_int int_tamp[PLAT_MAX_TAMP_INT] = {
-	{
-		.id = ITAMP1,
-		.func = stm32mp1_tamper_action,
-	},
-	{
-		.id = ITAMP2,
-		.func = stm32mp1_tamper_action,
-	},
-	{
-		.id = ITAMP3,
-		.func = stm32mp1_tamper_action,
-	},
-	{
-		.id = ITAMP4,
-		.func = stm32mp1_tamper_action,
-	},
-	TAMP_UNUSED,
-	TAMP_UNUSED,
-};
+static int stm32mp1_tamper_action(int id)
+{
+	const char *tamp_name = NULL;
 
-static struct stm32_tamp_ext ext_tamp[PLAT_MAX_TAMP_EXT] = {
-	TAMP_UNUSED,
-	TAMP_UNUSED,
-	TAMP_UNUSED,
-};
+	if ((id >= 0) && ((size_t)id < ARRAY_SIZE(tamper_name))) {
+		tamp_name = tamper_name[id];
+	}
+	ERROR("Tamper %u (%s) occurs\n", id, tamp_name);
+
+	return 1; /* ack TAMPER and reset system */
+}
 
 static void stm32_sgi1_it_handler(void)
 {
@@ -114,12 +96,6 @@ static void stm32_sgi1_it_handler(void)
 	} while (id <= MAX_SPI_ID);
 
 	stm32mp_wait_cpu_reset();
-}
-
-static void stm32mp1_tamper_action(int id)
-{
-	ERROR("Tamper %s occurs\n", tamper_name[id]);
-	stm32mp_system_reset();
 }
 
 static void configure_wakeup_interrupt(void)
@@ -566,8 +542,6 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 
 static void init_sec_peripherals(void)
 {
-	uint32_t filter_conf = 0;
-	uint32_t active_conf = 0;
 	int ret;
 
 	/* Disable MCU subsystem protection */
@@ -587,9 +561,17 @@ static void init_sec_peripherals(void)
 
 	/* Init tamper */
 	if (stm32_tamp_init() > 0) {
-		stm32_tamp_configure_internal(int_tamp, PLAT_MAX_TAMP_INT);
-		stm32_tamp_configure_external(ext_tamp, PLAT_MAX_TAMP_EXT,
-					      filter_conf, active_conf);
+		stm32_tamp_configure_secure_access(TAMP_REGS_IT_SECURE);
+
+		stm32_tamp_configure_internal(INT_TAMP1, TAMP_ENABLE, stm32mp1_tamper_action);
+		stm32_tamp_configure_internal(INT_TAMP2, TAMP_ENABLE, stm32mp1_tamper_action);
+		stm32_tamp_configure_internal(INT_TAMP3, TAMP_ENABLE, stm32mp1_tamper_action);
+		stm32_tamp_configure_internal(INT_TAMP4, TAMP_ENABLE, stm32mp1_tamper_action);
+
+		ret = stm32_tamp_set_config();
+		if (ret < 0) {
+			panic();
+		}
 
 		/* Enable timestamp for tamper */
 		stm32_rtc_set_tamper_timestamp();
