@@ -21,6 +21,7 @@
 #include <drivers/regulator.h>
 #include <drivers/st/bsec.h>
 #include <drivers/st/etzpc.h>
+#include <drivers/st/regulator_fixed.h>
 #include <drivers/st/stm32_console.h>
 #include <drivers/st/stm32_gpio.h>
 #include <drivers/st/stm32_iwdg.h>
@@ -548,6 +549,8 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	if (dt_pmic_status() > 0) {
 		initialize_pmic();
 	}
+
+	fixed_regulator_register();
 
 	if (regulator_core_config() != 0) {
 		ERROR("Regulator core config error\n");

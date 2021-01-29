@@ -657,6 +657,8 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
 #define PLAT_NB_RDEVS			U(19)
 /* Number of low power modes defined in the device tree */
 #define PLAT_NB_SUSPEND_MODES		7
+/* 1 FIXED */
+#define PLAT_NB_FIXED_REGS		U(1)
 
 /*******************************************************************************
  * DEBUG

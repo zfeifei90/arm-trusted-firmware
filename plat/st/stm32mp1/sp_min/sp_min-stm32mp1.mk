@@ -17,6 +17,7 @@ BL32_CFLAGS		+=	-DSTM32MP_SHARED_RESOURCES
 
 BL32_SOURCES		+=	drivers/st/clk/stm32mp1_calib.c			\
 				drivers/st/etzpc/etzpc.c			\
+				drivers/st/regulator/regulator_fixed.c		\
 				drivers/st/rng/stm32_rng.c			\
 				drivers/st/rtc/stm32_rtc.c			\
 				drivers/st/tamper/stm32_tamp.c			\
