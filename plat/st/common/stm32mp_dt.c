@@ -303,6 +303,32 @@ struct rdev *dt_get_cpu_regulator(void)
 	return regulator_get_by_supply_name(fdt, node, "cpu");
 }
 
+#if IMAGE_BL32
+/*******************************************************************************
+ * This function retrieves USB phy regulator name from DT.
+ * Returns string taken from supply node, NULL otherwise.
+ ******************************************************************************/
+struct rdev *dt_get_usb_phy_regulator(void)
+{
+	int node = fdt_node_offset_by_compatible(fdt, -1, DT_USBPHYC_COMPAT);
+	int subnode;
+
+	if (node < 0) {
+		return NULL;
+	}
+
+	fdt_for_each_subnode(subnode, fdt, node) {
+		struct rdev *supply = regulator_get_by_supply_name(fdt, node, "phy");
+
+		if (supply != NULL) {
+			return supply;
+		}
+	}
+
+	return NULL;
+}
+#endif
+
 /*******************************************************************************
  * This function retrieves board model from DT
  * Returns string taken from model node, NULL otherwise

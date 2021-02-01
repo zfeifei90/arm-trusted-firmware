@@ -714,5 +714,6 @@ static inline uint32_t tamp_bkpr(uint32_t idx)
 #define DT_RCC_SEC_CLK_COMPAT		"st,stm32mp1-rcc-secure"
 #endif
 #define DT_SDMMC2_COMPAT		"st,stm32-sdmmc2"
+#define DT_USBPHYC_COMPAT		"st,stm32mp1-usbphyc"
 
 #endif /* STM32MP1_DEF_H */

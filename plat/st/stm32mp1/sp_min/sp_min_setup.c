@@ -38,6 +38,25 @@
  ******************************************************************************/
 static entry_point_info_t bl33_image_ep_info;
 
+static void disable_usb_phy_regulator(void)
+{
+	if (dt_pmic_status() > 0) {
+		struct rdev *regul = dt_get_usb_phy_regulator();
+		int ret;
+
+		if (regul == NULL) {
+			return;
+		}
+
+		if (regulator_is_enabled(regul) == 1) {
+			ret = regulator_disable(regul);
+			if (ret < 0) {
+				WARN("USBPHYC phy-supply (%s) disable failed\n", regul->reg_name);
+			}
+		}
+	}
+}
+
 /*******************************************************************************
  * Interrupt handler for FIQ (secure IRQ)
  ******************************************************************************/
@@ -188,6 +207,8 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 		ERROR("Regulator core config error\n");
 		panic();
 	}
+
+	disable_usb_phy_regulator();
 }
 
 static void init_sec_peripherals(void)
