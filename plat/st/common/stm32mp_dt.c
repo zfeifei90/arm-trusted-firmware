@@ -651,20 +651,17 @@ uint32_t dt_get_pwr_vdd_voltage(void)
 }
 
 /*******************************************************************************
- * This function retrieves CPU regulator name from DT.
- * Returns string taken from supply node, NULL otherwise.
+ * This function return the real regulator name from DT.
  ******************************************************************************/
-const char *dt_get_cpu_regulator_name(void)
+static const char *dt_get_regulator_name(int node, const char *regu_name)
 {
-	int node;
 	const fdt32_t *cuint;
 
-	node = fdt_path_offset(fdt, "/cpus/cpu@0");
-	if (node < 0) {
+	if ((node < 0) || (regu_name == NULL)) {
 		return NULL;
 	}
 
-	cuint = fdt_getprop(fdt, node, "cpu-supply", NULL);
+	cuint = fdt_getprop(fdt, node, regu_name, NULL);
 	if (cuint == NULL) {
 		return NULL;
 	}
@@ -675,6 +672,45 @@ const char *dt_get_cpu_regulator_name(void)
 	}
 
 	return (const char *)fdt_getprop(fdt, node, "regulator-name", NULL);
+}
+
+/*******************************************************************************
+ * This function retrieves CPU regulator name from DT.
+ * Returns string taken from supply node, NULL otherwise.
+ ******************************************************************************/
+const char *dt_get_cpu_regulator_name(void)
+{
+	int node = fdt_path_offset(fdt, "/cpus/cpu@0");
+
+	if (node < 0) {
+		return NULL;
+	}
+
+	return dt_get_regulator_name(node, "cpu-supply");
+}
+
+/*******************************************************************************
+ * This function retrieves USB phy regulator name from DT.
+ * Returns string taken from supply node, NULL otherwise.
+ ******************************************************************************/
+const char *dt_get_usb_phy_regulator_name(void)
+{
+	int node = fdt_node_offset_by_compatible(fdt, -1, DT_USBPHYC_COMPAT);
+	int subnode;
+	const char *reg_name = NULL;
+
+	if (node < 0) {
+		return NULL;
+	}
+
+	fdt_for_each_subnode(subnode, fdt, node) {
+		reg_name = dt_get_regulator_name(subnode, "phy-supply");
+		if (reg_name != NULL) {
+			return reg_name;
+		}
+	}
+
+	return NULL;
 }
 
 /*******************************************************************************
