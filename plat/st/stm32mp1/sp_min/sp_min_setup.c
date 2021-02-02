@@ -293,6 +293,8 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 			next_image_info->pc =
 				read_ctx_reg(get_regs_ctx(cpu_context), CTX_LR);
 		}
+
+		regulator_core_resume();
 	}
 
 	return next_image_info;
@@ -494,7 +496,10 @@ void sp_min_platform_setup(void)
 
 	stm32mp1_init_scmi_server();
 
-	regulator_core_cleanup();
+	/* Cold boot: clean-up regulators state */
+	if (get_saved_pc() == 0U) {
+		regulator_core_cleanup();
+	}
 }
 
 void sp_min_plat_arch_setup(void)

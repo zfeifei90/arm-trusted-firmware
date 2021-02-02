@@ -13,6 +13,7 @@
 #include <drivers/arm/gicv2.h>
 #include <drivers/clk.h>
 #include <drivers/delay_timer.h>
+#include <drivers/regulator.h>
 #include <drivers/st/stm32_iwdg.h>
 #include <drivers/st/stm32_rtc.h>
 #include <drivers/st/stm32mp_clkfunc.h>
@@ -104,6 +105,11 @@ static struct spinlock lp_lock;
 static volatile int cpu0_state = STATE_NONE;
 static volatile int cpu1_state = STATE_NONE;
 
+const char *plat_get_lp_mode_name(int mode)
+{
+	return config_pwr[mode].regul_suspend_node_name;
+}
+
 void stm32_apply_pmic_suspend_config(uint32_t mode)
 {
 	const char *node_name;
@@ -163,6 +169,8 @@ static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
 			pwr_cr1 |= PWR_CR1_LPCFG;
 		}
 	}
+
+	regulator_core_suspend(mode);
 
 	/* Clear RCC interrupt before enabling it */
 	mmio_setbits_32(rcc_base + RCC_MP_CIFR, RCC_MP_CIFR_WKUPF);
@@ -282,6 +290,8 @@ void stm32_exit_cstop(void)
 	if (stm32mp1_clock_stopmode_resume() != 0) {
 		panic();
 	}
+
+	regulator_core_resume();
 
 	stm32mp1_syscfg_enable_io_compensation_finish();
 }
