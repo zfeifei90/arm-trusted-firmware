@@ -378,11 +378,6 @@ void bl2_el3_plat_arch_setup(void)
 		mmio_clrbits_32(rcc_base + RCC_BDCR, RCC_BDCR_VSWRST);
 	}
 
-	/* Enable BKP Register protection */
-	mmio_write_32(TAMP_SMCR,
-		      TAMP_BKP_SEC_NUMBER << TAMP_BKP_SEC_WDPROT_SHIFT |
-		      TAMP_BKP_SEC_NUMBER << TAMP_BKP_SEC_RWDPROT_SHIFT);
-
 	generic_delay_timer_init();
 
 #if STM32MP_UART_PROGRAMMER

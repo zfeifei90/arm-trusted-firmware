@@ -561,6 +561,17 @@ static void init_sec_peripherals(void)
 
 	/* Init tamper */
 	if (stm32_tamp_init() > 0) {
+		struct bkpregs_conf bkpregs_conf = {
+			.nb_zone1_regs = TAMP_BKP_SEC_NUMBER,
+			.nb_zone2_regs = 0 /* no register in zone 2 */
+			/* zone3 all remaining */
+		};
+
+		/* Enable BKP Register protection */
+		if (stm32_tamp_set_secure_bkpregs(&bkpregs_conf) < 0) {
+			panic();
+		}
+
 		stm32_tamp_configure_secure_access(TAMP_REGS_IT_SECURE);
 
 		stm32_tamp_configure_internal(INT_TAMP1, TAMP_ENABLE, stm32mp1_tamper_action);
