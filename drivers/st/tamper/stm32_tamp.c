@@ -366,6 +366,35 @@ static int stm32_tamp_set_ext_config(struct stm32_tamp_ext *tamp_ext,
 	return 0;
 }
 
+int stm32_tamp_set_secure_bkpregs(struct bkpregs_conf *bkpregs_conf)
+{
+	uint32_t first_z2;
+	uint32_t first_z3;
+
+	if (bkpregs_conf == NULL) {
+		return -EINVAL;
+	}
+
+	first_z2 = bkpregs_conf->nb_zone1_regs;
+	first_z3 = bkpregs_conf->nb_zone1_regs + bkpregs_conf->nb_zone2_regs;
+
+	if ((first_z2 > (stm32_tamp.hwconf1 & _TAMP_HWCFGR1_BKPREG)) ||
+	    (first_z3 > (stm32_tamp.hwconf1 & _TAMP_HWCFGR1_BKPREG))) {
+		return -ENODEV;
+	}
+
+	mmio_clrsetbits_32(stm32_tamp.base + _TAMP_SMCR,
+			   _TAMP_SMCR_BKPRWDPROT_MASK,
+			   (first_z2 << _TAMP_SMCR_BKPRWDPROT_SHIFT) &
+			   _TAMP_SMCR_BKPRWDPROT_MASK);
+
+	mmio_clrsetbits_32(stm32_tamp.base + _TAMP_SMCR,
+			   _TAMP_SMCR_BKPWDPROT_MASK,
+			   (first_z3 << _TAMP_SMCR_BKPWDPROT_SHIFT) &
+			   _TAMP_SMCR_BKPWDPROT_MASK);
+	return 0;
+}
+
 int stm32_tamp_set_config(void)
 {
 	int ret;

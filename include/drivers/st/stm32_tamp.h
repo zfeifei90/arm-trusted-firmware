@@ -52,6 +52,30 @@ enum stm32_tamp_ext_out_id {
 	TAMPOUTSEL8,
 };
 
+/* Define number of backup registers in zone 1 and zone 2 (remaining are in
+ * zone 3)
+ *
+ * backup registers in zone 1 : read/write only in secure mode
+ *                     zone 2 : write only in secure mode, read in secure
+ *                              and non-secure mode
+ *                     zone 3 : read/write in secure and non-secure mode
+ *
+ * Protection zone 1 if nb_zone1_regs == 0 no backup register are in zone 1
+ *                   else backup registers from TAMP_BKP0R to TAMP_BKPxR
+ *                   with x = nb_zone1_regs - 1 are in zone 1.
+ * Protection zone 2 if nb_zone2_regs == 0 no backup register are in zone 2
+ *                   else backup registers from TAMP_BKPyR with y = nb_zone1_regs
+ *                   to TAMP_BKPzR with z = (nb_zone1_regs1 + nb_zone2_regs - 1)
+ *                   are in zone 2.
+ * Protection zone 3 backup registers from TAMP_BKPtR
+ *                   with t = nb_zone1_regs1 + nb_zone2_regs to last backup
+ *                   register are in zone 3.
+ */
+struct bkpregs_conf {
+	uint32_t nb_zone1_regs;
+	uint32_t nb_zone2_regs;
+};
+
 /* Define TAMPER modes */
 #define TAMP_DISABLE		0x0U
 #define TAMP_ENABLE		0x1U
@@ -127,7 +151,7 @@ uint32_t stm32_tamp_read_mcounter(int counter_idx);
 void stm32_tamp_it_handler(void);
 
 /*
- * stm32_tamp_configure_secure_access: Configure which registre can be
+ * stm32_tamp_configure_secure_access: Configure which registers can be
  * read/write from unsecure world
  * secure_conf is a bit field from TAMP_.*_{UN,}SECURE define
  */
@@ -196,6 +220,19 @@ int stm32_tamp_configure_external(enum stm32_tamp_ext_id id, uint32_t mode,
  * return 0 if disabled, 1 if enabled, else < 0
  */
 int stm32_tamp_init(void);
+
+/*
+ * stm32_tamp_set_secure_bkprwregs : Configure backup registers zone.
+ * registers in zone 1 : read/write only in secure mode
+ *              zone 2 : write only in secure mode, read in secure and non-secure mode
+ *              zone 3 : read/write in secure and non-secure mode
+ *
+ * bkpregs_conf : a pointer to struct bkpregs_conf that define the number of registers in zone 1
+ * and zone 2 (remaining backup registers will be in zone 3).
+ *
+ * return 0 if OK, -ENODEV if zone 1 and/or zone 2 definition are out of range.
+ */
+int stm32_tamp_set_secure_bkpregs(struct bkpregs_conf *bkpregs_conf);
 
 /*
  * stm32_tamp_set_config: apply configuration
