@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -401,23 +401,36 @@ int stm32_get_otp_value_from_idx(const uint32_t otp_idx, uint32_t *otp_val)
 	return 0;
 }
 
-int stm32mp_get_chip_version(uint32_t *chip_version)
+uint32_t stm32mp_get_chip_version(void)
 {
-	return stm32mp1_dbgmcu_get_chip_version(chip_version);
+	uint32_t version = 0U;
+
+	if (stm32mp1_dbgmcu_get_chip_version(&version) < 0) {
+		INFO("Cannot get CPU version, debug disabled\n");
+		return 0U;
+	}
+
+	return version;
+}
+
+uint32_t stm32mp_get_chip_dev_id(void)
+{
+	uint32_t dev_id;
+
+	if (stm32mp1_dbgmcu_get_chip_dev_id(&dev_id) < 0) {
+		INFO("Use default chip ID, debug disabled\n");
+		dev_id = STM32MP1_CHIP_ID;
+	}
+
+	return dev_id;
 }
 
 static uint32_t get_part_number(void)
 {
 	static uint32_t part_number;
-	uint32_t dev_id;
 
 	if (part_number != 0U) {
 		return part_number;
-	}
-
-	if (stm32mp1_dbgmcu_get_chip_dev_id(&dev_id) < 0) {
-		INFO("Use default chip ID, debug disabled\n");
-		dev_id = STM32MP1_CHIP_ID;
 	}
 
 	if (stm32_get_otp_value(PART_NUMBER_OTP, &part_number) != 0) {
@@ -427,7 +440,7 @@ static uint32_t get_part_number(void)
 	part_number = (part_number & PART_NUMBER_OTP_PART_MASK) >>
 		PART_NUMBER_OTP_PART_SHIFT;
 
-	part_number |= dev_id << 16;
+	part_number |= stm32mp_get_chip_dev_id() << 16;
 
 	return part_number;
 }
@@ -475,8 +488,6 @@ bool stm32mp_supports_cpu_opp(uint32_t opp_id)
 void stm32mp_get_soc_name(char name[STM32_SOC_NAME_SIZE])
 {
 	char *cpu_s, *cpu_r, *pkg;
-	uint32_t chip_dev_id;
-	int ret;
 
 	/* MPUs Part Numbers */
 	switch (get_part_number()) {
@@ -541,12 +552,7 @@ void stm32mp_get_soc_name(char name[STM32_SOC_NAME_SIZE])
 	}
 
 	/* REVISION */
-	ret = stm32mp_get_chip_version(&chip_dev_id);
-	if (ret < 0) {
-		INFO("Cannot get CPU version, debug disabled\n");
-	}
-
-	switch (chip_dev_id) {
+	switch (stm32mp_get_chip_version()) {
 	case STM32MP1_REV_B:
 		cpu_r = "B";
 		break;

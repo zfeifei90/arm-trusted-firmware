@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2020-2021, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -310,7 +310,7 @@ static uint8_t *stm32mp1_product_desc(uint16_t *length)
 	char str_chip_version[5];
 
 	stm32mp_get_soc_name(name);
-	stm32mp_get_chip_version(&chip_version);
+	chip_version = stm32mp_get_chip_version();
 
 	int_to_str(STM32MP1_CHIP_ID, (uint8_t *)str_chip_id, 4);
 	int_to_str(chip_version, (uint8_t *)str_chip_version, 5);
