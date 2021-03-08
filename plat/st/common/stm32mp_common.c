@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -13,10 +13,12 @@
 #include <common/debug.h>
 #include <drivers/st/stm32mp_clkfunc.h>
 #include <drivers/st/stm32mp_pmic.h>
+#include <lib/smccc.h>
 #include <lib/spinlock.h>
 #include <lib/utils.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/common/platform.h>
+#include <services/arm_arch_svc.h>
 
 #define HEADER_VERSION_MAJOR_MASK	GENMASK(23, 16)
 
@@ -190,4 +192,36 @@ int stm32mp_unmap_ddr(void)
 {
 	return  mmap_remove_dynamic_region(STM32MP_DDR_BASE,
 					   STM32MP_DDR_MAX_SIZE);
+}
+
+/*****************************************************************************
+ * plat_is_smccc_feature_available() - This function checks whether SMCCC
+ *                                     feature is availabile for platform.
+ * @fid: SMCCC function id
+ *
+ * Return SMC_ARCH_CALL_SUCCESS if SMCCC feature is available and
+ * SMC_ARCH_CALL_NOT_SUPPORTED otherwise.
+ *****************************************************************************/
+int32_t plat_is_smccc_feature_available(u_register_t fid)
+{
+	switch (fid) {
+	case SMCCC_ARCH_SOC_ID:
+		return SMC_ARCH_CALL_SUCCESS;
+	default:
+		return SMC_ARCH_CALL_NOT_SUPPORTED;
+	}
+}
+
+/* Get SOC version */
+int32_t plat_get_soc_version(void)
+{
+	uint32_t manfid = (JEDEC_ST_BKID << 24U) | (JEDEC_ST_MFID << 16U);
+
+	return (int32_t)(manfid | (stm32mp_get_chip_dev_id() & 0xFFFFU));
+}
+
+/* Get SOC revision */
+int32_t plat_get_soc_revision(void)
+{
+	return (int32_t)stm32mp_get_chip_version();
 }

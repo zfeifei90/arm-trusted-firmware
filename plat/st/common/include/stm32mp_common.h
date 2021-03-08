@@ -12,6 +12,9 @@
 
 #include <platform_def.h>
 
+#define JEDEC_ST_BKID U(0x0)
+#define JEDEC_ST_MFID U(0x20)
+
 void __dead2 stm32mp_plat_reset(int cpu);
 
 /* Functions to save and get boot context address given by ROM code */
