@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2020-2021, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -203,13 +203,20 @@ static int get_version_command(void)
 
 static int get_id_command(void)
 {
-	const uint8_t msg[3] = {
-		sizeof(msg) - 1,
-		DEVICE_ID_BYTE1,
-		DEVICE_ID_BYTE2
-	};
+	uint32_t id = stm32mp_get_chip_dev_id();
+	int ret;
 
-	return uart_write(msg, sizeof(msg));
+	ret = uart_write_8(2U); /* Length of command */
+	if (ret != 0) {
+		return ret;
+	}
+
+	ret = uart_write_8((id & 0xFF00) >> 8); /* device ID byte 1 */
+	if (ret != 0) {
+		return ret;
+	}
+
+	return uart_write_8(id & 0xFF); /* device ID byte 2 */
 }
 
 static int uart_send_phase(uint32_t address)

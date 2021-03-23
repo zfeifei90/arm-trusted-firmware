@@ -31,9 +31,6 @@
 #define NACK_BYTE		0x1FU
 #define ABORT			0x5FU
 
-#define DEVICE_ID_BYTE1		0x05U
-#define DEVICE_ID_BYTE2		0x00U
-
 /* Functions provided by plat */
 uint8_t usb_dfu_get_phase(uint8_t alt);
 
