@@ -129,7 +129,7 @@ STM32IMAGE_SRC		:= ${STM32IMAGEPATH}/stm32image.c
 
 ifneq (${STM32MP_USE_STM32IMAGE},1)
 FIP_DEPS		+=	dtbs
-STM32MP_NT_FW_CONFIG	:=	${BL33_CFG}
+STM32MP_HW_CONFIG	:=	${BL33_CFG}
 STM32MP_FW_CONFIG_NAME	:=	$(patsubst %.dtb,%-fw-config.dtb,$(DTB_FILE_NAME))
 STM32MP_FW_CONFIG	:=	${BUILD_PLAT}/fdts/$(STM32MP_FW_CONFIG_NAME)
 ifneq (${AARCH32_SP},none)
@@ -137,8 +137,8 @@ FDT_SOURCES		+=	$(addprefix fdts/, $(patsubst %.dtb,%.dts,$(STM32MP_FW_CONFIG_NA
 endif
 # Add the FW_CONFIG to FIP and specify the same to certtool
 $(eval $(call TOOL_ADD_PAYLOAD,${STM32MP_FW_CONFIG},--fw-config))
-# Add the NT_FW_CONFIG to FIP and specify the same to certtool
-$(eval $(call TOOL_ADD_PAYLOAD,${STM32MP_NT_FW_CONFIG},--hw-config))
+# Add the HW_CONFIG to FIP and specify the same to certtool
+$(eval $(call TOOL_ADD_PAYLOAD,${STM32MP_HW_CONFIG},--hw-config))
 ifeq (${GENERATE_COT},1)
 $(eval $(call TOOL_ADD_PAYLOAD,${BUILD_PLAT}/tb_fw.crt,--tb-fw-cert))
 endif
