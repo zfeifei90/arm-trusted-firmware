@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2020-2021, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -29,6 +29,7 @@ static void crypto_lib_init(void)
 {
 	boot_api_context_t *boot_context =
 		(boot_api_context_t *)stm32mp_get_boot_ctx_address();
+	int ret;
 
 	if (!stm32mp_is_auth_supported()) {
 		return;
@@ -38,7 +39,9 @@ static void crypto_lib_init(void)
 	auth_ops.verify_signature =
 		boot_context->bootrom_ecdsa_verify_signature;
 
-	if (stm32_hash_register() != 0) {
+	ret = stm32_hash_register();
+	if (ret != 0) {
+		ERROR("HASH init (%d)\n", ret);
 		panic();
 	}
 }
