@@ -31,6 +31,7 @@ static int copy_hash_from_otp(const char *otp_name, uint8_t *hash, size_t len)
 	uint32_t otp_idx;
 	uint32_t otp_len;
 	size_t i;
+	bool valid = false;
 
 	assert(len % sizeof(uint32_t) == 0);
 
@@ -46,6 +47,7 @@ static int copy_hash_from_otp(const char *otp_name, uint8_t *hash, size_t len)
 	for (i = 0U; i < len / sizeof(uint32_t); i++) {
 		uint32_t tmp;
 		uint32_t otp_val;
+		uint32_t first;
 
 		if (stm32_get_otp_value_from_idx(otp_idx + i, &otp_val) != 0) {
 			VERBOSE("%s: unable to read from otp\n", __func__);
@@ -54,6 +56,24 @@ static int copy_hash_from_otp(const char *otp_name, uint8_t *hash, size_t len)
 
 		tmp = bswap32(otp_val);
 		memcpy(hash + i * sizeof(uint32_t), &tmp, sizeof(tmp));
+
+		if (i == 0U) {
+			first = tmp;
+		}
+
+		/*
+		 * Check if key hash values in OTP are 0 or 0xFFFFFFFFF
+		 * programmed : Invalid Key
+		 */
+		if (!stm32mp_is_closed_device() && !valid) {
+			if ((tmp != 0U) && (tmp != 0xFFFFFFFFU) && (tmp != first)) {
+				valid = true;
+			}
+		}
+	}
+
+	if (!stm32mp_is_closed_device() && !valid) {
+		return 0;
 	}
 
 	return len;
@@ -92,18 +112,22 @@ static int get_rotpk_hash(void *cookie, uint8_t *hash, size_t len)
 		return -EINVAL;
 	}
 
-	if (copy_hash_from_otp(PKH_OTP, otp_hash, len) < 0) {
+	ret = copy_hash_from_otp(PKH_OTP, otp_hash, len);
+	if (ret < 0) {
 		return -EINVAL;
 	}
 
-	ret = memcmp(calc_hash, otp_hash, sizeof(calc_hash));
 	if (ret != 0) {
-		VERBOSE("%s: not expected digest\n", __func__);
-		return -EINVAL;
+		ret = memcmp(calc_hash, otp_hash, sizeof(calc_hash));
+		if (ret != 0) {
+			VERBOSE("%s: not expected digest\n", __func__);
+			return -EINVAL;
+		}
+
+		ret = sizeof(otp_hash);
 	}
 
 	memcpy(hash, param->pk_hashes[pk_idx], sizeof(otp_hash));
-	ret = sizeof(otp_hash);
 
 	return ret;
 }
@@ -124,12 +148,14 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 			unsigned int *flags)
 {
 	size_t start_copy_idx = 0U;
+	int res;
 
 	memcpy(root_pk_hash, der_sha256_header, sizeof(der_sha256_header));
 	start_copy_idx = sizeof(der_sha256_header);
 
-	if (get_rotpk_hash(cookie, root_pk_hash + start_copy_idx,
-			   BOOT_API_SHA256_DIGEST_SIZE_IN_BYTES) < 0) {
+	res = get_rotpk_hash(cookie, root_pk_hash + start_copy_idx,
+			     BOOT_API_SHA256_DIGEST_SIZE_IN_BYTES);
+	if (res < 0) {
 		return -EINVAL;
 	}
 
@@ -137,29 +163,8 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 	*key_ptr = &root_pk_hash;
 	*flags = ROTPK_IS_HASH;
 
-	if (!stm32mp_is_closed_device()) {
-		/* Check if key hash values in OTP are 0 or 0xFFFFFFFFF programmed : Invalid Key */
-		uint32_t res;
-		uint32_t rootpk;
-		uint8_t *proot_pk = root_pk_hash;
-		uint8_t idx = sizeof(uint32_t);
-
-		idx += sizeof(der_sha256_header);
-		proot_pk = root_pk_hash + sizeof(der_sha256_header);
-
-		memcpy(&res, proot_pk, sizeof(uint32_t));
-		if ((res == 0U) || (res == 0xFFFFFFFFU)) {
-			while (idx < ARRAY_SIZE(root_pk_hash)) {
-				memcpy(&rootpk, root_pk_hash + idx, sizeof(uint32_t));
-				if (res != rootpk) {
-					return 0;
-				}
-
-				idx += sizeof(uint32_t);
-			}
-
-			*flags |= ROTPK_NOT_DEPLOYED;
-		}
+	if ((res == 0) && !stm32mp_is_closed_device()) {
+		*flags |= ROTPK_NOT_DEPLOYED;
 	}
 
 	return 0;
