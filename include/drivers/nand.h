@@ -33,6 +33,8 @@ struct nand_device {
 			     uintptr_t buffer);
 };
 
+void plat_get_scratch_buffer(void **buffer_addr, size_t *buf_size);
+
 /*
  * Read bytes from NAND device
  *

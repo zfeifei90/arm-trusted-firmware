@@ -19,7 +19,18 @@
  * Define a single nand_device used by specific NAND frameworks.
  */
 static struct nand_device nand_dev;
-static uint8_t scratch_buff[PLATFORM_MTD_MAX_PAGE_SIZE];
+
+#pragma weak plat_get_scratch_buffer
+void plat_get_scratch_buffer(void **buffer_addr, size_t *buf_size)
+{
+	static uint8_t scratch_buff[PLATFORM_MTD_MAX_PAGE_SIZE];
+
+	assert(buffer_addr != NULL);
+	assert(buf_size != NULL);
+
+	*buffer_addr = (void *)scratch_buff;
+	*buf_size = sizeof(scratch_buff);
+}
 
 int nand_read(unsigned int offset, uintptr_t buffer, size_t length,
 	      size_t *length_read)
@@ -34,6 +45,12 @@ int nand_read(unsigned int offset, uintptr_t buffer, size_t length,
 	unsigned int bytes_read;
 	int is_bad;
 	int ret;
+	uint8_t *scratch_buff;
+	size_t scratch_buff_size;
+
+	plat_get_scratch_buffer((void **)&scratch_buff, &scratch_buff_size);
+
+	assert(scratch_buff != NULL);
 
 	VERBOSE("Block %u - %u, page_start %u, nb %u, length %zu, offset %u\n",
 		block, end_block, page_start, nb_pages, length, offset);
@@ -41,7 +58,7 @@ int nand_read(unsigned int offset, uintptr_t buffer, size_t length,
 	*length_read = 0UL;
 
 	if (((start_offset != 0U) || (length % nand_dev.page_size) != 0U) &&
-	    (sizeof(scratch_buff) < nand_dev.page_size)) {
+	    (scratch_buff_size < nand_dev.page_size)) {
 		return -EINVAL;
 	}
 
