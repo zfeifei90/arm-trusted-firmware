@@ -207,14 +207,14 @@ __________________
         --nt-fw <u-boot_directory>/u-boot-nodtb.bin \
         --nt-fw-cert build/stm32mp1/cert_images/u-boot.bin.crt \
         --nt-fw-key-cert build/stm32mp1/cert_images/u-boot.bin.key-crt \
-        --hw-config <u-boot_directory>/u-boot.dtb
+        --hw-config <u-boot_directory>/u-boot.dtb \
         --fw-config build/stm32mp1/debug/fdts/fw-config.dtb
 
     tools/fiptool/fiptool create --tos-fw <optee_directory>/tee-header_v2.bin \
         --tos-fw-extra1 <optee_directory>/tee-pager_v2.bin \
         --tos-fw-extra2 <optee_directory>/tee-pageable_v2.bin \
         --nt-fw <u-boot_directory>/u-boot-nodtb.bin \
-        --hw-config <u-boot_directory>/uboot-nodtb.dtb \
+        --hw-config <u-boot_directory>/u-boot.dtb \
         --tos-fw-cert build/stm32mp1/cert_images/tee-header_v2.bin.crt \
         --tos-fw-key-cert build/stm32mp1/cert_images/tee-header_v2.bin.key-crt \
         --nt-fw-cert build/stm32mp1/cert_images/u-boot.bin.crt \
