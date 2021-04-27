@@ -306,6 +306,8 @@
 /* Fields of RCC_RDLSICR register */
 #define RCC_RDLSICR_LSION		BIT(0)
 #define RCC_RDLSICR_LSIRDY		BIT(1)
+#define RCC_RDLSICR_MRD_MASK		GENMASK(20, 16)
+#define RCC_RDLSICR_MRD_SHIFT		16
 
 /* Used for all RCC_PLL<n>CR registers */
 #define RCC_PLLNCR_PLLON		BIT(0)
