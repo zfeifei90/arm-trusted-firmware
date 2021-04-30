@@ -66,11 +66,6 @@ struct reg_desc {
 #define DDRPHY_REG_REG_SIZE	9	/* st,phy-reg */
 #endif
 #define	DDRPHY_REG_TIMING_SIZE	10	/* st,phy-timing */
-#if STM32MP_DDR_32BIT_INTERFACE
-#define	DDRPHY_REG_CAL_SIZE	12	/* st,phy-cal */
-#else
-#define	DDRPHY_REG_CAL_SIZE	6	/* st,phy-cal */
-#endif
 
 #define DDRCTL_REG_REG(x)	DDRCTL_REG(x, stm32mp1_ddrctrl_reg)
 static const struct reg_desc ddr_reg[DDRCTL_REG_REG_SIZE] = {
@@ -184,24 +179,6 @@ static const struct reg_desc ddrphy_timing[DDRPHY_REG_TIMING_SIZE] = {
 	DDRPHY_REG_TIMING(mr3),
 };
 
-#define DDRPHY_REG_CAL(x)	DDRPHY_REG(x, stm32mp1_ddrphy_cal)
-static const struct reg_desc ddrphy_cal[DDRPHY_REG_CAL_SIZE] = {
-	DDRPHY_REG_CAL(dx0dllcr),
-	DDRPHY_REG_CAL(dx0dqtr),
-	DDRPHY_REG_CAL(dx0dqstr),
-	DDRPHY_REG_CAL(dx1dllcr),
-	DDRPHY_REG_CAL(dx1dqtr),
-	DDRPHY_REG_CAL(dx1dqstr),
-#if STM32MP_DDR_32BIT_INTERFACE
-	DDRPHY_REG_CAL(dx2dllcr),
-	DDRPHY_REG_CAL(dx2dqtr),
-	DDRPHY_REG_CAL(dx2dqstr),
-	DDRPHY_REG_CAL(dx3dllcr),
-	DDRPHY_REG_CAL(dx3dqtr),
-	DDRPHY_REG_CAL(dx3dqstr),
-#endif
-};
-
 /*
  * REGISTERS ARRAY: used to parse device tree and interactive mode
  */
@@ -212,7 +189,6 @@ enum reg_type {
 	REG_MAP,
 	REGPHY_REG,
 	REGPHY_TIMING,
-	REGPHY_CAL,
 	REG_TYPE_NB
 };
 
@@ -264,12 +240,6 @@ static const struct ddr_reg_info ddr_registers[REG_TYPE_NB] = {
 		.name = "timing",
 		.desc = ddrphy_timing,
 		.size = DDRPHY_REG_TIMING_SIZE,
-		.base = DDRPHY_BASE
-	},
-	[REGPHY_CAL] = {
-		.name = "cal",
-		.desc = ddrphy_cal,
-		.size = DDRPHY_REG_CAL_SIZE,
 		.base = DDRPHY_BASE
 	},
 };
@@ -801,7 +771,6 @@ void stm32mp1_ddr_init(struct ddr_info *priv,
 	 */
 	set_reg(priv, REGPHY_REG, &config->p_reg);
 	set_reg(priv, REGPHY_TIMING, &config->p_timing);
-	set_reg(priv, REGPHY_CAL, &config->p_cal);
 
 	/* DDR3 = don't set DLLOFF for init mode */
 	if ((config->c_reg.mstr &
