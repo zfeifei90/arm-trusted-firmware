@@ -114,6 +114,17 @@ static int stm32mp1_ddr_setup(void)
 	INFO("RAM: %s\n", config.info.name);
 
 	for (idx = 0; idx < ARRAY_SIZE(param); idx++) {
+		/* Check present field to avoid warning for optional properties */
+		if (param[idx].present != NULL) {
+			if (fdt_getprop(fdt, node, param[idx].name, NULL) == NULL) {
+				*(param[idx].present) = false;
+				VERBOSE("%s: %s[0x%x] = absent\n", __func__,
+					param[idx].name, param[idx].size);
+				continue;
+			}
+			/* Save presence of optional parameters */
+			*(param[idx].present) = true;
+		}
 		ret = fdt_read_uint32_array(fdt, node, param[idx].name,
 					    param[idx].size,
 					    (void *)((uintptr_t)&config +
@@ -121,19 +132,10 @@ static int stm32mp1_ddr_setup(void)
 
 		VERBOSE("%s: %s[0x%x] = %d\n", __func__,
 			param[idx].name, param[idx].size, ret);
-		if ((ret != 0) &&
-		    ((ret != -FDT_ERR_NOTFOUND) ||
-		     (param[idx].present == NULL))) {
+		if (ret != 0) {
 			ERROR("%s: Cannot read %s, error=%d\n",
 			      __func__, param[idx].name, ret);
 			return -EINVAL;
-		}
-		if (param[idx].present != NULL) {
-			/* save presence of optional parameters */
-			*(param[idx].present) = true;
-			if (ret == -FDT_ERR_NOTFOUND) {
-				*(param[idx].present) = false;
-			}
 		}
 	}
 
