@@ -26,6 +26,7 @@
 #define RESET_TIMEOUT_US_1MS		1000U
 
 static console_t console;
+static struct dt_node_info dt_uart_info;
 static struct spinlock lock;
 
 uintptr_t plat_get_ns_image_entrypoint(void)
@@ -248,7 +249,6 @@ static void set_console(uintptr_t base, uint32_t clk_rate)
 
 int stm32mp_uart_console_setup(void)
 {
-	struct dt_node_info dt_uart_info;
 	uint32_t clk_rate;
 	int result;
 	uint32_t boot_itf __unused;
@@ -298,6 +298,21 @@ void stm32mp_setup_early_console(void)
 	set_console(STM32MP_DEBUG_USART_BASE, STM32MP_DEBUG_USART_CLK_FRQ);
 }
 #endif /* STM32MP_EARLY_CONSOLE */
+
+void stm32mp_set_console_after_standby(void)
+{
+	unsigned int console_flags;
+
+	console_flags = CONSOLE_FLAG_CRASH | CONSOLE_FLAG_TRANSLATE_CRLF;
+	if ((clk_is_enabled(dt_uart_info.clock)) &&
+	    (clk_get_rate(dt_uart_info.clock) != 0U)) {
+		console_flags |= CONSOLE_FLAG_BOOT;
+#ifdef DEBUG
+		console_flags |= CONSOLE_FLAG_RUNTIME;
+#endif
+	}
+	console_set_scope(&console, console_flags);
+}
 
 /*****************************************************************************
  * plat_is_smccc_feature_available() - This function checks whether SMCCC

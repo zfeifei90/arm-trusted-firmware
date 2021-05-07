@@ -278,6 +278,8 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 			panic();
 		}
 
+		stm32mp_set_console_after_standby();
+
 		cpu_context = cm_get_context(NON_SECURE);
 
 		next_image_info->spsr = read_ctx_reg(get_regs_ctx(cpu_context),
