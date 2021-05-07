@@ -53,6 +53,7 @@
 static entry_point_info_t bl33_image_ep_info;
 
 static console_t console;
+static struct dt_node_info dt_uart_info;
 
 static const char * const tamper_name[] = {
 	[INT_TAMP1] = "RTC power domain",
@@ -243,6 +244,7 @@ static uintptr_t get_saved_pc(void)
 entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 {
 	entry_point_info_t *next_image_info = &bl33_image_ep_info;
+	unsigned int console_flags;
 
 	/*
 	 * PC is set to 0 when resetting after STANDBY
@@ -256,6 +258,16 @@ entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 		if (stm32_restore_context() != 0) {
 			panic();
 		}
+
+		console_flags = CONSOLE_FLAG_CRASH | CONSOLE_FLAG_TRANSLATE_CRLF;
+		if ((clk_is_enabled(dt_uart_info.clock)) &&
+		    (clk_get_rate(dt_uart_info.clock) != 0U)) {
+			console_flags |= CONSOLE_FLAG_BOOT;
+#ifdef DEBUG
+			console_flags |= CONSOLE_FLAG_RUNTIME;
+#endif
+		}
+		console_set_scope(&console, console_flags);
 
 		cpu_context = cm_get_context(NON_SECURE);
 
@@ -360,7 +372,6 @@ out:
  ******************************************************************************/
 static void setup_uart_console(void)
 {
-	struct dt_node_info dt_uart_info;
 	unsigned int console_flags;
 	int result;
 	uint32_t boot_itf;
