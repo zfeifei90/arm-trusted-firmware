@@ -328,6 +328,15 @@ int pmic_ddr_power_init(enum ddr_type ddr_type)
 	return 0;
 }
 
+void pmic_switch_off(void)
+{
+	stpmic1_switch_off();
+	udelay(100);
+
+	/* Shouldn't be reached */
+	panic();
+}
+
 enum {
 	STPMIC1_BUCK1 = 0,
 	STPMIC1_BUCK2,
