@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2021, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -324,6 +324,15 @@ int pmic_ddr_power_init(enum ddr_type ddr_type)
 	};
 
 	return 0;
+}
+
+void pmic_switch_off(void)
+{
+	stpmic1_switch_off();
+	udelay(100);
+
+	/* Shouldn't be reached */
+	panic();
 }
 
 enum {
