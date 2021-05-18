@@ -213,6 +213,7 @@ PLAT_BL_COMMON_SOURCES	+=	drivers/arm/tzc/tzc400.c				\
 				drivers/st/bsec/bsec2.c					\
 				drivers/st/clk/stm32mp_clkfunc.c			\
 				drivers/st/clk/stm32mp1_clk.c				\
+				drivers/st/ddr/stm32mp_ddr.c				\
 				drivers/st/ddr/stm32mp1_ddr_helpers.c			\
 				drivers/st/gpio/stm32_gpio.c				\
 				drivers/st/i2c/stm32_i2c.c				\
@@ -306,6 +307,7 @@ BL2_SOURCES		+=	drivers/st/usb/stm32mp1_usb.c				\
 endif
 
 BL2_SOURCES		+=	drivers/st/ddr/stm32mp_ddr_test.c			\
+				drivers/st/ddr/stm32mp_ram.c				\
 				drivers/st/ddr/stm32mp1_ddr.c				\
 				drivers/st/ddr/stm32mp1_ram.c
 
