@@ -10,6 +10,7 @@
 #include <common/debug.h>
 #include <drivers/arm/gicv2.h>
 #include <drivers/st/stm32_iwdg.h>
+#include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp1_ddr_helpers.h>
 #include <dt-bindings/power/stm32mp1-power.h>
 
@@ -27,7 +28,20 @@ static void cstop_critic_enter(uint32_t mode)
 	 */
 	if (ddr_standby_sr_entry() != 0) {
 		ERROR("Unable to put DDR in SR\n");
-		panic();
+		if (mode != STM32_PM_SHUTDOWN) {
+			panic();
+		}
+	}
+}
+
+static void shutdown_critic_enter(void)
+{
+	if (dt_pmic_status() > 0) {
+		if (!initialize_pmic_i2c()) {
+			panic();
+		}
+
+		pmic_switch_off();
 	}
 }
 
@@ -49,6 +63,10 @@ void stm32_pwr_down_wfi_load(bool is_cstop, uint32_t mode)
 
 	if (is_cstop) {
 		cstop_critic_enter(mode);
+	}
+
+	if (mode == STM32_PM_SHUTDOWN) {
+		shutdown_critic_enter();
 	}
 
 	/*
@@ -80,6 +98,10 @@ void stm32_pwr_down_wfi(bool is_cstop, uint32_t mode)
 
 	if (is_cstop) {
 		cstop_critic_enter(mode);
+	}
+
+	if (mode == STM32_PM_SHUTDOWN) {
+		shutdown_critic_enter();
 	}
 
 	stm32mp1_calib_set_wakeup(false);

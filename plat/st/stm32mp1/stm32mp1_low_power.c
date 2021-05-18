@@ -377,27 +377,6 @@ void stm32_auto_stop(void)
 	}
 }
 
-static void enter_shutdown(void)
-{
-	/* Set DDR in Self-refresh before shutting down the platform */
-	if (ddr_standby_sr_entry() != 0) {
-		WARN("DDR can't be set in Self-refresh mode\n");
-	}
-
-	if (dt_pmic_status() > 0) {
-		if (!initialize_pmic_i2c()) {
-			panic();
-		}
-
-		stpmic1_switch_off();
-
-		udelay(100);
-
-		/* Shouldn't be reached */
-		panic();
-	}
-}
-
 static void enter_csleep(void)
 {
 	uintptr_t pwr_base = stm32mp_pwr_base();
@@ -414,7 +393,6 @@ void stm32_enter_low_power(uint32_t mode, uint32_t nsec_addr)
 {
 	switch (mode) {
 	case STM32_PM_SHUTDOWN:
-		enter_shutdown();
 		break;
 
 	case STM32_PM_CSLEEP_RUN:
