@@ -11,11 +11,16 @@
 #include <drivers/arm/gicv2.h>
 #include <drivers/st/stm32_iwdg.h>
 #include <drivers/st/stm32mp1_ddr_helpers.h>
+#include <dt-bindings/power/stm32mp1-power.h>
 
+#include <stm32mp1_context.h>
 #include <stm32mp1_critic_power.h>
 
 static void cstop_critic_enter(uint32_t mode)
 {
+	/* Switch to Software Self-Refresh mode */
+	ddr_set_sr_mode(DDR_SSR_MODE);
+
 	/*
 	 * Set DDR in Self-refresh,.
 	 * This is also the procedure awaited when switching off power supply.
@@ -38,6 +43,10 @@ static void cstop_critic_exit(void)
 
 void stm32_pwr_down_wfi_load(bool is_cstop, uint32_t mode)
 {
+	if (mode != STM32_PM_CSLEEP_RUN) {
+		dcsw_op_all(DC_OP_CISW);
+	}
+
 	if (is_cstop) {
 		cstop_critic_enter(mode);
 	}
@@ -64,6 +73,10 @@ static uint32_t int_stack[STM32MP_INT_STACK_SIZE];
 void stm32_pwr_down_wfi(bool is_cstop, uint32_t mode)
 {
 	uint32_t interrupt = GIC_SPURIOUS_INTERRUPT;
+
+	if (mode != STM32_PM_CSLEEP_RUN) {
+		dcsw_op_all(DC_OP_CISW);
+	}
 
 	if (is_cstop) {
 		cstop_critic_enter(mode);

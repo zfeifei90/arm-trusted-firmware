@@ -208,7 +208,7 @@ static void __dead2 stm32_system_off(void)
 
 	stm32_enter_low_power(soc_mode, 0);
 
-	stm32_pwr_down_wfi(false, soc_mode);
+	stm32_pwr_down_wfi(true, soc_mode);
 
 	/* This shouldn't be reached */
 	panic();

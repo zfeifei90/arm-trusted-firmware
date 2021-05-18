@@ -145,11 +145,6 @@ static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
 
 	stm32mp1_syscfg_disable_io_compensation();
 
-	/* Switch to Software Self-Refresh mode */
-	ddr_set_sr_mode(DDR_SSR_MODE);
-
-	dcsw_op_all(DC_OP_CISW);
-
 	stm32_clean_context();
 
 	if (mode == STM32_PM_CSTOP_ALLOW_STANDBY_DDR_SR) {

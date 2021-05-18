@@ -471,6 +471,8 @@ void stm32_save_ddr_training_area(void)
 				      PAGE_SIZE, MT_MEMORY | MT_RW | MT_NS);
 	assert(ret == 0);
 
+	flush_dcache_range(STM32MP_DDR_BASE, TRAINING_AREA_SIZE);
+
 	memcpy(&backup_data->ddr_training_backup,
 	       (const uint32_t *)STM32MP_DDR_BASE,
 	       TRAINING_AREA_SIZE);
