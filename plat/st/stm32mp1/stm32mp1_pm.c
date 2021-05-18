@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -169,7 +169,8 @@ static void __dead2 stm32_pwr_domain_pwr_down_wfi(const psci_power_state_t
 		void (*warm_entrypoint)(void) =
 			(void (*)(void))stm32_sec_entrypoint;
 
-		stm32_pwr_down_wfi(stm32_is_cstop_done());
+		stm32_pwr_down_wfi(stm32_is_cstop_done(),
+				   stm32mp1_get_lp_soc_mode(PSCI_MODE_SYSTEM_SUSPEND));
 
 		stm32_exit_cstop();
 
@@ -207,7 +208,7 @@ static void __dead2 stm32_system_off(void)
 
 	stm32_enter_low_power(soc_mode, 0);
 
-	stm32_pwr_down_wfi(false);
+	stm32_pwr_down_wfi(false, soc_mode);
 
 	/* This shouldn't be reached */
 	panic();

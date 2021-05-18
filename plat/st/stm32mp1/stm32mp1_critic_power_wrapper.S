@@ -21,8 +21,9 @@
 func stm32_pwr_down_wfi_wrapper
 	push	{r4,r5,r6,lr}
 
-	# Save r0 in r2, as r0 is used in disable_mmu_secure
+	# Save r0 and r1 in  r2 and r3, as they are used in disable_mmu_secure
 	mov	r2, r0
+	mov	r3, r1
 	# Save current sp in r4
 	mov	r4, sp
 	# Save current VBAR in r5
@@ -46,6 +47,7 @@ func stm32_pwr_down_wfi_wrapper
 	# isb is done in disable mmu
 
 	mov	r0, r2
+	mov	r1, r3
 	bl	stm32_pwr_down_wfi_load
 
 	# Restore stack

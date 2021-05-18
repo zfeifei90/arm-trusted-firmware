@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2021, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -350,7 +350,7 @@ static void stm32_auto_stop_cpu0(void)
 
 	enter_cstop(STM32_PM_CSTOP_ALLOW_LP_STOP, 0);
 
-	stm32_pwr_down_wfi(true);
+	stm32_pwr_down_wfi(true, STM32_PM_CSTOP_ALLOW_LP_STOP);
 
 	stm32_exit_cstop();
 
@@ -412,7 +412,7 @@ static void enter_csleep(void)
 	mmio_clrsetbits_32(pwr_base + PWR_CR1, PWR_CR1_MASK,
 			   config_pwr[STM32_PM_CSLEEP_RUN].pwr_cr1);
 
-	stm32_pwr_down_wfi(false);
+	stm32_pwr_down_wfi(false, STM32_PM_CSLEEP_RUN);
 }
 
 void stm32_enter_low_power(uint32_t mode, uint32_t nsec_addr)

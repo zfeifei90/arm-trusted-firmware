@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2019-2021, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,7 +14,7 @@
 
 #include <stm32mp1_critic_power.h>
 
-static void cstop_critic_enter(void)
+static void cstop_critic_enter(uint32_t mode)
 {
 	/*
 	 * Set DDR in Self-refresh,.
@@ -36,10 +36,10 @@ static void cstop_critic_exit(void)
 	}
 }
 
-void stm32_pwr_down_wfi_load(bool is_cstop)
+void stm32_pwr_down_wfi_load(bool is_cstop, uint32_t mode)
 {
 	if (is_cstop) {
-		cstop_critic_enter();
+		cstop_critic_enter(mode);
 	}
 
 	/*
@@ -61,12 +61,12 @@ void stm32_pwr_down_wfi_load(bool is_cstop)
 extern void wfi_svc_int_enable(uintptr_t stack_addr);
 static uint32_t int_stack[STM32MP_INT_STACK_SIZE];
 
-void stm32_pwr_down_wfi(bool is_cstop)
+void stm32_pwr_down_wfi(bool is_cstop, uint32_t mode)
 {
 	uint32_t interrupt = GIC_SPURIOUS_INTERRUPT;
 
 	if (is_cstop) {
-		cstop_critic_enter();
+		cstop_critic_enter(mode);
 	}
 
 	stm32mp1_calib_set_wakeup(false);

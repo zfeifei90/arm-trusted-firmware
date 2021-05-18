@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -103,7 +103,7 @@ static struct backup_bl32_data_s *get_bl32_backup_data(void)
 }
 
 #if STM32MP_SP_MIN_IN_DDR
-void (*stm32_pwr_down_wfi)(bool is_cstop);
+void (*stm32_pwr_down_wfi)(bool is_cstop, uint32_t mode);
 #endif
 #endif
 
@@ -325,7 +325,7 @@ void stm32_context_get_bl2_low_power_params(uintptr_t *bl2_code_base,
 	}
 
 #if STM32MP_SP_MIN_IN_DDR
-	stm32_pwr_down_wfi = (void (*)(bool))backup_data->low_power_ep;
+	stm32_pwr_down_wfi = (void (*)(bool, uint32_t))backup_data->low_power_ep;
 #endif
 	*bl2_code_base = (uintptr_t)backup_data->bl2_code_base;
 	*bl2_code_end = (uintptr_t)backup_data->bl2_code_end;
