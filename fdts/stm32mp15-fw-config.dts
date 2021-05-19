@@ -8,7 +8,10 @@
 #include <common/tbbr/tbbr_img_def.h>
 #include <dt-bindings/soc/stm32mp1-tzc400.h>
 
-#define DDR_SIZE	0x20000000
+#ifndef DDR_SIZE
+#error "DDR_SIZE is not defined"
+#endif
+
 #define DDR_NS_BASE	STM32MP_DDR_BASE
 #ifdef AARCH32_SP_OPTEE
 #define DDR_SHARE_SIZE	0x00200000
