@@ -1,12 +1,24 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
- * Copyright (c) 2020, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2020-2021, STMicroelectronics - All Rights Reserved
  */
 
 #include <platform_def.h>
 
 #include <common/tbbr/tbbr_img_def.h>
 #include <dt-bindings/soc/stm32mp1-tzc400.h>
+
+#define DDR_SIZE	0x20000000
+#define DDR_NS_BASE	STM32MP_DDR_BASE
+#ifdef AARCH32_SP_OPTEE
+#define DDR_SHARE_SIZE	0x00200000
+#define DDR_SHARE_BASE	(STM32MP_DDR_BASE + (DDR_SIZE - DDR_SHARE_SIZE))
+#define DDR_SEC_SIZE	0x01e00000
+#define DDR_SEC_BASE	(DDR_SHARE_BASE - DDR_SEC_SIZE)
+#define DDR_NS_SIZE	(DDR_SEC_BASE - DDR_NS_BASE)
+#else
+#define DDR_NS_SIZE	DDR_SIZE
+#endif
 
 /dts-v1/;
 
@@ -51,13 +63,13 @@
 		compatible = "st,mem-firewall";
 #ifdef AARCH32_SP_OPTEE
 		memory-ranges = <
-			0xc0000000 0x1e000000 TZC_REGION_S_NONE TZC_REGION_NSEC_ALL_ACCESS_RDWR
-			0xde000000 0x01e00000 TZC_REGION_S_RDWR 0
-			0xdfe00000 0x00200000 TZC_REGION_S_NONE
+			DDR_NS_BASE DDR_NS_SIZE TZC_REGION_S_NONE TZC_REGION_NSEC_ALL_ACCESS_RDWR
+			DDR_SEC_BASE DDR_SEC_SIZE TZC_REGION_S_RDWR 0
+			DDR_SHARE_BASE DDR_SHARE_SIZE TZC_REGION_S_NONE
 			TZC_REGION_ACCESS_RDWR(STM32MP1_TZC_A7_ID)>;
 #else
 		memory-ranges = <
-			0xc0000000 0x20000000 TZC_REGION_S_NONE TZC_REGION_NSEC_ALL_ACCESS_RDWR>;
+			DDR_NS_BASE DDR_NS_SIZE TZC_REGION_S_NONE TZC_REGION_NSEC_ALL_ACCESS_RDWR>;
 #endif
 	};
 };
