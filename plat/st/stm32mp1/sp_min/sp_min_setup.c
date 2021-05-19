@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -322,16 +322,11 @@ static void stm32mp1_etzpc_early_setup(void)
 	etzpc_configure_tzma(STM32MP1_ETZPC_TZMA_SYSRAM, TZMA1_SECURE_RANGE);
 }
 
-#if !STM32MP_USE_STM32IMAGE
+#if STM32MP_SP_MIN_IN_DDR
 static void populate_ns_dt(u_register_t ns_dt_addr, uintptr_t sec_base, size_t sec_size)
 {
 	void *external_fdt = (void *)ns_dt_addr;
 	int ret;
-
-	if (sec_base < STM32MP_DDR_BASE) {
-		/* No need to reserve memory if secure monitor is not in DDR */
-		return;
-	}
 
 	/* Map Base Non Secure DDR for Non secure DT update */
 	ret = mmap_add_dynamic_region(ns_dt_addr, ns_dt_addr, STM32MP_HW_CONFIG_MAX_SIZE,
@@ -413,10 +408,9 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	uintptr_t dt_addr = STM32MP_DTB_BASE;
 #else
 	uintptr_t dt_addr = arg1;
-	uintptr_t sec_base = 0U;
-	size_t sec_size = 0U;
 #endif
 #if STM32MP_SP_MIN_IN_DDR
+	uintptr_t sec_base = 0U;
 	uintptr_t bl2_code_base = 0U;
 	uintptr_t bl2_code_end = 0U;
 	uintptr_t bl2_end = 0U;
@@ -505,27 +499,23 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 			}
 		}
 
-#if !STM32MP_USE_STM32IMAGE
+#if STM32MP_SP_MIN_IN_DDR
 		if (bl_params->image_id == BL32_IMAGE_ID) {
 			sec_base = bl_params->image_info->image_base;
-			sec_size = bl_params->image_info->image_max_size;
 		}
 #endif
 
 		bl_params = bl_params->next_params_info;
 	}
 
-#if !STM32MP_USE_STM32IMAGE
+#if STM32MP_SP_MIN_IN_DDR
 	if (arg2 != 0U) {
 		/* This will expect the BL32 DT and BL32 are grouped */
 		if (dt_addr < sec_base) {
-			sec_size = sec_size + sec_base - dt_addr;
 			sec_base = dt_addr;
-		} else {
-			sec_size = dt_addr - sec_base + STM32MP_BL32_DTB_SIZE;
 		}
 
-		populate_ns_dt(arg2, sec_base, sec_size);
+		populate_ns_dt(arg2, sec_base, DDR_SEC_SIZE);
 	} else {
 		INFO("Non-secure device tree not found\n");
 	}
