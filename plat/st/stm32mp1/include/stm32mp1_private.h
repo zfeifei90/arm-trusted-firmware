@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -31,6 +31,8 @@ enum etzpc_decprot_attributes stm32mp_etzpc_binding2decprot(uint32_t mode);
 void stm32mp1_syscfg_init(void);
 void stm32mp1_syscfg_enable_io_compensation(void);
 void stm32mp1_syscfg_disable_io_compensation(void);
+
+void stm32mp1_deconfigure_uart_pins(void);
 
 void stm32mp1_init_scmi_server(void);
 void stm32mp1_pm_save_scmi_state(uint8_t *state, size_t size);

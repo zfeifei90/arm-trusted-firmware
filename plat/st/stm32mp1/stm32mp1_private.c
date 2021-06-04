@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,6 +12,7 @@
 
 #include <arch_helpers.h>
 #include <drivers/arm/gicv2.h>
+#include <drivers/st/stm32_gpio.h>
 #include <drivers/st/stm32_iwdg.h>
 #include <drivers/st/stm32mp_dummy_regulator.h>
 #include <drivers/st/stm32mp_pmic.h>
@@ -298,6 +299,53 @@ bool stm32_gpio_is_secure_at_reset(unsigned int bank)
 
 	return false;
 }
+
+#if STM32MP_USB_PROGRAMMER
+struct gpio_bank_pin_list {
+	uint32_t bank;
+	uint32_t pin;
+};
+
+static const struct gpio_bank_pin_list gpio_list[] = {
+	{	/* USART2_RX: GPIOA3 */
+		.bank = 0,
+		.pin = 3,
+	},
+	{	/* USART3_RX: GPIOB12 */
+		.bank = 1,
+		.pin = 12,
+	},
+	{	/* UART4_RX: GPIOB2 */
+		.bank = 1,
+		.pin = 2,
+	},
+	{	/* UART5_RX: GPIOB4 */
+		.bank = 1,
+		.pin = 5,
+	},
+	{	/* USART6_RX: GPIOC7 */
+		.bank = 2,
+		.pin = 7,
+	},
+	{	/* UART7_RX: GPIOF6 */
+		.bank = 5,
+		.pin = 6,
+	},
+	{	/* UART8_RX: GPIOE0 */
+		.bank = 4,
+		.pin = 0,
+	},
+};
+
+void stm32mp1_deconfigure_uart_pins(void)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(gpio_list); i++) {
+		set_gpio_reset_cfg(gpio_list[i].bank, gpio_list[i].pin);
+	}
+}
+#endif
 
 unsigned long stm32_get_gpio_bank_clock(unsigned int bank)
 {
