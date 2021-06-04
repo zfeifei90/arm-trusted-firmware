@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include <drivers/st/stm32_gpio.h>
 #include <libfdt.h>
 
 #include <platform_def.h>
@@ -185,6 +186,53 @@ uintptr_t get_uart_address(uint32_t instance_nb)
 	}
 
 	return stm32mp1_uart_addresses[instance_nb - 1U];
+}
+#endif
+
+#if STM32MP_USB_PROGRAMMER
+struct gpio_bank_pin_list {
+	uint32_t bank;
+	uint32_t pin;
+};
+
+static const struct gpio_bank_pin_list gpio_list[] = {
+	{	/* USART2_RX: GPIOA3 */
+		.bank = 0,
+		.pin = 3,
+	},
+	{	/* USART3_RX: GPIOB12 */
+		.bank = 1,
+		.pin = 12,
+	},
+	{	/* UART4_RX: GPIOB2 */
+		.bank = 1,
+		.pin = 2,
+	},
+	{	/* UART5_RX: GPIOB4 */
+		.bank = 1,
+		.pin = 5,
+	},
+	{	/* USART6_RX: GPIOC7 */
+		.bank = 2,
+		.pin = 7,
+	},
+	{	/* UART7_RX: GPIOF6 */
+		.bank = 5,
+		.pin = 6,
+	},
+	{	/* UART8_RX: GPIOE0 */
+		.bank = 4,
+		.pin = 0,
+	},
+};
+
+void stm32mp1_deconfigure_uart_pins(void)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(gpio_list); i++) {
+		set_gpio_reset_cfg(gpio_list[i].bank, gpio_list[i].pin);
+	}
 }
 #endif
 
