@@ -454,13 +454,11 @@ void bl2_el3_plat_arch_setup(void)
 
 	stm32mp_print_boardinfo();
 
-#if TRUSTED_BOARD_BOOT
 	if (boot_context->auth_status != BOOT_API_CTX_AUTH_NO) {
 		NOTICE("Bootrom authentication %s\n",
 		       (boot_context->auth_status == BOOT_API_CTX_AUTH_FAILED) ?
 		       "failed" : "succeeded");
 	}
-#endif
 
 skip_console_init:
 #if !TRUSTED_BOARD_BOOT
