@@ -290,6 +290,15 @@ void __dead2 stm32mp_plat_reset(int cpu)
 	stm32mp_wait_cpu_reset();
 }
 
+bool stm32_gpio_is_secure_at_reset(unsigned int bank)
+{
+	if (bank == GPIO_BANK_Z) {
+		return true;
+	}
+
+	return false;
+}
+
 unsigned long stm32_get_gpio_bank_clock(unsigned int bank)
 {
 	if (bank == GPIO_BANK_Z) {
