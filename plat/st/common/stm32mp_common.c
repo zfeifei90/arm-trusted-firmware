@@ -34,12 +34,6 @@ unsigned int plat_get_syscnt_freq2(void)
 	return read_cntfrq_el0();
 }
 
-#pragma weak stm32mp_plat_reset
-void __dead2 stm32mp_plat_reset(int cpu)
-{
-	panic();
-}
-
 static uintptr_t boot_ctx_address;
 static uint16_t boot_itf_selected;
 static uint32_t boot_action_saved;
