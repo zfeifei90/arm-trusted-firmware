@@ -286,6 +286,10 @@ int spi_nand_init(unsigned long long *size, unsigned int *erase_size)
 		return -EINVAL;
 	}
 
+	assert((spinand_dev.nand_dev->page_size != 0U) &&
+	       (spinand_dev.nand_dev->block_size != 0U) &&
+	       (spinand_dev.nand_dev->size != 0U));
+
 	ret = spi_nand_reset();
 	if (ret != 0) {
 		return ret;
