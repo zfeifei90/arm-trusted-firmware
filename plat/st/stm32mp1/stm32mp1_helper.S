@@ -251,12 +251,12 @@ func plat_crash_console_init
 	str	r2, [r1]
 1:
 	ldr	r0, [r1]
-	ands	r0, r2
+	ands	r2, r0, r2
 	beq	1b
 	str	r2, [r1, #4] /* RSTCLR register */
 2:
 	ldr	r0, [r1]
-	ands	r0, r2
+	ands	r2, r0, r2
 	bne	2b
 	/* Enable GPIOs for UART TX */
 	ldr	r1, =(RCC_BASE + DEBUG_UART_TX_GPIO_BANK_CLK_REG)
