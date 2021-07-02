@@ -28,38 +28,43 @@
 
 #include "bsec_svc.h"
 
+/*
+ * version of STM32_SMC_READ_ALL / STM32_SMC_WRITE_ALL service
+ * This must be increased at each structure otp_exchange modification
+ */
+#define BSEC_SERVICE_VERSION		0x02U
+
 enum bsec_ssp_status {
 	BSEC_NO_SSP = 0,
 	BSEC_SSP_SET,
 	BSEC_SSP_ERROR
 };
 
+/* Global status bitfield */
+#define BSEC_STATE_SEC_OPEN	U(0x0)
+#define BSEC_STATE_SEC_CLOSED	U(0x1)
+#define BSEC_STATE_INVALID	U(0x2)
+
+/* Bitfield definition status */
+#define OTP_UPDATE_REQ			BIT(31)
+#define OTP_ERROR_DETECTED		BIT(0)
+
+/* Bitfield definition for LOCK status */
+#define LOCK_PERM			BIT(30)
+#define LOCK_SHADOW_R			BIT(29)
+#define LOCK_SHADOW_W			BIT(28)
+#define LOCK_SHADOW_P			BIT(27)
+#define LOCK_ERROR			BIT(26)
+
+struct otp_state {
+	uint32_t value;
+	uint32_t state;
+};
+
 struct otp_exchange {
 	uint32_t version;
-	uint32_t configuration;
-	uint32_t reserved;
 	uint32_t status;
-	uint32_t general_lock;
-	uint32_t debug_conf;
-	uint32_t reserved1[2];
-	uint32_t otp_disturb[3];
-	uint32_t reserved2[3];
-	uint32_t error_status[3];
-	uint32_t reserved3[3];
-	uint32_t permanent_lock[3];
-	uint32_t reserved4[3];
-	uint32_t programming_lock[3];
-	uint32_t reserved5[3];
-	uint32_t shadow_write_lock[3];
-	uint32_t reserved6[3];
-	uint32_t shadow_read_lock[3];
-	uint32_t reserved7[3];
-	uint32_t otp_value[STM32MP1_OTP_MAX_ID + 1];
-	uint32_t reserved8[112];
-	uint32_t bsec_hw_conf;
-	uint32_t ip_version;
-	uint32_t ip_id;
-	uint32_t ip_magic_id;
+	struct otp_state otp[STM32MP1_OTP_MAX_ID];
 };
 
 static enum bsec_ssp_status bsec_check_ssp(uint32_t otp, uint32_t update)
@@ -111,6 +116,12 @@ static uint32_t bsec_read_all_bsec(struct otp_exchange *exchange)
 {
 	uint32_t i;
 	uint32_t result;
+	uint32_t shadow_prog_lock[3];
+	uint32_t shadow_read_lock[3];
+	uint32_t shadow_write_lock[3];
+	uint32_t permanent_lock[3];
+	uint32_t bsec_base;
+	uint32_t status;
 
 	if (exchange == NULL) {
 		return BSEC_ERROR;
@@ -118,93 +129,58 @@ static uint32_t bsec_read_all_bsec(struct otp_exchange *exchange)
 
 	exchange->version = BSEC_SERVICE_VERSION;
 
-	for (i = 0U; i <= STM32MP1_OTP_MAX_ID; i++) {
-		if (bsec_check_nsec_access_rights(i) == BSEC_OK) {
-			result = bsec_shadow_register(i);
-			if (result != BSEC_OK) {
-				return result;
+	status = bsec_get_status();
+	if ((status & BSEC_MODE_INVALID_MASK) != 0U) {
+		exchange->status = BSEC_STATE_INVALID;
+	} else {
+		if ((status & BSEC_MODE_SECURE_MASK) != 0U) {
+			if (stm32mp_is_closed_device()) {
+				exchange->status = BSEC_STATE_SEC_CLOSED;
+			} else {
+				exchange->status = BSEC_STATE_SEC_OPEN;
 			}
-
-			result = bsec_read_otp(&exchange->otp_value[i], i);
-			if (result != BSEC_OK) {
-				return result;
-			}
+		} else {
+			/* OTP modes OPEN1 and OPEN2 are not supported */
+			exchange->status = BSEC_STATE_INVALID;
 		}
 	}
 
-	exchange->configuration = mmio_read_32(bsec_get_base() +
-					       BSEC_OTP_CONF_OFF);
+	bsec_base = bsec_get_base();
+	for (i = 0U; i < 3U; i++) {
+		permanent_lock[i] = mmio_read_32(bsec_base + BSEC_WRLOCK(i));
+		shadow_prog_lock[i] = mmio_read_32(bsec_base + BSEC_SPLOCK(i));
+		shadow_read_lock[i] = mmio_read_32(bsec_base + BSEC_SRLOCK(i));
+		shadow_write_lock[i] = mmio_read_32(bsec_base + BSEC_SWLOCK(i));
+	}
 
-	exchange->status = mmio_read_32(bsec_get_base() + BSEC_OTP_STATUS_OFF);
+	for (i = 0U; i <= STM32MP1_OTP_MAX_ID; i++) {
+		uint32_t offset = i / __WORD_BIT;
+		uint32_t bits = BIT(i % __WORD_BIT);
 
-	exchange->general_lock = mmio_read_32(bsec_get_base() +
-					      BSEC_OTP_LOCK_OFF);
+		exchange->otp[i].value = 0U;
+		exchange->otp[i].state = 0U;
 
-	exchange->debug_conf = mmio_read_32(bsec_get_base() + BSEC_DEN_OFF);
-
-	exchange->otp_disturb[0] = mmio_read_32(bsec_get_base() +
-						BSEC_DISTURBED_OFF);
-
-	exchange->otp_disturb[1] = mmio_read_32(bsec_get_base() +
-						BSEC_DISTURBED1_OFF);
-
-	exchange->otp_disturb[2] = mmio_read_32(bsec_get_base() +
-						BSEC_DISTURBED2_OFF);
-
-	exchange->error_status[0] = mmio_read_32(bsec_get_base() +
-						 BSEC_ERROR_OFF);
-
-	exchange->error_status[1] = mmio_read_32(bsec_get_base() +
-						 BSEC_ERROR1_OFF);
-
-	exchange->error_status[2] = mmio_read_32(bsec_get_base() +
-						 BSEC_ERROR2_OFF);
-
-	exchange->permanent_lock[0] = mmio_read_32(bsec_get_base() +
-						   BSEC_WRLOCK_OFF);
-
-	exchange->permanent_lock[1] = mmio_read_32(bsec_get_base() +
-						   BSEC_WRLOCK1_OFF);
-
-	exchange->permanent_lock[2] = mmio_read_32(bsec_get_base() +
-						   BSEC_WRLOCK2_OFF);
-
-	exchange->programming_lock[0] = mmio_read_32(bsec_get_base() +
-						     BSEC_SPLOCK_OFF);
-
-	exchange->programming_lock[1] = mmio_read_32(bsec_get_base() +
-						     BSEC_SPLOCK1_OFF);
-
-	exchange->programming_lock[2] = mmio_read_32(bsec_get_base() +
-						     BSEC_SPLOCK2_OFF);
-
-	exchange->shadow_write_lock[0] = mmio_read_32(bsec_get_base() +
-						      BSEC_SWLOCK_OFF);
-
-	exchange->shadow_write_lock[1] = mmio_read_32(bsec_get_base() +
-						      BSEC_SWLOCK1_OFF);
-
-	exchange->shadow_write_lock[2] = mmio_read_32(bsec_get_base() +
-						      BSEC_SWLOCK2_OFF);
-
-	exchange->shadow_read_lock[0] = mmio_read_32(bsec_get_base() +
-						     BSEC_SRLOCK_OFF);
-
-	exchange->shadow_read_lock[1] = mmio_read_32(bsec_get_base() +
-						     BSEC_SRLOCK1_OFF);
-
-	exchange->shadow_read_lock[2] = mmio_read_32(bsec_get_base() +
-						     BSEC_SRLOCK2_OFF);
-
-	exchange->bsec_hw_conf = mmio_read_32(bsec_get_base() +
-					      BSEC_IPHW_CFG_OFF);
-
-	exchange->ip_version = mmio_read_32(bsec_get_base() + BSEC_IPVR_OFF);
-
-	exchange->ip_id = mmio_read_32(bsec_get_base() + BSEC_IP_ID_OFF);
-
-	exchange->ip_magic_id = mmio_read_32(bsec_get_base() +
-					     BSEC_IP_MAGIC_ID_OFF);
+		result = bsec_shadow_register(i);
+		if (result == BSEC_OK) {
+			result = bsec_read_otp(&exchange->otp[i].value, i);
+		}
+		if (result != BSEC_OK) {
+			exchange->otp[i].value = 0;
+			exchange->otp[i].state |= OTP_ERROR_DETECTED;
+		}
+		if (permanent_lock[offset] & bits) {
+			exchange->otp[i].state |= LOCK_PERM;
+		}
+		if (shadow_read_lock[offset] & bits) {
+			exchange->otp[i].state |= LOCK_SHADOW_R;
+		}
+		if (shadow_write_lock[offset] & bits) {
+			exchange->otp[i].state |= LOCK_SHADOW_W;
+		}
+		if (shadow_prog_lock[offset] & bits) {
+			exchange->otp[i].state |= LOCK_SHADOW_P;
+		}
+	}
 
 	return BSEC_OK;
 }
@@ -213,11 +189,7 @@ static uint32_t bsec_write_all_bsec(struct otp_exchange *exchange,
 				    uint32_t *ret_otp_value)
 {
 	uint32_t i;
-	uint32_t j;
-	uint32_t start_otp = 0U;
-	uint32_t value = 0U;
 	uint32_t ret;
-	struct bsec_config config_param;
 
 	*ret_otp_value = 0U;
 
@@ -229,163 +201,48 @@ static uint32_t bsec_write_all_bsec(struct otp_exchange *exchange,
 		return BSEC_ERROR;
 	}
 
-	for (i = start_otp; i <= STM32MP1_OTP_MAX_ID; i++) {
-		if (bsec_check_nsec_access_rights(i) != BSEC_OK) {
+	for (i = 0U; i <= STM32MP1_OTP_MAX_ID; i++) {
+		if ((exchange->otp[i].state & OTP_UPDATE_REQ) == 0U) {
 			continue;
 		}
-
-		ret = bsec_shadow_register(i);
-		if (ret != BSEC_OK) {
-			return ret;
-		}
-
-		ret = bsec_read_otp(&value, i);
-		if (ret != BSEC_OK) {
-			return ret;
-		}
-
-		if ((value ==  exchange->otp_value[i]) &&
-		    (i != BOOT_API_OTP_SSP_WORD_NB)) {
-			continue;
-		}
-
-		if (i == BOOT_API_OTP_SSP_WORD_NB) {
-			*ret_otp_value = (uint32_t)bsec_check_ssp(value,
-							exchange->otp_value[i]);
-			VERBOSE("Result OTP SSP %d\n", *ret_otp_value);
-			if (*ret_otp_value == (uint32_t)BSEC_SSP_ERROR) {
-				continue;
+		if (exchange->otp[i].value != 0U) {
+			ret = bsec_program_otp(exchange->otp[i].value, i);
+			if (ret == BSEC_OK) {
+				ret = bsec_write_otp(exchange->otp[i].value, i);
+			}
+			if (ret != BSEC_OK) {
+				ERROR("BSEC write failed on OTP%u\n", i);
+				return ret;
 			}
 		}
-
-		ret = bsec_program_otp(exchange->otp_value[i], i);
-		if (ret != BSEC_OK) {
-			return ret;
-		}
-
-		ret = bsec_write_otp(exchange->otp_value[i], i);
-		if (ret != BSEC_OK) {
-			return ret;
-		}
-	}
-
-	bsec_write_debug_conf(exchange->debug_conf);
-
-	for (j = 0U; j < 3U; j++) {
-		if (exchange->permanent_lock[j] == 0U) {
-			continue;
-		}
-
-		for (i = 0U; i < 32U; i++) {
-			if (bsec_check_nsec_access_rights((32U * j) + i) !=
-			    BSEC_OK) {
-				continue;
-			}
-
-			value = (exchange->permanent_lock[j] >> i) & 1U;
-			if (value != 0U) {
-				ret = bsec_permanent_lock_otp((32U * j) + i);
-				if (ret != BSEC_OK) {
-					return ret;
-				}
+		if ((exchange->otp[i].state & LOCK_PERM) != 0U) {
+			ret = bsec_permanent_lock_otp(i);
+			if (ret != BSEC_OK) {
+				ERROR("BSEC permanent lock failed on OTP%u\n", i);
+				return ret;
 			}
 		}
-	}
-
-	for (j = 0U; j < 3U; j++) {
-		if (exchange->programming_lock[j] == 0U) {
-			continue;
-		}
-
-		for (i = 0U; i < 32U; i++) {
-			if (bsec_check_nsec_access_rights((32U * j) + i) !=
-			    BSEC_OK) {
-				continue;
-			}
-
-			value = (exchange->programming_lock[j] >> i) & 1U;
-			if (value != 0U) {
-				if (bsec_set_sp_lock((32U * j) + i) !=
-				    BSEC_OK) {
-					return BSEC_ERROR;
-				}
+		if ((exchange->otp[i].state & LOCK_SHADOW_R) != 0U) {
+			ret = bsec_set_sr_lock(i);
+			if (ret != BSEC_OK) {
+				ERROR("BSEC sr lock failed on OTP%u\n", i);
+				return ret;
 			}
 		}
-	}
-
-	for (j = 0U; j < 3U; j++) {
-		if (exchange->shadow_write_lock[j] == 0U) {
-			continue;
-		}
-
-		for (i = 0U; i < 32U; i++) {
-			if (bsec_check_nsec_access_rights((32U * j) + i) !=
-			    BSEC_OK) {
-				continue;
-			}
-
-			value = (exchange->shadow_write_lock[j] >> i) & 1U;
-			if (value != 0U) {
-				if (bsec_set_sw_lock((32U * j) + i) !=
-				    BSEC_OK) {
-					return BSEC_ERROR;
-				}
+		if ((exchange->otp[i].state & LOCK_SHADOW_W) != 0U) {
+			ret = bsec_set_sw_lock(i);
+			if (ret != BSEC_OK) {
+				ERROR("BSEC sw lock failed on OTP%u\n", i);
+				return ret;
 			}
 		}
-	}
-
-	for (j = 0U; j < 3U; j++) {
-		if (exchange->shadow_read_lock[j] == 0U) {
-			continue;
-		}
-
-		for (i = 0U; i < 32U; i++) {
-			if (bsec_check_nsec_access_rights((32U * j) + i) !=
-			    BSEC_OK) {
-				continue;
-			}
-
-			value = (exchange->shadow_read_lock[j] >> i) & 1U;
-			if (value != 0U) {
-				if (bsec_set_sr_lock((32U * j) + i) !=
-				    BSEC_OK) {
-					return BSEC_ERROR;
-				}
+		if ((exchange->otp[i].state & LOCK_SHADOW_P) != 0U) {
+			ret = bsec_set_sp_lock(i);
+			if (ret != BSEC_OK) {
+				ERROR("BSEC sp lock failed on OTP%u\n", i);
+				return ret;
 			}
 		}
-	}
-
-	ret = bsec_get_config(&config_param);
-	if (ret != BSEC_OK) {
-		return ret;
-	}
-
-	config_param.power =
-		(uint8_t)(exchange->configuration & BSEC_CONF_POWER_UP_MASK) >>
-		BSEC_CONF_POWER_UP_SHIFT;
-	config_param.freq =
-		(uint8_t)(exchange->configuration & BSEC_CONF_FRQ_MASK) >>
-		BSEC_CONF_FRQ_SHIFT;
-	config_param.pulse_width =
-		(uint8_t)(exchange->configuration & BSEC_CONF_PRG_WIDTH_MASK) >>
-		BSEC_CONF_PRG_WIDTH_SHIFT;
-	config_param.tread =
-		(uint8_t)((exchange->configuration & BSEC_CONF_TREAD_MASK) >>
-		BSEC_CONF_TREAD_SHIFT);
-	config_param.den_lock =
-		(uint8_t)(exchange->general_lock & DENREG_LOCK_MASK) >>
-		DENREG_LOCK_SHIFT;
-	config_param.prog_lock =
-		(uint8_t)(exchange->general_lock & GPLOCK_LOCK_MASK) >>
-		GPLOCK_LOCK_SHIFT;
-
-	config_param.upper_otp_lock =
-		(uint8_t)(exchange->general_lock & UPPER_OTP_LOCK_MASK) >>
-		 UPPER_OTP_LOCK_SHIFT;
-
-	ret = bsec_set_config(&config_param);
-	if (ret != BSEC_OK) {
-		return ret;
 	}
 
 	INFO("write all otp succeed\n");
