@@ -19,7 +19,12 @@
 #include <drivers/st/stm32mp_reset.h>
 #include <lib/mmio.h>
 
+#if STM32MP13
+#define DT_RNG_COMPAT		"st,stm32mp13-rng"
+#endif
+#if STM32MP15
 #define DT_RNG_COMPAT		"st,stm32-rng"
+#endif
 #define RNG_CR			0x00U
 #define RNG_SR			0x04U
 #define RNG_DR			0x08U
@@ -27,6 +32,7 @@
 #define RNG_CR_RNGEN		BIT(2)
 #define RNG_CR_IE		BIT(3)
 #define RNG_CR_CED		BIT(5)
+#define RNG_CR_CONDRST		BIT(30)
 
 #define RNG_SR_DRDY		BIT(0)
 #define RNG_SR_CECS		BIT(1)
@@ -54,12 +60,14 @@ static void seed_error_recovery(void)
 	mmio_clrbits_32(stm32_rng.base + RNG_SR, RNG_SR_SEIS);
 	dmbsy();
 
+#if STM32MP15
 	/* No Auto-reset on STM32MP15, need to clean FIFO */
 	for (i = 12U; i != 0U; i--) {
 		(void)mmio_read_32(stm32_rng.base + RNG_DR);
 	}
 
 	dmbsy();
+#endif
 
 	if ((mmio_read_32(stm32_rng.base + RNG_SR) & RNG_SR_SEIS) != 0U) {
 		ERROR("RNG noise\n");
@@ -72,7 +80,14 @@ static int stm32_rng_enable(void)
 	uint32_t sr;
 	uint64_t timeout;
 
+#if STM32MP13
+	/* Reset internal block and disable CED bit */
+	mmio_setbits_32(stm32_rng.base + RNG_CR, RNG_CR_CONDRST | RNG_CR_CED);
+	mmio_clrsetbits_32(stm32_rng.base + RNG_CR, RNG_CR_CONDRST, RNG_CR_RNGEN);
+#endif
+#if STM32MP15
 	mmio_write_32(stm32_rng.base + RNG_CR, RNG_CR_RNGEN | RNG_CR_CED);
+#endif
 
 	timeout = timeout_init_us(RNG_TIMEOUT_US);
 	sr = mmio_read_32(stm32_rng.base + RNG_SR);
