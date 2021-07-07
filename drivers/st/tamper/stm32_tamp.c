@@ -11,6 +11,7 @@
 
 #include <platform_def.h>
 
+#include <drivers/arm/gicv2.h>
 #include <drivers/clk.h>
 #include <drivers/st/stm32_gpio.h>
 #include <drivers/st/stm32mp_reset.h>
@@ -613,6 +614,8 @@ void stm32_tamp_it_handler(void)
 		}
 		tamp++;
 	}
+
+	gicv2_end_of_interrupt(STM32MP1_IRQ_TAMPSERRS);
 }
 
 int stm32_tamp_init(void)
