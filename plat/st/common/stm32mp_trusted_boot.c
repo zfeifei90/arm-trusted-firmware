@@ -85,7 +85,7 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 		memcpy(&res, proot_pk, sizeof(uint32_t));
 		if ((res == 0U) || (res == 0xFFFFFFFFU)) {
 			while (idx < ARRAY_SIZE(root_pk_hash)) {
-				memcpy(&rootpk, (proot_pk + idx), sizeof(uint32_t));
+				memcpy(&rootpk, root_pk_hash + idx, sizeof(uint32_t));
 				if (res != rootpk) {
 					return 0;
 				}
