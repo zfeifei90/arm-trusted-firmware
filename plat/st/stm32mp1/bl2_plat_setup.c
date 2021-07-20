@@ -725,7 +725,8 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 	 * Invalidate remaining data read from MMC but not flushed by load_image_flush().
 	 * We take the worst case which is 2 MMC blocks.
 	 */
-	if (image_id != FW_CONFIG_ID) {
+	if ((image_id != FW_CONFIG_ID) &&
+	    ((bl_mem_params->image_info.h.attr & IMAGE_ATTRIB_SKIP_LOADING) == 0U)) {
 		inv_dcache_range(bl_mem_params->image_info.image_base +
 				 bl_mem_params->image_info.image_size,
 				 2U * MMC_BLOCK_SIZE);
