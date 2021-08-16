@@ -692,6 +692,7 @@ static unsigned int gate_refcounts[NB_GATES];
 static struct spinlock refcount_lock;
 static struct stm32mp1_pll_settings pll1_settings;
 static uint32_t current_opp_khz;
+static uint32_t save_current_opp_khz;
 static uint32_t pll3cr;
 static uint32_t pll4cr;
 static uint32_t mssckselr;
@@ -3234,6 +3235,13 @@ void save_clock_pm_context(void)
 	stm32mp1_pm_save_clock_cfg(offset,
 				   (uint8_t *)gate_refcounts,
 				   sizeof(gate_refcounts));
+	offset += sizeof(gate_refcounts);
+
+	save_current_opp_khz = current_opp_khz;
+
+	stm32mp1_pm_save_clock_cfg(offset,
+				   (uint8_t *)&save_current_opp_khz,
+				   sizeof(save_current_opp_khz));
 }
 
 void restore_clock_pm_context(void)
@@ -3263,6 +3271,13 @@ void restore_clock_pm_context(void)
 	stm32mp1_pm_restore_clock_cfg(offset,
 				      (uint8_t *)gate_refcounts,
 				      sizeof(gate_refcounts));
+	offset += sizeof(gate_refcounts);
+
+	stm32mp1_pm_restore_clock_cfg(offset,
+				      (uint8_t *)&save_current_opp_khz,
+				      sizeof(save_current_opp_khz));
+
+	stm32mp1_set_opp_khz(save_current_opp_khz);
 }
 
 void stm32mp1_clock_suspend(void)
