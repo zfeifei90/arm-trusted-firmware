@@ -15,6 +15,7 @@
 #include <arch_helpers.h>
 #include <common/debug.h>
 #include <drivers/arm/gicv2.h>
+#include <drivers/clk.h>
 #include <drivers/delay_timer.h>
 #include <drivers/st/stm32_iwdg.h>
 #include <drivers/st/stm32mp_clkfunc.h>
@@ -61,12 +62,12 @@ void stm32_iwdg_refresh(void)
 
 		/* 0x00000000 is not a valid address for IWDG peripherals */
 		if (iwdg->base != 0U) {
-			stm32mp_clk_enable(iwdg->clock);
+			clk_enable(iwdg->clock);
 
 			mmio_write_32(iwdg->base + IWDG_KR_OFFSET,
 				      IWDG_KR_RELOAD_KEY);
 
-			stm32mp_clk_disable(iwdg->clock);
+			clk_disable(iwdg->clock);
 		}
 	}
 }
