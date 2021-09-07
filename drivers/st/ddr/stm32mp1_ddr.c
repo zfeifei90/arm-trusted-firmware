@@ -729,7 +729,7 @@ void stm32mp1_ddr_init(struct ddr_info *priv,
 	}
 
 	VERBOSE("name = %s\n", config->info.name);
-	VERBOSE("speed = %d kHz\n", config->info.speed);
+	VERBOSE("speed = %u kHz\n", config->info.speed);
 	VERBOSE("size  = 0x%x\n", config->info.size);
 
 	/* DDR INIT SEQUENCE */

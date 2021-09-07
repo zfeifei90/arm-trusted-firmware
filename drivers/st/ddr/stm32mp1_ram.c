@@ -32,7 +32,7 @@ int stm32mp1_ddr_clk_enable(struct ddr_info *priv, uint32_t mem_speed)
 
 	ddrphy_clk = clk_get_rate(DDRPHYC);
 
-	VERBOSE("DDR: mem_speed (%d kHz), RCC %ld kHz\n",
+	VERBOSE("DDR: mem_speed (%u kHz), RCC %lu kHz\n",
 		mem_speed, ddrphy_clk / 1000U);
 
 	mem_speed_hz = mem_speed * 1000U;
@@ -44,7 +44,7 @@ int stm32mp1_ddr_clk_enable(struct ddr_info *priv, uint32_t mem_speed)
 		ddr_clk = mem_speed_hz - ddrphy_clk;
 	}
 	if (ddr_clk > (mem_speed_hz / 10)) {
-		ERROR("DDR expected freq %d kHz, current is %ld kHz\n",
+		ERROR("DDR expected freq %u kHz, current is %lu kHz\n",
 		      mem_speed, ddrphy_clk / 1000U);
 		return -1;
 	}
