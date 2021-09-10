@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2018-2021, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
  */
@@ -998,9 +998,14 @@ void stm32mp1_ddr_init(struct ddr_info *priv,
 		/*
 		 * 10. configure PUBL PIR register to specify which training
 		 *     step to run
-		 * Warning : RVTRN  is not supported by this PUBL
+		 *     RVTRN is executed only on LPDDR2/LPDDR3
 		 */
-		stm32mp1_ddrphy_init(priv->phy, DDRPHYC_PIR_QSTRN);
+		pir = DDRPHYC_PIR_QSTRN;
+		if ((config->c_reg.mstr & DDRCTRL_MSTR_DDR3) == 0U) {
+			pir |= DDRPHYC_PIR_RVTRN;
+		}
+
+		stm32mp1_ddrphy_init(priv->phy, pir);
 
 		/* 11. monitor PUB PGSR.IDONE to poll cpmpletion of training
 		 *     sequence
