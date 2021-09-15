@@ -42,7 +42,16 @@ struct plat_io_policy policies[MAX_NUMBER_IDS] = {
 #endif
 };
 
-#define FCONF_ST_IO_UUID_NUMBER	U(8)
+#define DEFAULT_UUID_NUMBER	U(8)
+
+#if TRUSTED_BOARD_BOOT
+#define TBBR_UUID_NUMBER	U(6)
+#else
+#define TBBR_UUID_NUMBER	U(0)
+#endif
+
+#define FCONF_ST_IO_UUID_NUMBER	(DEFAULT_UUID_NUMBER + \
+				 TBBR_UUID_NUMBER)
 
 static io_uuid_spec_t fconf_stm32mp_uuids[FCONF_ST_IO_UUID_NUMBER];
 static OBJECT_POOL_ARRAY(fconf_stm32mp_uuids_pool, fconf_stm32mp_uuids);
@@ -62,6 +71,14 @@ static const struct policies_load_info load_info[FCONF_ST_IO_UUID_NUMBER] = {
 	{HW_CONFIG_ID, "hw_cfg_uuid"},
 	{TOS_FW_CONFIG_ID, "tos_fw_cfg_uuid"},
 	{NT_FW_CONFIG_ID, "nt_fw_cfg_uuid"},
+#if TRUSTED_BOARD_BOOT
+	{TRUSTED_BOOT_FW_CERT_ID, "t_boot_fw_cert_uuid"},
+	{TRUSTED_KEY_CERT_ID, "t_key_cert_uuid"},
+	{TRUSTED_OS_FW_KEY_CERT_ID, "tos_fw_key_cert_uuid"},
+	{NON_TRUSTED_FW_KEY_CERT_ID, "nt_fw_key_cert_uuid"},
+	{TRUSTED_OS_FW_CONTENT_CERT_ID, "tos_fw_content_cert_uuid"},
+	{NON_TRUSTED_FW_CONTENT_CERT_ID, "nt_fw_content_cert_uuid"},
+#endif /* TRUSTED_BOARD_BOOT */
 };
 
 int fconf_populate_stm32mp_io_policies(uintptr_t config)

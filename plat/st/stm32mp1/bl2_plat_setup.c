@@ -48,8 +48,6 @@ static const char debug_msg[626] = {
 	"***************************************************\n"
 };
 
-static struct stm32mp_auth_ops stm32mp1_auth_ops;
-
 static void print_reset_reason(void)
 {
 	uint32_t rstsr = mmio_read_32(stm32mp_rcc_base() + RCC_MP_RSTSCLRR);
@@ -326,6 +324,14 @@ void bl2_el3_plat_arch_setup(void)
 	}
 
 skip_console_init:
+#if !TRUSTED_BOARD_BOOT
+	if (stm32mp_is_closed_device()) {
+		/* Closed chip required authentication */
+		ERROR("Secured chip must enabled TRUSTED_BOARD_BOOT\n");
+		panic();
+	}
+#endif
+
 	if (fixed_regulator_register() != 0) {
 		panic();
 	}
@@ -347,15 +353,6 @@ skip_console_init:
 		if (stm32mp_is_closed_device()) {
 			NOTICE("\n%s", debug_msg);
 		}
-	}
-
-	if (stm32mp_is_auth_supported()) {
-		stm32mp1_auth_ops.check_key =
-			boot_context->bootrom_ecdsa_check_key;
-		stm32mp1_auth_ops.verify_signature =
-			boot_context->bootrom_ecdsa_verify_signature;
-
-		stm32mp_init_auth(&stm32mp1_auth_ops);
 	}
 
 	stm32mp1_arch_security_setup();
