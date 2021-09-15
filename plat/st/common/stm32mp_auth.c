@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2019-2021, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -47,7 +47,7 @@ int stm32mp_auth_image(boot_api_image_header_t *header, uintptr_t buffer)
 	}
 
 	ret = mmap_add_dynamic_region(STM32MP_ROM_BASE, STM32MP_ROM_BASE,
-				      STM32MP_ROM_SIZE, MT_CODE | MT_SECURE);
+				      STM32MP_ROM_SIZE_2MB_ALIGNED, MT_CODE | MT_SECURE);
 	if (ret != 0) {
 		return ret;
 	}
@@ -85,6 +85,6 @@ int stm32mp_auth_image(boot_api_image_header_t *header, uintptr_t buffer)
 	}
 
 err:
-	mmap_remove_dynamic_region(STM32MP_ROM_BASE, STM32MP_ROM_SIZE);
+	mmap_remove_dynamic_region(STM32MP_ROM_BASE, STM32MP_ROM_SIZE_2MB_ALIGNED);
 	return ret;
 }
