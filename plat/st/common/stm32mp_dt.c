@@ -395,6 +395,9 @@ int fdt_get_gpio_bank_pin_count(unsigned int bank)
 {
 	int pinctrl_node;
 	int node;
+	int len;
+	int i;
+	int pin_count = 0;
 	uint32_t bank_offset;
 
 	pinctrl_node = stm32_get_gpio_bank_pinctrl_node(fdt, bank);
@@ -424,12 +427,19 @@ int fdt_get_gpio_bank_pin_count(unsigned int bank)
 			return 0;
 		}
 
-		cuint = fdt_getprop(fdt, node, "ngpios", NULL);
-		if (cuint == NULL) {
-			return -FDT_ERR_NOTFOUND;
+		/* Parse gpio-ranges with its 4 parameters */
+		cuint = fdt_getprop(fdt, node, "gpio-ranges", &len);
+		len /= sizeof(*cuint);
+		if ((len % 4) != 0) {
+			return -FDT_ERR_BADVALUE;
 		}
 
-		return (int)fdt32_to_cpu(*cuint);
+		for (i = 0; i < len / 4; i++) {
+			pin_count += fdt32_to_cpu(*(cuint + 3));
+			cuint += 4;
+		}
+
+		return pin_count;
 	}
 
 	return 0;
