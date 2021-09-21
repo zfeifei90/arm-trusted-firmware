@@ -32,7 +32,9 @@
 #define GPIO_MODE_ANALOG	0x03
 #define GPIO_MODE_MASK		U(0x03)
 
-#define GPIO_OPEN_DRAIN		U(0x10)
+#define GPIO_TYPE_PUSH_PULL	0x00
+#define GPIO_TYPE_OPEN_DRAIN	0x01
+#define GPIO_TYPE_MASK		U(0x01)
 
 #define GPIO_SPEED_LOW		0x00
 #define GPIO_SPEED_MEDIUM	0x01
@@ -49,8 +51,6 @@
 #include <stdint.h>
 
 int dt_set_pinctrl_config(int node);
-void set_gpio(uint32_t bank, uint32_t pin, uint32_t mode, uint32_t speed,
-	      uint32_t pull, uint32_t alternate, uint8_t status);
 void set_gpio_secure_cfg(uint32_t bank, uint32_t pin, bool secure);
 void set_gpio_reset_cfg(uint32_t bank, uint32_t pin);
 #endif /*__ASSEMBLER__*/
