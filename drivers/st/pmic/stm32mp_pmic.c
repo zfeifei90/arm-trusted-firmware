@@ -432,6 +432,41 @@ static int pmic_set_flag(const struct regul_description *desc, uint16_t flag)
 }
 
 #if defined(IMAGE_BL32)
+static int driver_suspend(const struct regul_description *desc, uint8_t state, uint16_t mv)
+{
+	int ret;
+
+	VERBOSE("%s: suspend state:%d volt:%d\n", desc->node_name, (int)state, mv);
+
+	ret = stpmic1_lp_copy_reg(desc->node_name);
+	if (ret != 0) {
+		return ret;
+	}
+
+	if ((state & LP_STATE_OFF) != 0U) {
+		ret = stpmic1_lp_reg_on_off(desc->node_name, 0);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	if ((state & LP_STATE_ON) != 0U) {
+		ret = stpmic1_lp_reg_on_off(desc->node_name, 1);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	if ((state & LP_STATE_SET_VOLT) != 0U) {
+		ret = stpmic1_lp_set_voltage(desc->node_name, mv);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 static void driver_lock(const struct regul_description *desc)
 {
 	if (stm32mp_lock_available()) {
@@ -457,6 +492,7 @@ struct regul_ops pmic_ops = {
 #if defined(IMAGE_BL32)
 	.lock = driver_lock,
 	.unlock = driver_unlock,
+	.suspend = driver_suspend,
 #endif
 };
 
