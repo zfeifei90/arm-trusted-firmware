@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2021, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -18,14 +18,6 @@
  * error
  */
 int dt_pmic_status(void);
-
-/*
- * dt_pmic_configure_boot_on_regulators - Configure boot-on and always-on
- * regulators from device tree configuration
- *
- * Returns 0 on success, and negative values on errors
- */
-int dt_pmic_configure_boot_on_regulators(void);
 
 /*
  * initialize_pmic_i2c - Initialize I2C for the PMIC control
