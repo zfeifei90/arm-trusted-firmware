@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <assert.h>
 #include <stdint.h>
 
 #include <platform_def.h>
@@ -41,6 +42,9 @@ static void tzc400_add_region(unsigned long long region_base,
 	unsigned int sec_attr;
 	unsigned int nsaid_permissions;
 
+	VERBOSE("%s : %llx - %llx : %s\n", __func__,
+		region_base, region_top, sec ? "Sec" : "Non Sec");
+
 	if (sec) {
 		sec_attr = TZC_REGION_S_RDWR;
 		nsaid_permissions = 0;
@@ -65,7 +69,7 @@ static void init_tzc400(void)
 	unsigned long long ddr_base = STM32MP_DDR_BASE;
 	unsigned long long ddr_ns_size =
 		(unsigned long long)stm32mp_get_ddr_ns_size();
-	unsigned long long ddr_ns_top = ddr_base + (ddr_ns_size - 1U);
+	unsigned long long ddr_ns_top = ddr_base + (ddr_ns_size - 1ULL);
 	unsigned long long ddr_top __unused;
 
 	init_tzc400_begin(TZC_REGION_S_NONE);
@@ -79,18 +83,20 @@ static void init_tzc400(void)
 	tzc400_add_region(region_base, region_top, false);
 
 #ifdef AARCH32_SP_OPTEE
-	/* Region 2 set to cover all secure DRAM. */
-	region_base = region_top + 1U;
-	region_top += STM32MP_DDR_S_SIZE;
-	tzc400_add_region(region_base, region_top, true);
+	/* Region 2 set to cover non-secure shared memory */
+	region_base = region_top + 1ULL;
+	region_top = STM32MP_DDR_BASE + dt_get_ddr_size() -
+		STM32MP_DDR_S_SIZE - 1ULL;
 
-	ddr_top = STM32MP_DDR_BASE + dt_get_ddr_size() - 1U;
-	if (region_top < ddr_top) {
-		/* Region 3 set to cover non-secure memory DRAM after BL32. */
-		region_base = region_top + 1U;
-		region_top = ddr_top;
-		tzc400_add_region(region_base, region_top, false);
-	}
+	assert(region_top - region_base + 1ULL == STM32MP_DDR_SHMEM_SIZE);
+	tzc400_add_region(region_base, region_top, false);
+
+	/* Region 3 set to cover the secure memory DRAM. */
+	ddr_top = STM32MP_DDR_BASE + dt_get_ddr_size() - 1ULL;
+	assert(region_top < ddr_top);
+	region_base = region_top + 1ULL;
+	region_top = ddr_top;
+	tzc400_add_region(region_base, region_top, true);
 #endif
 
 	/*
