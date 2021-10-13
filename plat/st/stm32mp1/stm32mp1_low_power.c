@@ -214,6 +214,10 @@ static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
 			panic();
 		}
 
+		/* set POPL to 20ms */
+		mmio_clrsetbits_32(pwr_base + PWR_CR3, PWR_CR3_POPL_MASK,
+				   20U << PWR_CR3_POPL_SHIFT);
+
 		if (stm32mp1_get_retram_enabled()) {
 			mmio_setbits_32(pwr_base + PWR_CR2, PWR_CR2_RREN);
 			while ((mmio_read_32(pwr_base + PWR_CR2) &
