@@ -15,7 +15,7 @@ USE_COHERENT_MEM	:=	0
 STM32MP_USE_STM32IMAGE	?=	0
 
 # Add specific ST version
-ST_VERSION 		:=	r2.0
+ST_VERSION 		:=	r2.1
 ifeq ($(STM32MP_USE_STM32IMAGE),1)
 ST_VERSION 		:=	${ST_VERSION}-nofip
 endif
