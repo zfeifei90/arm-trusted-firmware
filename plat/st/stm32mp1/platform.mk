@@ -99,6 +99,16 @@ WORKAROUND_CVE_2017_5715:=	0
 
 AARCH32_EXCEPTION_DEBUG	:=	1
 
+ifeq (${PSA_FWU_SUPPORT},1)
+# Number of banks of updatable firmware
+NR_OF_FW_BANKS			:=	2
+NR_OF_IMAGES_IN_FW_BANK		:=	1
+
+# Number of TF-A copies in the device
+STM32_TF_A_COPIES		:=	2
+STM32_BL33_PARTS_NUM		:=	2
+STM32_RUNTIME_PARTS_NUM		:=	4 # TODO NTO: optee vs spmin
+else
 # Number of TF-A copies in the device
 STM32_TF_A_COPIES		:=	2
 STM32_BL33_PARTS_NUM		:=	1
@@ -106,6 +116,7 @@ ifeq ($(AARCH32_SP),optee)
 STM32_RUNTIME_PARTS_NUM		:=	3
 else
 STM32_RUNTIME_PARTS_NUM		:=	1
+endif
 endif
 PLAT_PARTITION_MAX_ENTRIES	:=	$(shell echo $$(($(STM32_TF_A_COPIES) + \
 							 $(STM32_BL33_PARTS_NUM) + \
@@ -311,6 +322,13 @@ BL2_SOURCES		+=	drivers/io/io_fip.c					\
 				plat/st/common/stm32mp_fconf_io.c			\
 				plat/st/stm32mp1/plat_bl2_mem_params_desc.c		\
 				plat/st/stm32mp1/stm32mp1_fconf_firewall.c
+
+ifeq (${PSA_FWU_SUPPORT},1)
+include lib/zlib/zlib.mk
+include drivers/fwu/fwu.mk
+
+BL2_SOURCES		+=	$(ZLIB_SOURCES)
+endif
 
 BL2_SOURCES		+=	drivers/io/io_block.c					\
 				drivers/io/io_mtd.c					\
