@@ -18,10 +18,14 @@
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stpmic1.h>
 #include <lib/mmio.h>
+#include <lib/spinlock.h>
 #include <lib/utils_def.h>
 
 static struct i2c_handle_s i2c_handle;
 static uint32_t pmic_i2c_addr;
+#if defined(IMAGE_BL32)
+static struct spinlock lock;
+#endif
 
 static int register_pmic(void);
 
@@ -211,6 +215,11 @@ void print_pmic_info_and_debug(void)
 	}
 
 	INFO("PMIC version = 0x%02lx\n", pmic_version);
+#if defined(IMAGE_BL32)
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+	regulator_core_dump();
+#endif
+#endif
 }
 #endif
 
@@ -422,6 +431,22 @@ static int pmic_set_flag(const struct regul_description *desc, uint16_t flag)
 	}
 }
 
+#if defined(IMAGE_BL32)
+static void driver_lock(const struct regul_description *desc)
+{
+	if (stm32mp_lock_available()) {
+		spin_lock(&lock);
+	}
+}
+
+static void driver_unlock(const struct regul_description *desc)
+{
+	if (stm32mp_lock_available()) {
+		spin_unlock(&lock);
+	}
+}
+#endif
+
 struct regul_ops pmic_ops = {
 	.set_state = pmic_set_state,
 	.get_state = pmic_get_state,
@@ -429,6 +454,10 @@ struct regul_ops pmic_ops = {
 	.get_voltage = pmic_get_voltage,
 	.list_voltages = pmic_list_voltages,
 	.set_flag = pmic_set_flag,
+#if defined(IMAGE_BL32)
+	.lock = driver_lock,
+	.unlock = driver_unlock,
+#endif
 };
 
 #define DEFINE_REGU(name) { \
