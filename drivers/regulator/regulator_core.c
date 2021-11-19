@@ -20,6 +20,12 @@
 
 static struct rdev rdev_array[PLAT_NB_RDEVS];
 
+#pragma weak plat_get_lp_mode_name
+const char *plat_get_lp_mode_name(int mode)
+{
+	return NULL;
+}
+
 #define for_each_rdev(rdev) \
 	for (rdev = rdev_array; rdev < (rdev_array + PLAT_NB_RDEVS); rdev++)
 
@@ -626,6 +632,55 @@ static void parse_supply(const void *fdt, struct rdev *rdev, int node)
 		rdev->supply_phandle = get_supply_phandle(fdt, node, name);
 	}
 }
+
+static void parse_low_power_mode(const void *fdt, struct rdev *rdev, int node, int mode)
+{
+	const fdt32_t *cuint;
+
+	rdev->lp_state[mode] = 0;
+
+	if (fdt_getprop(fdt, node, "regulator-off-in-suspend", NULL) != NULL) {
+		VERBOSE("%s: mode:%d OFF\n", rdev->desc->node_name, mode);
+		rdev->lp_state[mode] |= LP_STATE_OFF;
+	} else if (fdt_getprop(fdt, node, "regulator-on-in-suspend", NULL) != NULL) {
+		VERBOSE("%s: mode:%d ON\n", rdev->desc->node_name, mode);
+		rdev->lp_state[mode] |= LP_STATE_ON;
+	} else {
+		rdev->lp_state[mode] |= LP_STATE_UNCHANGED;
+	}
+
+	cuint = fdt_getprop(fdt, node, "regulator-suspend-microvolt", NULL);
+	if (cuint != NULL) {
+		uint16_t mv;
+
+		mv = (uint16_t)(fdt32_to_cpu(*cuint) / 1000U);
+		VERBOSE("%s: mode:%d suspend mv=%u\n", rdev->desc->node_name,
+			mode, mv);
+
+		rdev->lp_state[mode] |= LP_STATE_SET_VOLT;
+		rdev->lp_mv[mode] = mv;
+	}
+}
+
+static void parse_low_power_modes(const void *fdt, struct rdev *rdev, int node)
+{
+	int i;
+
+	for (i = 0; i < PLAT_NB_SUSPEND_MODES; i++) {
+		const char *lp_mode_name = plat_get_lp_mode_name(i);
+		int n;
+
+		if (lp_mode_name == NULL) {
+			continue;
+		}
+
+		/* Get the configs from regulator_state_node subnode */
+		n = fdt_subnode_offset(fdt, node, lp_mode_name);
+		if (n >= 0) {
+			parse_low_power_mode(fdt, rdev, n, i);
+		}
+	}
+}
 #endif
 
 /*
@@ -699,6 +754,8 @@ static int parse_dt(struct rdev *rdev, int node)
 	}
 
 	parse_supply(fdt, rdev, node);
+
+	parse_low_power_modes(fdt, rdev, node);
 #endif
 
 	return 0;
@@ -761,6 +818,154 @@ int regulator_register(const struct regul_description *desc, int node)
 }
 
 #if defined(IMAGE_BL32)
+/*
+ * Suspend a single regulator before low power entry
+ * Call regulator suspend call back,
+ * Enable the regulator if boot_on flag is set as regulator is needed during
+ * boot/resume from suspend sequences.
+ *
+ * @rdev - pointer to rdev struct
+ * @mode - low power mode index
+ * Return 0 if succeed, non 0 else.
+ */
+static int suspend_regulator(struct rdev *rdev, int mode)
+{
+	int ret = 0;
+
+	if (rdev->desc->ops->suspend != NULL) {
+		lock_driver(rdev);
+		ret = rdev->desc->ops->suspend(rdev->desc,
+					       rdev->lp_state[mode],
+					       rdev->lp_mv[mode]);
+		unlock_driver(rdev);
+		if (ret != 0) {
+			ERROR("%s failed to suspend: %d\n", rdev->desc->node_name, ret);
+			return ret;
+		}
+	}
+
+	if (rdev->flags & REGUL_BOOT_ON) {
+		ret = regulator_enable(rdev);
+	}
+
+	return ret;
+}
+
+/*
+ * Resume a single regulator after low power
+ *
+ * @rdev - pointer to rdev struct
+ * Return 0 if succeed, non 0 else.
+ */
+static int resume_regulator(struct rdev *rdev)
+{
+	int ret = 0;
+
+	if (rdev->flags & REGUL_BOOT_ON) {
+		/* Revert to the state it was before suspend */
+		ret = regulator_disable(rdev);
+		if (ret != 0) {
+			ERROR("%s failed to resume: %d\n", rdev->desc->node_name, ret);
+		}
+	}
+
+	return ret;
+}
+
+/*
+ * Suspend regulators before entering low power
+ *
+ * Return 0 if succeed, non 0 else.
+ */
+int regulator_core_suspend(int mode)
+{
+	struct rdev *rdev;
+
+	VERBOSE("Regulator core suspend\n");
+
+	if (mode >= PLAT_NB_SUSPEND_MODES) {
+		return -EINVAL;
+	}
+
+	/* Suspend each regulator */
+	for_each_registered_rdev(rdev) {
+		if (suspend_regulator(rdev, mode) != 0) {
+			panic();
+		}
+	}
+
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+	regulator_core_dump();
+#endif
+
+	return 0;
+}
+
+/*
+ * Resume regulators from low power
+ *
+ * Return 0 if succeed, non 0 else.
+ */
+int regulator_core_resume(void)
+{
+	struct rdev *rdev;
+
+	VERBOSE("Regulator core resume\n");
+
+	/* Resume each regulator */
+	for_each_registered_rdev(rdev) {
+		if (resume_regulator(rdev) != 0) {
+			panic();
+		}
+	}
+
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+	regulator_core_dump();
+#endif
+
+	return 0;
+}
+
+/*
+ * save regulators data
+ *
+ * @backup_area - pointer to save data
+ * @backup_size - size of the backup area
+ */
+void regulator_core_backup_context(void *backup_area, size_t backup_size)
+{
+	int8_t *data = (int8_t *)backup_area;
+	struct rdev *rdev;
+
+	assert(data != NULL);
+	assert(backup_size == PLAT_BACKUP_REGULATOR_SIZE);
+
+	for_each_rdev(rdev) {
+		*data = rdev->use_count;
+		data++;
+	}
+}
+
+/*
+ * restore regulators data
+ *
+ * @backup_area - pointer to retrieve saved data
+ * @backup_size - size of the backup area
+ */
+void regulator_core_restore_context(void *backup_area, size_t backup_size)
+{
+	int8_t *data = (int8_t *)backup_area;
+	struct rdev *rdev;
+
+	assert(data != NULL);
+	assert(backup_size == PLAT_BACKUP_REGULATOR_SIZE);
+
+	for_each_rdev(rdev) {
+		rdev->use_count = *data;
+		data++;
+	}
+}
+
 #if LOG_LEVEL >= LOG_LEVEL_VERBOSE
 static void sprint_name(char *dest, const char *src, int len)
 {

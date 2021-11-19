@@ -12,6 +12,12 @@
 #error "Missing PLAT_NB_RDEVS"
 #endif
 
+#ifndef PLAT_NB_SUSPEND_MODES
+#error "Missing PLAT_NB_SUSPEND_MODES"
+#endif
+
+const char *plat_get_lp_mode_name(int mode);
+
 /*
  * Consumer interface
  */
@@ -64,6 +70,12 @@ int regulator_set_flag(struct rdev *rdev, uint16_t flag);
 #define STATE_DISABLE		false
 #define STATE_ENABLE		true
 
+/* suspend() arguments */
+#define LP_STATE_OFF		BIT(0)
+#define LP_STATE_ON		BIT(1)
+#define LP_STATE_UNCHANGED	BIT(2)
+#define LP_STATE_SET_VOLT	BIT(3)
+
 struct regul_description {
 	const char *node_name;
 	const struct regul_ops *ops;
@@ -82,6 +94,10 @@ struct regul_ops {
 	int (*set_flag)(const struct regul_description *desc, uint16_t flag);
 	void (*lock)(const struct regul_description *desc);
 	void (*unlock)(const struct regul_description *desc);
+#if defined(IMAGE_BL32)
+	int (*suspend)(const struct regul_description *desc, uint8_t state,
+		       uint16_t mv);
+#endif
 };
 
 int regulator_register(const struct regul_description *desc, int node);
@@ -109,6 +125,9 @@ struct rdev {
 
 	int32_t supply_phandle;
 	struct rdev *supply_dev;
+
+	uint8_t lp_state[PLAT_NB_SUSPEND_MODES];
+	uint16_t lp_mv[PLAT_NB_SUSPEND_MODES];
 #endif
 };
 
@@ -117,6 +136,15 @@ struct rdev {
 /* Boot and init */
 int regulator_core_config(void);
 int regulator_core_cleanup(void);
+
+/* Suspend resume operations */
+#define PLAT_BACKUP_REGULATOR_SIZE (sizeof(int8_t) * PLAT_NB_RDEVS)
+
+int regulator_core_suspend(int mode);
+int regulator_core_resume(void);
+
+void regulator_core_backup_context(void *backup_area, size_t backup_size);
+void regulator_core_restore_context(void *backup_area, size_t backup_size);
 
 #if LOG_LEVEL >= LOG_LEVEL_VERBOSE
 void regulator_core_dump(void);
