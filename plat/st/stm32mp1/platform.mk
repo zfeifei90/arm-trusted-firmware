@@ -14,6 +14,12 @@ USE_COHERENT_MEM	:=	0
 # If it is set to 0, then FIP is used
 STM32MP_USE_STM32IMAGE	?=	0
 
+ifeq ($(STM32MP_USE_STM32IMAGE),1)
+$(warning )
+$(warning STM32MP_USE_STM32IMAGE is deprecated)
+$(warning )
+endif
+
 ifneq ($(STM32MP_USE_STM32IMAGE),1)
 ENABLE_PIE		:=	1
 endif
