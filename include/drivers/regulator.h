@@ -42,7 +42,6 @@
 #define REGUL_ENABLE_BYPASS	BIT(7)
 
 struct rdev *regulator_get_by_name(const char *node_name);
-
 struct rdev *regulator_get_by_supply_name(const void *fdt, int node, const char *name);
 
 int regulator_enable(struct rdev *rdev);
@@ -103,6 +102,26 @@ struct rdev {
 	uint16_t flags;
 
 	uint32_t enable_ramp_delay;
+#if defined(IMAGE_BL32)
+	const char *reg_name;
+
+	uint8_t use_count;
+
+	int32_t supply_phandle;
+	struct rdev *supply_dev;
+#endif
 };
+
+#if defined(IMAGE_BL32)
+
+/* Boot and init */
+int regulator_core_config(void);
+int regulator_core_cleanup(void);
+
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+void regulator_core_dump(void);
+#endif
+
+#endif
 
 #endif /* REGULATOR_H */

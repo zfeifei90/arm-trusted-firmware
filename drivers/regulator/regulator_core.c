@@ -126,6 +126,134 @@ static int __regulator_set_state(struct rdev *rdev, bool state)
 	return rdev->desc->ops->set_state(rdev->desc, state);
 }
 
+#if defined(IMAGE_BL32)
+/*
+ * Enable regulator supply
+ * Enable regulator if use_count == 0
+ * Apply ramp delay
+ *
+ * @rdev - pointer to rdev struct
+ * Return 0 if succeed, non 0 else.
+ */
+static int __regulator_enable(struct rdev *rdev)
+{
+	VERBOSE("%s: en\n", rdev->desc->node_name);
+
+	if (rdev->desc->ops->set_state == NULL) {
+		return -ENODEV;
+	}
+
+	if (rdev->supply_dev != NULL)
+		regulator_enable(rdev->supply_dev);
+
+	lock_driver(rdev);
+
+	if (rdev->use_count == 0) {
+		int ret;
+
+		ret = __regulator_set_state(rdev, STATE_ENABLE);
+		if (ret != 0) {
+			ERROR("regul %s set state failed: err:%d\n",
+			      rdev->desc->node_name, ret);
+			unlock_driver(rdev);
+			return ret;
+		}
+
+		udelay(rdev->enable_ramp_delay);
+	}
+
+	rdev->use_count++;
+
+	assert(rdev->use_count != UINT8_MAX);
+
+	VERBOSE("%s: en count:%u\n", rdev->desc->node_name, rdev->use_count);
+
+	unlock_driver(rdev);
+
+	return 0;
+}
+
+/*
+ * Enable regulator
+ *
+ * @rdev - pointer to rdev struct
+ * Return 0 if succeed, non 0 else.
+ */
+int regulator_enable(struct rdev *rdev)
+{
+	assert(rdev != NULL);
+
+	if (rdev->flags & REGUL_ALWAYS_ON) {
+		return 0;
+	}
+
+	return __regulator_enable(rdev);
+}
+
+/*
+ * Disable regulator if use_count fall to zero
+ * Warn if count is < 0 because too many disable were requested
+ * Disable regulator supply
+ *
+ * @rdev - pointer to rdev struct
+ * Return 0 if succeed, non 0 else.
+ */
+static int __regulator_disable(struct rdev *rdev)
+{
+	VERBOSE("%s: dis\n", rdev->desc->node_name);
+
+	if (rdev->desc->ops->set_state == NULL) {
+		return -ENODEV;
+	}
+
+	lock_driver(rdev);
+
+	if (rdev->use_count == 1) {
+		int ret;
+
+		ret = __regulator_set_state(rdev, STATE_DISABLE);
+		if (ret != 0) {
+			ERROR("regul %s set state failed: err:%d\n",
+			      rdev->desc->node_name, ret);
+			unlock_driver(rdev);
+			return ret;
+		}
+	}
+
+	if (rdev->use_count == 0) {
+		WARN("regulator %s unbalanced disable\n", rdev->desc->node_name);
+	} else {
+		rdev->use_count--;
+	}
+
+	VERBOSE("%s: dis count:%u\n", rdev->desc->node_name, rdev->use_count);
+
+	unlock_driver(rdev);
+
+	if (rdev->supply_dev != NULL) {
+		regulator_disable(rdev->supply_dev);
+	}
+
+	return 0;
+}
+
+/*
+ * Disable regulator
+ *
+ * @rdev - pointer to rdev struct
+ * Return 0 if succeed, non 0 else.
+ */
+int regulator_disable(struct rdev *rdev)
+{
+	assert(rdev != NULL);
+
+	if (rdev->flags & REGUL_ALWAYS_ON) {
+		return 0;
+	}
+
+	return __regulator_disable(rdev);
+}
+#else
 /*
  * Enable regulator
  *
@@ -163,6 +291,7 @@ int regulator_disable(struct rdev *rdev)
 
 	return ret;
 }
+#endif
 
 /*
  * Regulator enabled query
@@ -413,6 +542,92 @@ int regulator_set_flag(struct rdev *rdev, uint16_t flag)
 	return 0;
 }
 
+#if defined(IMAGE_BL32)
+
+struct regul_property {
+	char *name;
+	uint16_t flag;
+};
+
+static struct regul_property flag_prop[] = {
+	{
+		.name = "regulator-always-on",
+		.flag = REGUL_ALWAYS_ON,
+	},
+	{
+		.name = "regulator-boot-on",
+		.flag = REGUL_BOOT_ON,
+	},
+	{
+		.name = "regulator-active-discharge",
+		.flag = REGUL_ACTIVE_DISCHARGE,
+	},
+	{
+		.name = "regulator-over-current-protection",
+		.flag = REGUL_OCP,
+	},
+	{
+		.name = "regulator-pull-down",
+		.flag = REGUL_PULL_DOWN,
+	},
+	{
+		.name = "st,mask-reset",
+		.flag = REGUL_MASK_RESET,
+	},
+	{
+		.name = "st,regulator-sink-source",
+		.flag = REGUL_SINK_SOURCE,
+	},
+	{
+		.name = "st,regulator-bypass",
+		.flag = REGUL_ENABLE_BYPASS,
+	},
+};
+
+static int parse_properties(const void *fdt, struct rdev *rdev, int node)
+{
+	const fdt32_t *cuint;
+	int ret = 0;
+	struct regul_property *prop;
+
+	for (prop = flag_prop; prop < (flag_prop + ARRAY_SIZE(flag_prop)); prop++) {
+		if (fdt_getprop(fdt, node, prop->name, NULL) != NULL) {
+			VERBOSE("%s: prop 0x%x\n", rdev->desc->node_name, prop->flag);
+			ret = regulator_set_flag(rdev, prop->flag);
+			if (ret != 0) {
+				return ret;
+			}
+		}
+	}
+
+	cuint = fdt_getprop(fdt, node, "regulator-enable-ramp-delay", NULL);
+	if (cuint != NULL) {
+		rdev->enable_ramp_delay = (uint32_t)(fdt32_to_cpu(*cuint));
+		VERBOSE("%s: enable_ramp_delay=%u\n", rdev->desc->node_name,
+			rdev->enable_ramp_delay);
+	}
+
+	rdev->reg_name = fdt_getprop(fdt, node, "regulator-name", NULL);
+
+	return 0;
+}
+
+static void parse_supply(const void *fdt, struct rdev *rdev, int node)
+{
+	const char *name = rdev->desc->supply_name;
+
+	if (name == NULL) {
+		name = rdev->desc->node_name;
+	}
+
+	rdev->supply_phandle = get_supply_phandle(fdt, node, name);
+	if (rdev->supply_phandle < 0) {
+		node = fdt_parent_offset(fdt, node);
+		rdev->supply_phandle = get_supply_phandle(fdt, node, name);
+	}
+}
+#endif
+
 /*
  * Parse the device-tree for a regulator
  *
@@ -477,6 +692,15 @@ static int parse_dt(struct rdev *rdev, int node)
 		return ret;
 	}
 
+#if defined(IMAGE_BL32)
+	ret = parse_properties(fdt, rdev, node);
+	if (ret != 0) {
+		return ret;
+	}
+
+	parse_supply(fdt, rdev, node);
+#endif
+
 	return 0;
 }
 
@@ -535,3 +759,149 @@ int regulator_register(const struct regul_description *desc, int node)
 
 	return parse_dt(rdev, node);
 }
+
+#if defined(IMAGE_BL32)
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+static void sprint_name(char *dest, const char *src, int len)
+{
+	int l;
+
+	if (src == NULL) {
+		src = "";
+	}
+
+	l = strlen(src);
+	if (l > len) {
+		l = len;
+	}
+
+	memset(dest, ' ', len);
+	memcpy(dest, src, l);
+	dest[len] = 0;
+}
+
+/*
+ * Log regulators state
+ */
+void regulator_core_dump(void)
+{
+	struct rdev *rdev;
+
+	VERBOSE("Dump Regulators\n");
+
+	INFO("reg      name     use\ten\tmV\tmin\tmax\tflags\tsupply\n");
+
+	for_each_registered_rdev(rdev) {
+		uint16_t min_mv, max_mv;
+		char reg[9] = "";
+		char name[9];
+		const char *supply = "";
+
+		sprint_name(name, rdev->desc->node_name, 8);
+		sprint_name(reg, rdev->reg_name, 8);
+
+		regulator_get_range(rdev, &min_mv, &max_mv);
+		if (rdev->supply_dev != NULL)
+			supply = rdev->supply_dev->desc->node_name;
+
+		INFO("%s %s %d\t%d\t%d\t%d\t%d\t0x%x\t%s\n",
+		     reg, name,
+		     rdev->use_count,
+		     regulator_is_enabled(rdev),
+		     regulator_get_voltage(rdev),  min_mv, max_mv,
+		     rdev->flags, supply);
+	}
+}
+#endif
+
+/*
+ * Connect each regulator to its supply
+ * Apply min voltage if the voltage is outside the authorized range
+ * Enable always-on regulators
+ *
+ * Return 0 if succeed, non 0 else.
+ */
+int regulator_core_config(void)
+{
+	int ret;
+	struct rdev *rdev;
+
+	VERBOSE("Regul Core config\n");
+
+	for_each_registered_rdev(rdev) {
+		if (rdev->supply_phandle >= 0) {
+			struct rdev *s;
+
+			VERBOSE("%s: connect supply\n", rdev->desc->node_name);
+
+			s = regulator_get_by_phandle(rdev->supply_phandle);
+			if (s == NULL) {
+				return -EINVAL;
+			}
+
+			rdev->supply_dev = s;
+		}
+	}
+
+	for_each_registered_rdev(rdev) {
+		uint16_t mv, min_mv, max_mv;
+
+		regulator_get_range(rdev, &min_mv, &max_mv);
+
+		ret = regulator_get_voltage(rdev);
+		if (ret >= 0) {
+			mv = ret;
+			if ((mv < min_mv) || (mv > max_mv)) {
+				ret = regulator_set_voltage(rdev, min_mv);
+				if (ret != 0) {
+					return ret;
+				}
+			}
+		} else {
+			return ret;
+		}
+
+		/*
+		 * Enable always-on regulator and increment its use_count so that
+		 * the regulator is not being disabled during clean-up sequence.
+		 */
+		if (rdev->flags & REGUL_ALWAYS_ON) {
+			ret = __regulator_enable(rdev);
+			if (ret != 0) {
+				return ret;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/*
+ * Sync hardware regulator state with use refcount
+ *
+ * Return 0 if succeed, non 0 else.
+ */
+int regulator_core_cleanup(void)
+{
+	struct rdev *rdev;
+
+	VERBOSE("Regul Core cleanup\n");
+
+	for_each_registered_rdev(rdev) {
+		if (!(rdev->flags & REGUL_BOOT_ON)) {
+			if ((rdev->use_count == 0) && (regulator_is_enabled(rdev) == 1)) {
+				VERBOSE("disable %s during cleanup\n", rdev->desc->node_name);
+				/* force disable to synchronize the framework */
+				__regulator_set_state(rdev, STATE_DISABLE);
+			}
+		}
+	}
+
+#if LOG_LEVEL >= LOG_LEVEL_VERBOSE
+	regulator_core_dump();
+#endif
+
+	return 0;
+}
+
+#endif
