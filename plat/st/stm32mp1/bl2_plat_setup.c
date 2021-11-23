@@ -419,9 +419,15 @@ static void prepare_encryption(void)
 
 	stm32_mce_init();
 
-	/* Generate MCE master key from RNG */
-	if (stm32_rng_read(mkey, MCE_KEY_SIZE_IN_BYTES) != 0) {
-		panic();
+	if (stm32mp1_is_wakeup_from_standby()) {
+		stm32mp1_pm_get_mce_mkey_from_context(mkey);
+	} else {
+		/* Generate MCE master key from RNG */
+		if (stm32_rng_read(mkey, MCE_KEY_SIZE_IN_BYTES) != 0) {
+			panic();
+		}
+
+		stm32mp1_pm_save_mce_mkey_in_context(mkey);
 	}
 
 	if (stm32_mce_write_master_key(mkey) != 0) {
