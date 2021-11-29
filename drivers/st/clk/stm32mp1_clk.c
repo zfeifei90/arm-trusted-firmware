@@ -3272,6 +3272,10 @@ void stm32mp1_clock_resume(void)
 	for (idx = 0U; idx < NB_GATES; idx++) {
 		struct stm32mp1_clk_gate const *gate = gate_ref(idx);
 
+		if (clock_is_always_on(gate->index)) {
+			continue;
+		}
+
 		if (gate_is_non_secure(gate)) {
 			continue;
 		}
