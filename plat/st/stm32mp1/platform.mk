@@ -471,6 +471,9 @@ BL2_SOURCES		+=	common/desc_image_load.c				\
 
 BL2_SOURCES		+=	lib/optee/optee_utils.c
 
+BL2_SOURCES		+=	plat/st/stm32mp1/stm32mp1_critic_power.c
+BL2_SOURCES		+=	plat/st/stm32mp1/stm32mp1_critic_power_wrapper.S
+
 ifeq ($(STM32MP_SSP),1)
 include plat/st/stm32mp1/stm32mp1_ssp.mk
 endif

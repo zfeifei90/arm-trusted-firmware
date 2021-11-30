@@ -14,6 +14,7 @@
 #include <common/bl_common.h>
 #include <common/debug.h>
 #include <common/desc_image_load.h>
+#include <drivers/clk.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/mmc.h>
 #include <drivers/st/bsec.h>
@@ -35,6 +36,7 @@
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/common/platform.h>
 
+#include <stm32mp1_context.h>
 #include <stm32mp1_dbgmcu.h>
 
 static const char debug_msg[626] = {
@@ -159,6 +161,23 @@ void bl2_platform_setup(void)
 	if (ret < 0) {
 		ERROR("Invalid DDR init: error %d\n", ret);
 		panic();
+	}
+
+	if (!stm32mp1_ddr_is_restored()) {
+#if STM32MP15
+		uint32_t bkpr_core1_magic =
+			tamp_bkpr(BOOT_API_CORE1_MAGIC_NUMBER_TAMP_BCK_REG_IDX);
+		uint32_t bkpr_core1_addr =
+			tamp_bkpr(BOOT_API_CORE1_BRANCH_ADDRESS_TAMP_BCK_REG_IDX);
+
+		/* Clear backup register */
+		mmio_write_32(bkpr_core1_addr, 0);
+		/* Clear backup register magic */
+		mmio_write_32(bkpr_core1_magic, 0);
+#endif
+
+		/* Clear the context in BKPSRAM */
+		stm32_clean_context();
 	}
 
 	/* Map DDR for binary load, now with cacheable attribute */
@@ -429,6 +448,7 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 	bl_mem_params_node_t *tos_fw_mem_params;
 	unsigned int i;
 	unsigned long long ddr_top __unused;
+	bool wakeup_ddr_sr = stm32mp1_ddr_is_restored();
 	const unsigned int image_ids[] = {
 		BL32_IMAGE_ID,
 		BL33_IMAGE_ID,
@@ -464,7 +484,13 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 			bl_mem_params->image_info.image_base = config_info->config_addr;
 			bl_mem_params->image_info.image_max_size = config_info->config_max_size;
 
-			bl_mem_params->image_info.h.attr &= ~IMAGE_ATTRIB_SKIP_LOADING;
+			/*
+			 * If going back from CSTANDBY / STANDBY and DDR was in Self-Refresh,
+			 * DDR partitions must not be reloaded.
+			 */
+			if (!(wakeup_ddr_sr && (config_info->config_addr >= STM32MP_DDR_BASE))) {
+				bl_mem_params->image_info.h.attr &= ~IMAGE_ATTRIB_SKIP_LOADING;
+			}
 
 			switch (image_ids[i]) {
 			case BL32_IMAGE_ID:
@@ -484,7 +510,15 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 				break;
 
 			case BL33_IMAGE_ID:
-				bl_mem_params->ep_info.pc = config_info->config_addr;
+				if (wakeup_ddr_sr) {
+					/*
+					 * Set ep_info PC to 0, to inform BL32 it is a reset
+					 * after STANDBY
+					 */
+					bl_mem_params->ep_info.pc = 0U;
+				} else {
+					bl_mem_params->ep_info.pc = config_info->config_addr;
+				}
 				break;
 
 			case HW_CONFIG_ID:
@@ -499,9 +533,25 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 #endif /* !STM32MP_USE_STM32IMAGE */
 
 	case BL32_IMAGE_ID:
+#if STM32MP13
+		if (wakeup_ddr_sr) {
+			bl_mem_params->ep_info.pc = stm32_pm_get_optee_ep();
+			break;
+		}
+#endif
 		if (optee_header_is_valid(bl_mem_params->image_info.image_base)) {
 			/* BL32 is OP-TEE header */
 			bl_mem_params->ep_info.pc = bl_mem_params->image_info.image_base;
+#if !STM32MP_USE_STM32IMAGE
+			if (wakeup_ddr_sr) {
+				bl_mem_params->ep_info.pc = stm32_pm_get_optee_ep();
+				if (stm32mp1_addr_inside_backupsram(bl_mem_params->ep_info.pc)) {
+					clk_enable(BKPSRAM);
+				}
+
+				break;
+			}
+#endif
 			pager_mem_params = get_bl_mem_params_node(BL32_EXTRA1_IMAGE_ID);
 			paged_mem_params = get_bl_mem_params_node(BL32_EXTRA2_IMAGE_ID);
 			assert((pager_mem_params != NULL) && (paged_mem_params != NULL));
@@ -538,6 +588,10 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 				tos_fw_mem_params->image_info.image_max_size;
 #endif /* !STM32MP_USE_STM32IMAGE */
 			bl_mem_params->ep_info.args.arg0 = 0;
+		}
+
+		if (bl_mem_params->ep_info.pc >= STM32MP_DDR_BASE) {
+			stm32_context_save_bl2_param();
 		}
 		break;
 
