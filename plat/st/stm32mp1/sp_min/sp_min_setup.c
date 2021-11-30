@@ -15,6 +15,7 @@
 #include <context.h>
 #include <drivers/arm/gicv2.h>
 #include <drivers/arm/tzc400.h>
+#include <drivers/clk.h>
 #include <drivers/generic_delay_timer.h>
 #include <drivers/regulator.h>
 #include <drivers/st/bsec.h>
@@ -28,6 +29,7 @@
 #include <drivers/st/stm32mp_pmic.h>
 #include <drivers/st/stm32mp_reset.h>
 #include <drivers/st/stm32mp1_clk.h>
+#include <drivers/st/stm32mp1_ddr_helpers.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <lib/el3_runtime/context_mgmt.h>
 #include <lib/mmio.h>
@@ -35,6 +37,9 @@
 #include <plat/common/platform.h>
 
 #include <platform_sp_min.h>
+#include <stm32mp1_context.h>
+#include <stm32mp1_low_power.h>
+#include <stm32mp1_power_config.h>
 
 /******************************************************************************
  * Placeholder variables for copying the arguments that have been passed to
@@ -59,6 +64,31 @@ static int stm32mp1_tamper_action(int id)
 	ERROR("Tamper %u (%s) occurs\n", id, tamp_name);
 
 	return 1; /* ack TAMPER and reset system */
+}
+
+static void stm32_sgi1_it_handler(void)
+{
+	uint32_t id;
+
+	stm32mp_mask_timer();
+
+#if DEBUG
+	stm32mp_dump_core_registers(false);
+#endif
+
+	gicv2_end_of_interrupt(ARM_IRQ_SEC_SGI_1);
+
+	do {
+		id = plat_ic_get_pending_interrupt_id();
+
+		if (id <= MAX_SPI_ID) {
+			gicv2_end_of_interrupt(id);
+
+			plat_ic_disable_interrupt(id);
+		}
+	} while (id <= MAX_SPI_ID);
+
+	stm32mp_wait_cpu_reset();
 }
 
 static void disable_usb_phy_regulator(void)
@@ -94,14 +124,49 @@ void sp_min_plat_fiq_handler(uint32_t id)
 	case STM32MP1_IRQ_TAMPSERRS:
 		stm32_tamp_it_handler();
 		break;
+	case ARM_IRQ_SEC_SGI_1:
+		stm32_sgi1_it_handler();
+		break;
 	case STM32MP1_IRQ_AXIERRIRQ:
 		ERROR("STM32MP1_IRQ_AXIERRIRQ generated\n");
 		panic();
 		break;
 	default:
-		ERROR("SECURE IT handler not define for it : %u", id);
+		ERROR("SECURE IT handler not define for it : %u\n", id);
 		break;
 	}
+}
+
+/*******************************************************************************
+ * Return the value of the saved PC from the backup register if present
+ ******************************************************************************/
+static uintptr_t get_saved_pc(void)
+{
+	uint32_t bkpr_core1_addr =
+		tamp_bkpr(BOOT_API_CORE1_BRANCH_ADDRESS_TAMP_BCK_REG_IDX);
+	uint32_t saved_pc;
+	uint32_t bkpr_core1_magic =
+		tamp_bkpr(BOOT_API_CORE1_MAGIC_NUMBER_TAMP_BCK_REG_IDX);
+	uint32_t magic_nb;
+
+	clk_enable(RTCAPB);
+
+	magic_nb = mmio_read_32(bkpr_core1_magic);
+	saved_pc = mmio_read_32(bkpr_core1_addr);
+
+	clk_disable(RTCAPB);
+
+	if (magic_nb != BOOT_API_A7_CORE0_MAGIC_NUMBER) {
+		return 0U;
+	}
+
+	/* BL33 return address should be in DDR */
+	if ((saved_pc < STM32MP_DDR_BASE) ||
+	    (saved_pc > (STM32MP_DDR_BASE + (dt_get_ddr_size() - 1U)))) {
+		panic();
+	}
+
+	return saved_pc;
 }
 
 /*******************************************************************************
@@ -112,12 +177,36 @@ void sp_min_plat_fiq_handler(uint32_t id)
  ******************************************************************************/
 entry_point_info_t *sp_min_plat_get_bl33_ep_info(void)
 {
-	entry_point_info_t *next_image_info;
+	entry_point_info_t *next_image_info = &bl33_image_ep_info;
 
-	next_image_info = &bl33_image_ep_info;
-
+	/*
+	 * PC is set to 0 when resetting after STANDBY
+	 * The context should be restored, and the image information
+	 * should be filled with what was saved
+	 */
 	if (next_image_info->pc == 0U) {
-		return NULL;
+		void *cpu_context;
+		uintptr_t saved_pc;
+
+		if (stm32_restore_context() != 0) {
+			panic();
+		}
+
+		cpu_context = cm_get_context(NON_SECURE);
+
+		next_image_info->spsr = read_ctx_reg(get_regs_ctx(cpu_context),
+						     CTX_SPSR);
+
+		/* PC should be retrieved in backup register if OK, else it can
+		 * be retrieved from non-secure context
+		 */
+		saved_pc = get_saved_pc();
+		if (saved_pc != 0U) {
+			next_image_info->pc = saved_pc;
+		} else {
+			next_image_info->pc =
+				read_ctx_reg(get_regs_ctx(cpu_context), CTX_LR);
+		}
 	}
 
 	return next_image_info;
@@ -237,6 +326,8 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	}
 
 	disable_usb_phy_regulator();
+
+	stm32mp1_init_lp_states();
 }
 
 static void init_sec_peripherals(void)
@@ -293,6 +384,10 @@ static void init_sec_peripherals(void)
  ******************************************************************************/
 void sp_min_platform_setup(void)
 {
+	stm32_init_low_power();
+
+	ddr_save_sr_mode();
+
 	stm32mp_gic_init();
 
 	init_sec_peripherals();

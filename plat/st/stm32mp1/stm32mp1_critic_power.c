@@ -124,3 +124,38 @@ void stm32_pwr_call_optee_ep(void)
 	panic();
 }
 #endif
+
+#if defined(IMAGE_BL32)
+void stm32_pwr_down_wfi(bool is_cstop, uint32_t mode)
+{
+	uint32_t interrupt = GIC_SPURIOUS_INTERRUPT;
+
+	if (mode != STM32_PM_CSLEEP_RUN) {
+		dcsw_op_all(DC_OP_CISW);
+	}
+
+	if (is_cstop) {
+		cstop_critic_enter(mode);
+	}
+
+	if (mode == STM32_PM_SHUTDOWN) {
+		shutdown_critic_enter();
+	}
+
+	while (interrupt == GIC_SPURIOUS_INTERRUPT) {
+		wfi();
+
+		interrupt = gicv2_acknowledge_interrupt();
+
+		if (interrupt != GIC_SPURIOUS_INTERRUPT) {
+			gicv2_end_of_interrupt(interrupt);
+		}
+
+		stm32_iwdg_refresh();
+	}
+
+	if (is_cstop) {
+		stm32_pwr_cstop_critic_exit();
+	}
+}
+#endif

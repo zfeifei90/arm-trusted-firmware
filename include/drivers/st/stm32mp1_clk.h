@@ -48,6 +48,15 @@ void stm32mp1_clk_rcc_regs_unlock(void);
 int stm32mp1_round_opp_khz(uint32_t *freq_khz);
 int stm32mp1_set_opp_khz(uint32_t freq_khz);
 
+void stm32mp1_clock_suspend(void);
+void stm32mp1_clock_resume(void);
+
+void stm32mp1_clock_stopmode_save(void);
+int stm32mp1_clock_stopmode_resume(void);
+
+void restore_clock_pm_context(void);
+void save_clock_pm_context(void);
+
 void stm32mp1_clk_mcuss_protect(bool enable);
 
 #ifdef STM32MP_SHARED_RESOURCES

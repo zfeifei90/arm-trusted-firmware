@@ -660,6 +660,13 @@ static unsigned int gate_refcounts[NB_GATES];
 static struct spinlock refcount_lock;
 static struct stm32mp1_pll_settings pll1_settings;
 static uint32_t current_opp_khz;
+#if defined(IMAGE_BL32)
+static uint32_t save_current_opp_khz;
+static uint32_t pll3cr;
+static uint32_t pll4cr;
+static uint32_t mssckselr;
+static uint32_t mcudivr;
+#endif
 
 static const struct stm32mp1_clk_gate *gate_ref(unsigned int idx)
 {
@@ -2959,6 +2966,395 @@ void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
 	}
 }
 #endif /* STM32MP_SHARED_RESOURCES */
+
+#if defined(IMAGE_BL32)
+/*
+ * Sequence to save/restore the non-secure configuration.
+ * Restoring clocks and muxes need IPs to run on kernel clock
+ * hence on configuration is restored at resume, kernel clock
+ * should be disable: this mandates secure access.
+ *
+ * backup_mux*_cfg for the clock muxes.
+ * backup_clock_sc_cfg for the set/clear clock gating registers
+ * backup_clock_cfg for the regular full write registers
+ */
+
+struct backup_mux_cfg {
+	uint16_t offset;
+	uint8_t value;
+	uint8_t bit_len;
+};
+
+#define MUXCFG(_offset, _bit_len) \
+	{ .offset = (_offset), .bit_len = (_bit_len) }
+
+static struct backup_mux_cfg backup_mux0_cfg[] = {
+	MUXCFG(RCC_SDMMC12CKSELR, 3),
+	MUXCFG(RCC_SPI2S23CKSELR, 3),
+	MUXCFG(RCC_SPI45CKSELR, 3),
+	MUXCFG(RCC_I2C12CKSELR, 3),
+	MUXCFG(RCC_I2C35CKSELR, 3),
+	MUXCFG(RCC_LPTIM23CKSELR, 3),
+	MUXCFG(RCC_LPTIM45CKSELR, 3),
+	MUXCFG(RCC_UART24CKSELR, 3),
+	MUXCFG(RCC_UART35CKSELR, 3),
+	MUXCFG(RCC_UART78CKSELR, 3),
+	MUXCFG(RCC_SAI1CKSELR, 3),
+	MUXCFG(RCC_ETHCKSELR, 2),
+	MUXCFG(RCC_I2C46CKSELR, 3),
+	MUXCFG(RCC_RNG2CKSELR, 2),
+	MUXCFG(RCC_SDMMC3CKSELR, 3),
+	MUXCFG(RCC_FMCCKSELR, 2),
+	MUXCFG(RCC_QSPICKSELR, 2),
+	MUXCFG(RCC_USBCKSELR, 2),
+	MUXCFG(RCC_SPDIFCKSELR, 2),
+	MUXCFG(RCC_SPI2S1CKSELR, 3),
+	MUXCFG(RCC_CECCKSELR, 2),
+	MUXCFG(RCC_LPTIM1CKSELR, 3),
+	MUXCFG(RCC_UART6CKSELR, 3),
+	MUXCFG(RCC_FDCANCKSELR, 2),
+	MUXCFG(RCC_SAI2CKSELR, 3),
+	MUXCFG(RCC_SAI3CKSELR,  3),
+	MUXCFG(RCC_SAI4CKSELR, 3),
+	MUXCFG(RCC_ADCCKSELR, 2),
+	MUXCFG(RCC_DSICKSELR, 1),
+	MUXCFG(RCC_CPERCKSELR, 2),
+	MUXCFG(RCC_RNG1CKSELR, 2),
+	MUXCFG(RCC_STGENCKSELR, 2),
+	MUXCFG(RCC_UART1CKSELR, 3),
+	MUXCFG(RCC_SPI6CKSELR, 3),
+};
+
+static struct backup_mux_cfg backup_mux4_cfg[] = {
+	MUXCFG(RCC_USBCKSELR, 1),
+};
+
+static void backup_mux_cfg(void)
+{
+	uintptr_t base = stm32mp_rcc_base();
+	struct backup_mux_cfg *cfg;
+	size_t i;
+
+	cfg = backup_mux0_cfg;
+	for (i = 0U; i < ARRAY_SIZE(backup_mux0_cfg); i++) {
+		cfg[i].value = mmio_read_32(base + cfg[i].offset) &
+			       GENMASK_32(cfg[i].bit_len - 1U, 0U);
+	}
+
+	cfg = backup_mux4_cfg;
+	for (i = 0U; i < ARRAY_SIZE(backup_mux4_cfg); i++) {
+		cfg[i].value = mmio_read_32(base + cfg[i].offset) &
+			       GENMASK_32(4U + cfg[i].bit_len - 1U, 4U);
+	}
+}
+
+static void restore_mux_cfg(void)
+{
+	uintptr_t base = stm32mp_rcc_base();
+	struct backup_mux_cfg *cfg;
+	size_t i;
+
+	cfg = backup_mux0_cfg;
+	for (i = 0U; i < ARRAY_SIZE(backup_mux0_cfg); i++) {
+		uint32_t mask = GENMASK_32(cfg[i].bit_len - 1U, 0U);
+		uint32_t value = cfg[i].value & mask;
+
+		mmio_clrsetbits_32(base + cfg[i].offset, mask, value);
+	}
+
+	cfg = backup_mux4_cfg;
+	for (i = 0U; i < ARRAY_SIZE(backup_mux4_cfg); i++) {
+		uint32_t mask = GENMASK_32(4U + cfg[i].bit_len - 1U, 4U);
+		uint32_t value = cfg[i].value & mask;
+
+		mmio_clrsetbits_32(base + cfg[i].offset, mask, value);
+	}
+}
+
+/* Structure is used for set/clear registers and for regular registers */
+struct backup_clock_cfg {
+	uint32_t offset;
+	uint32_t value;
+};
+
+static struct backup_clock_cfg backup_clock_sc_cfg[] = {
+	{ .offset = RCC_MP_APB1ENSETR },
+	{ .offset = RCC_MP_APB2ENSETR },
+	{ .offset = RCC_MP_APB3ENSETR },
+	{ .offset = RCC_MP_APB4ENSETR },
+	{ .offset = RCC_MP_APB5ENSETR },
+	{ .offset = RCC_MP_AHB2ENSETR },
+	{ .offset = RCC_MP_AHB3ENSETR },
+	{ .offset = RCC_MP_AHB4ENSETR },
+	{ .offset = RCC_MP_AHB5ENSETR },
+	{ .offset = RCC_MP_AHB6ENSETR },
+	{ .offset = RCC_MP_MLAHBENSETR },
+};
+
+static struct backup_clock_cfg backup_clock_cfg[] = {
+	{ .offset = RCC_MCO1CFGR },
+	{ .offset = RCC_MCO2CFGR },
+	{ .offset = RCC_PLL3CR },
+	{ .offset = RCC_PLL4CR },
+	{ .offset = RCC_PLL4CFGR2 },
+	{ .offset = RCC_MCUDIVR },
+	{ .offset = RCC_MSSCKSELR },
+};
+
+static void backup_sc_cfg(void)
+{
+	struct backup_clock_cfg *cfg = backup_clock_sc_cfg;
+	size_t count = ARRAY_SIZE(backup_clock_sc_cfg);
+	uintptr_t base = stm32mp_rcc_base();
+	size_t i;
+
+	for (i = 0U; i < count; i++) {
+		cfg[i].value = mmio_read_32(base + cfg[i].offset);
+	}
+}
+
+static void restore_sc_cfg(void)
+{
+	struct backup_clock_cfg *cfg = backup_clock_sc_cfg;
+	size_t count = ARRAY_SIZE(backup_clock_sc_cfg);
+	uintptr_t base = stm32mp_rcc_base();
+	size_t i;
+
+	for (i = 0U; i < count; i++) {
+		mmio_write_32(base + cfg[i].offset, cfg[i].value);
+		mmio_write_32(base + cfg[i].offset + RCC_MP_ENCLRR_OFFSET,
+			      ~cfg[i].value);
+	}
+}
+
+static void backup_regular_cfg(void)
+{
+	struct backup_clock_cfg *cfg = backup_clock_cfg;
+	size_t count = ARRAY_SIZE(backup_clock_cfg);
+	uintptr_t base = stm32mp_rcc_base();
+	size_t i;
+
+	for (i = 0U; i < count; i++) {
+		cfg[i].value = mmio_read_32(base + cfg[i].offset);
+	}
+}
+
+static void restore_regular_cfg(void)
+{
+	struct backup_clock_cfg *cfg = backup_clock_cfg;
+	size_t count = ARRAY_SIZE(backup_clock_cfg);
+	uintptr_t base = stm32mp_rcc_base();
+	size_t i;
+
+	for (i = 0U; i < count; i++) {
+		mmio_write_32(base + cfg[i].offset, cfg[i].value);
+	}
+}
+
+static void disable_kernel_clocks(void)
+{
+	const uint32_t ker_mask = RCC_OCENR_HSIKERON |
+				  RCC_OCENR_CSIKERON |
+				  RCC_OCENR_HSEKERON;
+
+	/* Disable all ck_xxx_ker clocks */
+	mmio_write_32(stm32mp_rcc_base() + RCC_OCENCLRR, ker_mask);
+}
+
+static void enable_kernel_clocks(void)
+{
+	uintptr_t rcc_base = stm32mp_rcc_base();
+	uint32_t reg;
+	const uint32_t ker_mask = RCC_OCENR_HSIKERON |
+				  RCC_OCENR_CSIKERON |
+				  RCC_OCENR_HSEKERON;
+
+	/* Enable ck_xxx_ker clocks if ck_xxx was on */
+	reg = mmio_read_32(rcc_base + RCC_OCENSETR) << 1U;
+	mmio_write_32(rcc_base + RCC_OCENSETR, reg & ker_mask);
+}
+
+static void clear_rcc_reset_status(void)
+{
+	/* Clear reset status fields */
+	mmio_write_32(stm32mp_rcc_base() + RCC_MP_RSTSCLRR, 0U);
+}
+
+void save_clock_pm_context(void)
+{
+	size_t offset = 0U;
+
+	stm32mp1_pm_save_clock_cfg(offset,
+				   (uint8_t *)backup_mux0_cfg,
+				   sizeof(backup_mux0_cfg));
+	offset += sizeof(backup_mux0_cfg);
+
+	stm32mp1_pm_save_clock_cfg(offset,
+				   (uint8_t *)backup_mux4_cfg,
+				   sizeof(backup_mux4_cfg));
+	offset += sizeof(backup_mux4_cfg);
+
+	stm32mp1_pm_save_clock_cfg(offset,
+				   (uint8_t *)backup_clock_sc_cfg,
+				   sizeof(backup_clock_sc_cfg));
+	offset += sizeof(backup_clock_sc_cfg);
+
+	stm32mp1_pm_save_clock_cfg(offset,
+				   (uint8_t *)backup_clock_cfg,
+				   sizeof(backup_clock_cfg));
+	offset += sizeof(backup_clock_cfg);
+
+	stm32mp1_pm_save_clock_cfg(offset,
+				   (uint8_t *)gate_refcounts,
+				   sizeof(gate_refcounts));
+	offset += sizeof(gate_refcounts);
+
+	save_current_opp_khz = current_opp_khz;
+
+	stm32mp1_pm_save_clock_cfg(offset,
+				   (uint8_t *)&save_current_opp_khz,
+				   sizeof(save_current_opp_khz));
+}
+
+void restore_clock_pm_context(void)
+{
+	size_t offset = 0U;
+
+	stm32mp1_pm_restore_clock_cfg(offset,
+				      (uint8_t *)backup_mux0_cfg,
+				      sizeof(backup_mux0_cfg));
+	offset += sizeof(backup_mux0_cfg);
+
+	stm32mp1_pm_restore_clock_cfg(offset,
+				      (uint8_t *)backup_mux4_cfg,
+				      sizeof(backup_mux4_cfg));
+	offset += sizeof(backup_mux4_cfg);
+
+	stm32mp1_pm_restore_clock_cfg(offset,
+				      (uint8_t *)backup_clock_sc_cfg,
+				      sizeof(backup_clock_sc_cfg));
+	offset += sizeof(backup_clock_sc_cfg);
+
+	stm32mp1_pm_restore_clock_cfg(offset,
+				      (uint8_t *)backup_clock_cfg,
+				      sizeof(backup_clock_cfg));
+	offset += sizeof(backup_clock_cfg);
+
+	stm32mp1_pm_restore_clock_cfg(offset,
+				      (uint8_t *)gate_refcounts,
+				      sizeof(gate_refcounts));
+	offset += sizeof(gate_refcounts);
+
+	stm32mp1_pm_restore_clock_cfg(offset,
+				      (uint8_t *)&save_current_opp_khz,
+				      sizeof(save_current_opp_khz));
+
+	stm32mp1_set_opp_khz(save_current_opp_khz);
+}
+
+void stm32mp1_clock_suspend(void)
+{
+	backup_regular_cfg();
+	backup_sc_cfg();
+	backup_mux_cfg();
+	clear_rcc_reset_status();
+}
+
+void stm32mp1_clock_resume(void)
+{
+	unsigned int idx;
+
+	restore_mux_cfg();
+	restore_sc_cfg();
+	restore_regular_cfg();
+
+	/* Sync secure and shared clocks physical state on functional state */
+	for (idx = 0U; idx < NB_GATES; idx++) {
+		struct stm32mp1_clk_gate const *gate = gate_ref(idx);
+
+		if (gate_is_non_secure(gate)) {
+			continue;
+		}
+
+		if (gate_refcounts[idx] != 0U) {
+			VERBOSE("Resume clock %d enable\n", gate->index);
+			__clk_enable(gate);
+		} else {
+			VERBOSE("Resume clock %d disable\n", gate->index);
+			__clk_disable(gate);
+		}
+	}
+
+	disable_kernel_clocks();
+}
+
+void stm32mp1_clock_stopmode_save(void)
+{
+	uintptr_t rcc_base = stm32mp_rcc_base();
+
+	/* Save registers not restored after STOP mode */
+	pll3cr = mmio_read_32(rcc_base + RCC_PLL3CR);
+	pll4cr = mmio_read_32(rcc_base + RCC_PLL4CR);
+	mssckselr = mmio_read_32(rcc_base + RCC_MSSCKSELR);
+	mcudivr = mmio_read_32(rcc_base + RCC_MCUDIVR) & RCC_MCUDIV_MASK;
+	enable_kernel_clocks();
+}
+
+static bool pll_is_running(uint32_t pll_offset)
+{
+	uintptr_t pll_cr = stm32mp_rcc_base() + pll_offset;
+
+	return (mmio_read_32(pll_cr) & RCC_PLLNCR_PLLON) != 0U;
+}
+
+static bool pll_was_running(uint32_t saved_value)
+{
+	return (saved_value & RCC_PLLNCR_PLLON) != 0U;
+}
+
+int stm32mp1_clock_stopmode_resume(void)
+{
+	int res;
+	uintptr_t rcc_base = stm32mp_rcc_base();
+
+	if (pll_was_running(pll4cr) && !pll_is_running(RCC_PLL4CR)) {
+		stm32mp1_pll_start(_PLL4);
+	}
+
+	if (pll_was_running(pll3cr)) {
+		if (!pll_is_running(RCC_PLL3CR)) {
+			stm32mp1_pll_start(_PLL3);
+		}
+
+		res = stm32mp1_pll_output(_PLL3,
+					  pll3cr >> RCC_PLLNCR_DIVEN_SHIFT);
+		if (res != 0) {
+			return res;
+		}
+	}
+
+	if (pll_was_running(pll4cr)) {
+		res = stm32mp1_pll_output(_PLL4,
+					  pll4cr >> RCC_PLLNCR_DIVEN_SHIFT);
+		if (res != 0) {
+			return res;
+		}
+	}
+
+	/* Restore MCU clock src after PLL3 RDY */
+	mmio_write_32(rcc_base + RCC_MSSCKSELR, mssckselr);
+
+	/* Restore MCUDIV */
+	res = stm32mp1_set_clkdiv(mcudivr, rcc_base + RCC_MCUDIVR);
+	if (res != 0) {
+		return res;
+	}
+
+	disable_kernel_clocks();
+
+	return 0;
+}
+#endif /* IMAGE_BL32 */
 
 void stm32mp1_clk_mcuss_protect(bool enable)
 {
