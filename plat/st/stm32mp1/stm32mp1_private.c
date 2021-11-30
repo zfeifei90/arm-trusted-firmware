@@ -693,6 +693,12 @@ uint32_t stm32mp_get_ddr_ns_size(void)
 }
 #endif /* STM32MP_USE_STM32IMAGE */
 
+bool stm32mp1_addr_inside_backupsram(uintptr_t addr)
+{
+	return (addr >= STM32MP_BACKUP_RAM_BASE) &&
+		(addr < (STM32MP_BACKUP_RAM_BASE + STM32MP_BACKUP_RAM_SIZE));
+}
+
 bool stm32mp1_is_wakeup_from_standby(void)
 {
 	uint32_t rstsr = mmio_read_32(stm32mp_rcc_base() + RCC_MP_RSTSCLRR);
