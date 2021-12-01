@@ -26,6 +26,8 @@
 #endif
 
 #define FIP_IMAGE_NAME			"fip"
+#define METADATA_PART_1			"metadata1"
+#define METADATA_PART_2			"metadata2"
 
 #define STM32MP_PRIMARY_CPU		U(0x0)
 #define STM32MP_SECONDARY_CPU		U(0x1)
