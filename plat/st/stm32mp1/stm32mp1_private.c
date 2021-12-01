@@ -17,6 +17,7 @@
 #include <plat/common/platform.h>
 #include <smccc_helpers.h>
 
+#include <plat/common/platform.h>
 #include <platform_def.h>
 
 /* Internal layout of the 32bit OTP word board_id */
@@ -48,6 +49,8 @@
 #endif
 #define TAMP_BOOT_ITF_MASK		U(0x0000FF00)
 #define TAMP_BOOT_ITF_SHIFT		8
+
+#define TAMP_BOOT_COUNTER_REG_ID	U(21)
 
 #if defined(IMAGE_BL2)
 #define MAP_SEC_SYSRAM	MAP_REGION_FLAT(STM32MP_SYSRAM_BASE, \
@@ -903,3 +906,13 @@ void stm32mp_dump_core_registers(bool fcore)
 	}
 }
 #endif
+
+#if PSA_FWU_SUPPORT
+void stm32mp1_fwu_set_boot_idx(void)
+{
+	clk_enable(RTCAPB);
+	mmio_write_32(tamp_bkpr(TAMP_BOOT_COUNTER_REG_ID),
+		      plat_fwu_get_boot_idx());
+	clk_disable(RTCAPB);
+}
+#endif /* PSA_FWU_SUPPORT */

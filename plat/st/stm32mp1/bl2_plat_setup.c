@@ -38,6 +38,7 @@
 
 #include <stm32mp1_context.h>
 #include <stm32mp1_dbgmcu.h>
+#include <stm32mp_common.h>
 
 #define PLL1_NOMINAL_FREQ_IN_KHZ	650000U /* 650MHz */
 
@@ -575,6 +576,9 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 		bl32_mem_params = get_bl_mem_params_node(BL32_IMAGE_ID);
 		assert(bl32_mem_params != NULL);
 		bl32_mem_params->ep_info.lr_svc = bl_mem_params->ep_info.pc;
+#if PSA_FWU_SUPPORT
+		stm32mp1_fwu_set_boot_idx();
+#endif /* PSA_FWU_SUPPORT */
 		break;
 
 	default:

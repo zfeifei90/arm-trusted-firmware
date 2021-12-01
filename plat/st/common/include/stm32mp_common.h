@@ -132,4 +132,8 @@ void stm32_save_boot_interface(uint32_t interface, uint32_t instance);
 void stm32_get_boot_interface(uint32_t *interface, uint32_t *instance);
 bool stm32_boot_is_serial(void);
 
+#if PSA_FWU_SUPPORT
+void stm32mp1_fwu_set_boot_idx(void);
+#endif /* PSA_FWU_SUPPORT */
+
 #endif /* STM32MP_COMMON_H */
