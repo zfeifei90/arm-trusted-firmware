@@ -109,43 +109,6 @@ void stm32mp_pwr_regs_unlock(void)
 	}
 }
 
-#if STM32MP_USE_STM32IMAGE
-int stm32mp_check_header(boot_api_image_header_t *header, uintptr_t buffer)
-{
-	uint32_t i;
-	uint32_t img_checksum = 0U;
-
-	/*
-	 * Check header/payload validity:
-	 *	- Header magic
-	 *	- Header version
-	 *	- Payload checksum
-	 */
-	if (header->magic != BOOT_API_IMAGE_HEADER_MAGIC_NB) {
-		ERROR("Header magic\n");
-		return -EINVAL;
-	}
-
-	if ((header->header_version & HEADER_VERSION_MAJOR_MASK) !=
-	    (BOOT_API_HEADER_VERSION & HEADER_VERSION_MAJOR_MASK)) {
-		ERROR("Header version\n");
-		return -EINVAL;
-	}
-
-	for (i = 0U; i < header->image_length; i++) {
-		img_checksum += *(uint8_t *)(buffer + i);
-	}
-
-	if (header->payload_checksum != img_checksum) {
-		ERROR("Checksum: 0x%x (awaited: 0x%x)\n", img_checksum,
-		      header->payload_checksum);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-#endif /* STM32MP_USE_STM32IMAGE */
-
 int stm32mp_map_ddr_non_cacheable(void)
 {
 	return  mmap_add_dynamic_region(STM32MP_DDR_BASE, STM32MP_DDR_BASE,

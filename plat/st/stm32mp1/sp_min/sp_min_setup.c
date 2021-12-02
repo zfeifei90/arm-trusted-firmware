@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2022, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -417,11 +417,7 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 				  u_register_t arg2, u_register_t arg3)
 {
 	bl_params_t *params_from_bl2 = (bl_params_t *)arg0;
-#if STM32MP_USE_STM32IMAGE
-	uintptr_t dt_addr = STM32MP_DTB_BASE;
-#else
 	uintptr_t dt_addr = arg1;
-#endif
 
 	stm32mp_setup_early_console();
 

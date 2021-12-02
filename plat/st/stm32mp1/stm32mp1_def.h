@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2022, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -32,11 +32,7 @@
 #include <stm32mp1_shared_resources.h>
 #endif
 
-#if !STM32MP_USE_STM32IMAGE
 #include "stm32mp1_fip_def.h"
-#else /* STM32MP_USE_STM32IMAGE */
-#include "stm32mp1_stm32image_def.h"
-#endif /* STM32MP_USE_STM32IMAGE */
 
 /*******************************************************************************
  * CHIP ID

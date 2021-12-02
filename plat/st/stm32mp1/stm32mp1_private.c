@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2022, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -769,29 +769,6 @@ enum etzpc_decprot_attributes stm32mp_etzpc_binding2decprot(uint32_t mode)
 	}
 }
 #endif
-
-#if STM32MP_USE_STM32IMAGE
-/* Get the non-secure DDR size */
-uint32_t stm32mp_get_ddr_ns_size(void)
-{
-	static uint32_t ddr_ns_size;
-	uint32_t ddr_size;
-
-	if (ddr_ns_size != 0U) {
-		return ddr_ns_size;
-	}
-
-	ddr_size = dt_get_ddr_size();
-	if ((ddr_size <= (STM32MP_DDR_S_SIZE + STM32MP_DDR_SHMEM_SIZE)) ||
-	    (ddr_size > STM32MP_DDR_MAX_SIZE)) {
-		panic();
-	}
-
-	ddr_ns_size = ddr_size - (STM32MP_DDR_S_SIZE + STM32MP_DDR_SHMEM_SIZE);
-
-	return ddr_ns_size;
-}
-#endif /* STM32MP_USE_STM32IMAGE */
 
 bool stm32mp1_addr_inside_backupsram(uintptr_t addr)
 {
