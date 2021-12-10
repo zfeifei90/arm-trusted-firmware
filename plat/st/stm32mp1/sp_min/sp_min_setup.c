@@ -12,6 +12,7 @@
 #include <arch_helpers.h>
 #include <common/bl_common.h>
 #include <common/debug.h>
+#include <common/fdt_fixup.h>
 #include <context.h>
 #include <drivers/arm/gicv2.h>
 #include <drivers/arm/tzc400.h>
@@ -43,6 +44,7 @@
 #include <stm32mp1_context.h>
 #include <stm32mp1_low_power.h>
 #include <stm32mp1_power_config.h>
+#include <stm32mp1_smc.h>
 
 /******************************************************************************
  * Placeholder variables for copying the arguments that have been passed to
@@ -333,6 +335,68 @@ static void stm32mp1_etzpc_early_setup(void)
 	etzpc_configure_tzma(STM32MP1_ETZPC_TZMA_SYSRAM, TZMA1_SECURE_RANGE);
 }
 
+static void update_fdt_scmi_node(void *external_fdt)
+{
+	int nodeoff;
+	const fdt32_t *cuint;
+	int val;
+	int len;
+
+	nodeoff = fdt_path_offset(external_fdt, "/firmware/scmi");
+	if (nodeoff < 0) {
+		return;
+	}
+	if (fdt_node_check_compatible(external_fdt, nodeoff, "linaro,scmi-optee") != 0) {
+		return;
+	}
+
+	cuint = fdt_getprop(external_fdt, nodeoff, "linaro,optee-channel-id", &len);
+	if (cuint == NULL) {
+		WARN("linaro,optee-channel-id is missing\n");
+		return;
+	}
+
+	val = fdt32_to_cpu(*cuint);
+
+	fdt_setprop_string(external_fdt, nodeoff, "compatible", "arm,scmi-smc");
+	fdt_delprop(external_fdt, nodeoff, "linaro,optee-channel-id");
+	fdt_setprop_u32(external_fdt, nodeoff, "arm,smc-id",
+			STM32_SIP_SMC_SCMI_AGENT0 + val);
+}
+
+static void populate_ns_dt(u_register_t ns_dt_addr)
+{
+	void *external_fdt = (void *)ns_dt_addr;
+	int ret;
+
+	/* Map beginning of DDR as non-secure for non-secure DT update */
+	ret = mmap_add_dynamic_region(ns_dt_addr, ns_dt_addr, STM32MP_HW_CONFIG_MAX_SIZE,
+				      MT_NON_CACHEABLE | MT_EXECUTE_NEVER | MT_RW | MT_NS);
+	assert(ret == 0);
+
+	if (fdt_check_header(external_fdt) != 0) {
+		INFO("Non-secure device tree not found\n");
+		goto out;
+	}
+
+	ret = fdt_open_into(external_fdt, external_fdt, STM32MP_HW_CONFIG_MAX_SIZE);
+	if (ret < 0) {
+		WARN("Error opening DT %i\n", ret);
+		goto out;
+	}
+
+	update_fdt_scmi_node(external_fdt);
+
+	ret = fdt_pack(external_fdt);
+	if (ret < 0) {
+		WARN("Error packing DT %i\n", ret);
+	}
+
+out:
+	ret = mmap_remove_dynamic_region(ns_dt_addr, STM32MP_HW_CONFIG_MAX_SIZE);
+	assert(ret == 0);
+}
+
 /*******************************************************************************
  * Perform any BL32 specific platform actions.
  ******************************************************************************/
@@ -388,6 +452,10 @@ void sp_min_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 
 	if (dt_open_and_check(dt_addr) < 0) {
 		panic();
+	}
+
+	if (bl33_image_ep_info.args.arg2 != 0U) {
+		populate_ns_dt(bl33_image_ep_info.args.arg2);
 	}
 
 	if (bsec_probe() != 0) {
