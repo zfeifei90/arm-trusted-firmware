@@ -102,8 +102,8 @@
 
 			vddcpu: buck1 {
 				regulator-name = "vddcpu";
-				regulator-min-microvolt = <1200000>;
-				regulator-max-microvolt = <1200000>;
+				regulator-min-microvolt = <1250000>;
+				regulator-max-microvolt = <1250000>;
 				regulator-always-on;
 				regulator-over-current-protection;
 			};
