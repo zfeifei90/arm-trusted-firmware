@@ -397,6 +397,7 @@ enum ddr_type {
 #define MONOTONIC_OTP			"monotonic_otp"
 #define UID_OTP				"uid_otp"
 #define PKH_OTP				"pkh_otp"
+#define ENCKEY_OTP			"enckey_otp"
 #define BOARD_ID_OTP			"board_id"
 #define CFG2_OTP			"cfg2_otp"
 #define SSP_OTP				"ssp_otp"

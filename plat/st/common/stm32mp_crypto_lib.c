@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2020-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -26,6 +26,7 @@
 #endif
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/common/platform.h>
+#include <tools_share/firmware_encrypted.h>
 
 #include <platform_def.h>
 
@@ -441,10 +442,90 @@ static int crypto_verify_hash(void *data_ptr, unsigned int data_len,
 	return ret;
 }
 
-#ifndef DECRYPTION_SUPPORT_none
+#if STM32MP13 && !defined(DECRYPTION_SUPPORT_none)
+int derive_key(uint8_t *key, size_t *key_len, size_t len,
+	       unsigned int *flags, const uint8_t *img_id, size_t img_id_len)
+{
+	size_t i, j;
+
+	assert(*key_len >= 32U);
+
+	/*
+	 * Not a real derivation yet
+	 *
+	 * But we expect a 32 bytes key, and otp is only 16 bytes
+	 *   => duplicate.
+	 */
+	for (i = 0U, j = len / sizeof(uint32_t);
+	     j < 32U;
+	     i += sizeof(uint32_t), j += sizeof(uint32_t)) {
+		memcpy(key + j, key + i, sizeof(uint32_t));
+	}
+
+	*key_len = 32U;
+	/* Variable 'key' store a real key */
+	*flags = 0U;
+
+	return 0;
+}
+
+int plat_get_enc_key_info(enum fw_enc_status_t fw_enc_status, uint8_t *key,
+			  size_t *key_len, unsigned int *flags,
+			  const uint8_t *img_id, size_t img_id_len)
+{
+	uint32_t otp_idx;
+	uint32_t otp_len;
+	size_t read_len;
+	size_t i;
+
+	if (fw_enc_status == FW_ENC_WITH_BSSK) {
+		return -EINVAL;
+	}
+
+	if (stm32_get_otp_index(ENCKEY_OTP, &otp_idx, &otp_len) != 0) {
+		VERBOSE("%s: get %s index error\n", __func__, ENCKEY_OTP);
+		return -EINVAL;
+	}
+
+	if (otp_len > (*key_len * CHAR_BIT)) {
+		VERBOSE("%s: length Error otp_len=%d key_len=%u\n", __func__,
+			otp_len, *key_len * CHAR_BIT);
+		return -EINVAL;
+	}
+
+	read_len = otp_len / CHAR_BIT;
+	assert(read_len % sizeof(uint32_t) == 0);
+
+	for (i = 0U; i < read_len / sizeof(uint32_t); i++) {
+		uint32_t tmp;
+		uint32_t otp_val;
+
+		if (stm32_get_otp_value_from_idx(otp_idx + i, &otp_val) != 0) {
+			VERBOSE("%s: unable to read from otp\n", __func__);
+			return -EINVAL;
+		}
+
+		tmp = bswap32(otp_val);
+		memcpy(key + i * sizeof(uint32_t), &tmp, sizeof(tmp));
+	}
+
+	/* Now we have the OTP values in key till read_len */
+
+	if (derive_key(key, key_len, read_len, flags, img_id,
+		       img_id_len) != 0) {
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static enum stm32_saes_key_selection select_key(unsigned int key_flags)
 {
-	/* Currently we only use the software one. */
+	if ((key_flags & ENC_KEY_IS_IDENTIFIER) != 0U) {
+		panic();
+	}
+
+	/* Use the provided key buffer */
 	return STM32_SAES_KEY_SOFT;
 }
 

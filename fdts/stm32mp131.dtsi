@@ -36,7 +36,8 @@
 			      <&nand2_otp>,
 			      <&uid_otp>,
 			      <&hw2_otp>,
-			      <&pkh_otp>;
+			      <&pkh_otp>,
+			      <&enckey_otp>;
 
 		nvmem-cell-names = "cfg0_otp",
 				   "part_number_otp",
@@ -45,7 +46,8 @@
 				   "nand2_otp",
 				   "uid_otp",
 				   "hw2_otp",
-				   "pkh_otp";
+				   "pkh_otp",
+				   "enckey_otp";
 	};
 
 	psci {
@@ -1318,6 +1320,9 @@
 			mac_addr: mac_addr@e4 {
 				reg = <0xe4 0xc>;
 				st,non-secure-otp;
+			};
+			enckey_otp: enckey_otp@170 {
+				reg = <0x170 0x10>;
 			};
 		};
 
