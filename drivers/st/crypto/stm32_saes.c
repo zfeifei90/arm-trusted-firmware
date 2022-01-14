@@ -965,10 +965,10 @@ static int stm32_saes_derived_key(struct stm32_saes_context *ctx, bool is_dec,
 	/* Select KEYMOD wrap key/shared key */
 	if (shared_key) {
 		mmio_clrsetbits_32(ctx->base + _SAES_CR, _SAES_CR_KEYMOD_MASK,
-				   _SAES_CR_KEYMOD_WRAPPED << _SAES_CR_KEYMOD_SHIFT);
+				   _SAES_CR_KEYMOD_SHARED << _SAES_CR_KEYMOD_SHIFT);
 	} else {
 		mmio_clrsetbits_32(ctx->base + _SAES_CR, _SAES_CR_KEYMOD_MASK,
-				   _SAES_CR_KEYMOD_SHARED << _SAES_CR_KEYMOD_SHIFT);
+				   _SAES_CR_KEYMOD_WRAPPED << _SAES_CR_KEYMOD_SHIFT);
 	}
 
 	if (protect_key) {
