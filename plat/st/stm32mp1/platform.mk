@@ -16,12 +16,6 @@ STM32MP_EARLY_CONSOLE	?=	0
 # If it is set to 0, then FIP is used
 STM32MP_USE_STM32IMAGE	?=	0
 
-ifeq ($(STM32MP_USE_STM32IMAGE),1)
-$(warning )
-$(warning STM32MP_USE_STM32IMAGE is deprecated)
-$(warning )
-endif
-
 # Add specific ST version
 ST_VERSION 		:=	r1.0
 VERSION_STRING		:=	v${VERSION_MAJOR}.${VERSION_MINOR}-${PLAT}-${ST_VERSION}(${BUILD_TYPE}):${BUILD_STRING}
