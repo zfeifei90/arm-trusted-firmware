@@ -1885,6 +1885,7 @@ static bool clk_pll1_settings_are_valid(void)
 	return pll1_settings.valid_id == PLL1_SETTINGS_VALID_ID;
 }
 
+#if defined(IMAGE_BL32)
 int stm32mp1_round_opp_khz(uint32_t *freq_khz)
 {
 	unsigned int i;
@@ -2105,6 +2106,7 @@ int stm32mp1_set_opp_khz(uint32_t freq_khz)
 
 	return 0;
 }
+#endif /* IMAGE_BL32 */
 
 static int clk_get_pll_settings_from_dt(int plloff, unsigned int *pllcfg,
 					uint32_t *fracv, uint32_t *csg,
