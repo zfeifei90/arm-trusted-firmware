@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2022, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -374,6 +374,10 @@ skip_console_init:
 
 	if (dt_pmic_status() > 0) {
 		initialize_pmic();
+		if (pmic_voltages_init() != 0) {
+			ERROR("PMIC voltages init failed\n");
+			panic();
+		}
 		print_pmic_info_and_debug();
 	}
 
