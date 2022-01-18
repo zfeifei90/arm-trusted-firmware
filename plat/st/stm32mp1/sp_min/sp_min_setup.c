@@ -364,6 +364,17 @@ static void update_fdt_scmi_node(void *external_fdt)
 			STM32_SIP_SMC_SCMI_AGENT0 + val);
 }
 
+static void update_fdt_optee_node(void *external_fdt)
+{
+	int nodeoff;
+
+	nodeoff = fdt_path_offset(external_fdt, "/firmware/optee");
+	if (nodeoff >= 0) {
+		fdt_del_node(external_fdt, nodeoff);
+	}
+	/* the reserved memory nodes are kept */
+}
+
 static void populate_ns_dt(u_register_t ns_dt_addr)
 {
 	void *external_fdt = (void *)ns_dt_addr;
@@ -386,6 +397,8 @@ static void populate_ns_dt(u_register_t ns_dt_addr)
 	}
 
 	update_fdt_scmi_node(external_fdt);
+
+	update_fdt_optee_node(external_fdt);
 
 	ret = fdt_pack(external_fdt);
 	if (ret < 0) {
