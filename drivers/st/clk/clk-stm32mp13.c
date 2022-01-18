@@ -1109,35 +1109,6 @@ bool stm32mp1_rtc_get_read_twice(void)
 	return apb1_freq < (rtc_freq * 7U);
 }
 
-int stm32mp1_round_opp_khz(uint32_t *freq_khz)
-{
-	return 0;
-}
-
-int stm32mp1_set_opp_khz(uint32_t freq_khz)
-{
-	return 0;
-}
-
-int stm32mp1_clk_get_maxfreq_opp(uint32_t *freq_khz,
-				 uint32_t *voltage_mv)
-{
-	return 0;
-}
-
-int stm32mp1_clk_compute_all_pll1_settings(uint32_t buck1_voltage)
-{
-	return 0;
-}
-
-void stm32mp1_clk_lp_save_opp_pll1_settings(uint8_t *data, size_t size)
-{
-}
-
-void stm32mp1_clk_lp_load_opp_pll1_settings(uint8_t *data, size_t size)
-{
-}
-
 static int stm32mp1_come_back_to_hsi(void)
 {
 	int ret;
@@ -1160,37 +1131,6 @@ static int stm32mp1_come_back_to_hsi(void)
 	}
 
 	return 0;
-}
-
-/* TODO LATER  */
-void save_clock_pm_context(void)
-{
-}
-
-void restore_clock_pm_context(void)
-{
-}
-
-void stm32mp1_clock_suspend(void)
-{
-}
-
-void stm32mp1_clock_resume(void)
-{
-}
-
-void stm32mp1_clock_stopmode_save(void)
-{
-}
-
-int stm32mp1_clock_stopmode_resume(void)
-{
-	return 0;
-}
-
-/* TODO: NEW MANAGEMENT */
-void stm32mp1_register_clock_parents_secure(unsigned long clock_id)
-{
 }
 
 int stm32_clk_configure_clk_get_binding_id(struct stm32_clk_priv *priv, uint32_t data)
