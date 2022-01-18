@@ -1,15 +1,11 @@
 /*
- * Copyright (c) 2017-2021, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <assert.h>
 #include <errno.h>
-
-#include <libfdt.h>
-
-#include <platform_def.h>
 
 #include <common/debug.h>
 #include <drivers/delay_timer.h>
@@ -20,6 +16,9 @@
 #include <lib/mmio.h>
 #include <lib/spinlock.h>
 #include <lib/utils_def.h>
+#include <libfdt.h>
+
+#include <platform_def.h>
 
 static struct i2c_handle_s i2c_handle;
 static uint32_t pmic_i2c_addr;
@@ -333,6 +332,36 @@ int pmic_ddr_power_init(enum ddr_type ddr_type)
 	default:
 		break;
 	};
+
+	return 0;
+}
+
+int pmic_voltages_init(void)
+{
+#if STM32MP13
+	struct rdev *buck1, *buck4;
+	int status;
+
+	buck1 = regulator_get_by_name("buck1");
+	if (buck1 == NULL) {
+		return -ENOENT;
+	}
+
+	buck4 = regulator_get_by_name("buck4");
+	if (buck4 == NULL) {
+		return -ENOENT;
+	}
+
+	status = regulator_set_min_voltage(buck1);
+	if (status != 0) {
+		return status;
+	}
+
+	status = regulator_set_min_voltage(buck4);
+	if (status != 0) {
+		return status;
+	}
+#endif
 
 	return 0;
 }
