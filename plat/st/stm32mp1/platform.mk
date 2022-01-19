@@ -71,10 +71,12 @@ STM32MP_USE_EXTERNAL_HEAP :=	1
 STM32MP_DDR_DUAL_AXI_PORT:=	0
 STM32MP_DDR_32BIT_INTERFACE:=	0
 
-# PKA algo to include
 ifeq (${TRUSTED_BOARD_BOOT},1)
+# PKA algo to include
 PKA_USE_NIST_P256	:=	1
 PKA_USE_BRAINPOOL_P256T1:=	1
+# Won't use XIP MEM
+BL2_IN_XIP_MEM		:=	0
 endif
 
 # STM32 image header version v2.0

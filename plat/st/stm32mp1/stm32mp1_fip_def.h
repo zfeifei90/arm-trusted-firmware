@@ -40,8 +40,14 @@
 #endif /* STM32MP15 */
 #else /* TRUSTED_BOARD_BOOT && !STM32MP_USE_EXTERNAL_HEAP */
 #if STM32MP13
+#if BL2_IN_XIP_MEM
 #define STM32MP_BL2_RO_SIZE		U(0x00015000)	/* 84 KB */
 #define STM32MP_BL2_SIZE		U(0x00017000)	/* 92 KB for BL2 */
+#else
+/* STM32MP_BL2_RO_SIZE not used if !BL2_IN_XIP_MEM */
+#define STM32MP_BL2_SIZE		U(0x0001B000)	/* 108KB for BL2 */
+					/* with 20KB for DTB, SYSRAM is full */
+#endif
 #endif /* STM32MP13 */
 #if STM32MP15
 #define STM32MP_BL2_RO_SIZE		U(0x00011000)	/* 68 KB */
