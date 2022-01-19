@@ -2103,7 +2103,7 @@ static int stm32mp1_pll1_config_from_opp_khz(uint32_t freq_khz)
 	return 0;
 }
 
-int stm32mp1_set_opp_khz(uint32_t freq_khz)
+int stm32mp1_set_mpu_freq(uint32_t freq_khz)
 {
 	uintptr_t rcc_base = stm32mp_rcc_base();
 	uint32_t mpu_src;
@@ -3285,7 +3285,7 @@ void restore_clock_pm_context(void)
 				      (uint8_t *)&save_current_opp_khz,
 				      sizeof(save_current_opp_khz));
 
-	stm32mp1_set_opp_khz(save_current_opp_khz);
+	stm32mp1_set_mpu_freq(save_current_opp_khz);
 }
 
 void stm32mp1_clock_suspend(void)

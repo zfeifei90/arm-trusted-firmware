@@ -144,7 +144,7 @@ uint32_t rcc_opp_scv_handler(uint32_t x1, uint32_t x2, uint32_t *res)
 
 	switch (cmd) {
 	case STM32_SMC_RCC_OPP_SET:
-		if (stm32mp1_set_opp_khz(opp) != 0) {
+		if (stm32mp1_set_mpu_freq(opp) != 0) {
 			return STM32_SMC_FAILED;
 		}
 		break;

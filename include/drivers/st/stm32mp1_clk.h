@@ -46,7 +46,7 @@ void stm32mp1_clk_rcc_regs_lock(void);
 void stm32mp1_clk_rcc_regs_unlock(void);
 
 int stm32mp1_round_opp_khz(uint32_t *freq_khz);
-int stm32mp1_set_opp_khz(uint32_t freq_khz);
+int stm32mp1_set_mpu_freq(uint32_t freq_khz);
 
 void stm32mp1_clock_suspend(void);
 void stm32mp1_clock_resume(void);

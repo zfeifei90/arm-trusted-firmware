@@ -320,7 +320,7 @@ int32_t plat_scmi_clock_set_rate(unsigned int agent_id,
 
 	switch (scmi_id) {
 	case CK_SCMI0_MPU:
-		if (stm32mp1_set_opp_khz(rate / 1000UL) != 0) {
+		if (stm32mp1_set_mpu_freq(rate / 1000UL) != 0) {
 			return SCMI_INVALID_PARAMETERS;
 		}
 		break;
