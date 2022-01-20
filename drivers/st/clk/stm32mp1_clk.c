@@ -20,6 +20,7 @@
 #include <common/fdt_wrappers.h>
 #include <drivers/clk.h>
 #include <drivers/delay_timer.h>
+#include <drivers/regulator.h>
 #include <drivers/st/stm32_timer.h>
 #include <drivers/st/stm32mp_clkfunc.h>
 #include <drivers/st/stm32mp1_clk.h>
@@ -2144,6 +2145,68 @@ int stm32mp1_set_mpu_freq(uint32_t freq_khz)
 	return 0;
 }
 
+static int stm32mp1_clk_get_volt_from_freq(uint32_t freq, uint32_t *volt)
+{
+	unsigned int i;
+
+	for (i = 0; i < PLAT_MAX_OPP_NB; i++) {
+		if (pll1_settings.freq[i] == freq) {
+			*volt = pll1_settings.volt[i];
+			return 0;
+		}
+	}
+
+	return -EINVAL;
+}
+
+static int stm32mp1_set_opp_from_khz(uint32_t freq_khz)
+{
+	struct rdev *regul;
+	uint32_t voltage_mv;
+	uint32_t current_freq = current_opp_khz;
+	int ret;
+
+	if (freq_khz == current_freq) {
+		/* OPP already set, nothing to do */
+		return 0;
+	}
+
+	if (!clk_pll1_settings_are_valid()) {
+		return -EACCES;
+	}
+
+	regul = dt_get_cpu_regulator();
+	if (regul == NULL) {
+		return -ENODEV;
+	}
+
+	ret = stm32mp1_clk_get_volt_from_freq(freq_khz, &voltage_mv);
+	if (ret != 0) {
+		return ret;
+	}
+
+	if (freq_khz > current_freq) {
+		ret = regulator_set_voltage(regul, (uint16_t)voltage_mv);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	ret = stm32mp1_set_mpu_freq(freq_khz);
+	if (ret != 0) {
+		return ret;
+	}
+
+	if (freq_khz < current_freq) {
+		ret = regulator_set_voltage(regul, (uint16_t)voltage_mv);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 static int clk_get_pll_settings_from_dt(int plloff, unsigned int *pllcfg,
 					uint32_t *fracv, uint32_t *csg,
 					bool *csg_set)
@@ -3285,7 +3348,9 @@ void restore_clock_pm_context(void)
 				      (uint8_t *)&save_current_opp_khz,
 				      sizeof(save_current_opp_khz));
 
-	stm32mp1_set_mpu_freq(save_current_opp_khz);
+	if (stm32mp1_set_opp_from_khz(save_current_opp_khz)) {
+		ERROR("%s: failed to set opp\n", __func__);
+	}
 }
 
 void stm32mp1_clock_suspend(void)
