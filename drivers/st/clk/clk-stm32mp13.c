@@ -419,8 +419,9 @@ static const uint16_t FMC_src[] = {
 	 _CKAXI, _PLL3R, _PLL4P, _CKPER
 };
 
+/* Position 2 of RNG1 mux is reserved */
 static const uint16_t RNG1_src[] = {
-	 _CK_CSI, _PLL4R, _CK_LSE, _CK_LSI
+	 _CK_CSI, _PLL4R, _CK_OFF, _CK_LSI
 };
 
 static const uint16_t STGEN_src[] = {
