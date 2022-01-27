@@ -22,6 +22,8 @@ enum scmi_clock_command_id {
 	SCMI_CLOCK_RATE_SET = 0x005,
 	SCMI_CLOCK_RATE_GET = 0x006,
 	SCMI_CLOCK_CONFIG_SET = 0x007,
+	SCMI_CLOCK_DUTY_CYCLE_GET = 0x008,
+	SCMI_CLOCK_ROUND_RATE_GET = 0x009,
 };
 
 /* Protocol attributes */
@@ -55,6 +57,16 @@ struct scmi_clock_rate_get_a2p {
 struct scmi_clock_rate_get_p2a {
 	int32_t status;
 	uint32_t rate[2];
+};
+
+struct scmi_clock_duty_cycle_get_a2p {
+	uint32_t clock_id;
+};
+
+struct scmi_clock_duty_cycle_get_p2a {
+	int32_t status;
+	uint32_t num;
+	uint32_t den;
 };
 
 /*

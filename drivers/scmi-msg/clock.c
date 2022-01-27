@@ -20,6 +20,8 @@
 #pragma weak plat_scmi_clock_set_rate
 #pragma weak plat_scmi_clock_get_state
 #pragma weak plat_scmi_clock_set_state
+#pragma weak plat_scmi_clock_get_duty_cycle
+#pragma weak plat_scmi_clock_get_round_rate
 
 static bool message_id_is_supported(unsigned int message_id);
 
@@ -73,6 +75,21 @@ int32_t plat_scmi_clock_set_state(unsigned int agent_id __unused,
 				  bool enable_not_disable __unused)
 {
 	return SCMI_NOT_SUPPORTED;
+}
+
+int32_t plat_scmi_clock_get_duty_cycle(unsigned int agent_id __unused,
+				       unsigned int scmi_id __unused,
+				       unsigned int *num __unused,
+				       unsigned int *den __unused)
+{
+	return SCMI_NOT_SUPPORTED;
+}
+
+int32_t plat_scmi_clock_get_round_rate(unsigned int agent_id __unused,
+				       unsigned int scmi_id __unused)
+{
+	/* Return the clock rate */
+	return plat_scmi_clock_get_rate(agent_id, scmi_id);
 }
 
 static void report_version(struct scmi_msg *msg)
@@ -193,6 +210,35 @@ static void scmi_clock_rate_get(struct scmi_msg *msg)
 	scmi_write_response(msg, &return_values, sizeof(return_values));
 }
 
+static void scmi_clock_round_rate_get(struct scmi_msg *msg)
+{
+	const struct scmi_clock_rate_get_a2p *in_args = (void *)msg->in;
+	unsigned long rate = 0U;
+	struct scmi_clock_rate_get_p2a return_values = {
+		.status = SCMI_SUCCESS,
+	};
+	unsigned int clock_id = 0U;
+
+	if (msg->in_size != sizeof(*in_args)) {
+		scmi_status_response(msg, SCMI_PROTOCOL_ERROR);
+		return;
+	}
+
+	clock_id = SPECULATION_SAFE_VALUE(in_args->clock_id);
+
+	if (clock_id >= plat_scmi_clock_count(msg->agent_id)) {
+		scmi_status_response(msg, SCMI_INVALID_PARAMETERS);
+		return;
+	}
+
+	rate = plat_scmi_clock_get_round_rate(msg->agent_id, clock_id);
+
+	return_values.rate[0] = (uint32_t)rate;
+	return_values.rate[1] = (uint32_t)((uint64_t)rate >> 32);
+
+	scmi_write_response(msg, &return_values, sizeof(return_values));
+}
+
 static void scmi_clock_rate_set(struct scmi_msg *msg)
 {
 	const struct scmi_clock_rate_set_a2p *in_args = (void *)msg->in;
@@ -218,6 +264,34 @@ static void scmi_clock_rate_set(struct scmi_msg *msg)
 	status = plat_scmi_clock_set_rate(msg->agent_id, clock_id, rate);
 
 	scmi_status_response(msg, status);
+}
+
+static void scmi_clock_duty_cycle_get(struct scmi_msg *msg)
+{
+	const struct scmi_clock_duty_cycle_get_a2p *in_args = (void *)msg->in;
+	struct scmi_clock_duty_cycle_get_p2a return_values = { };
+	unsigned int clock_id = 0U;
+	unsigned int numerator = 1U;
+	unsigned int denominator = 2U;
+
+	if (msg->in_size != sizeof(*in_args)) {
+		scmi_status_response(msg, SCMI_PROTOCOL_ERROR);
+		return;
+	}
+
+	clock_id = SPECULATION_SAFE_VALUE(in_args->clock_id);
+
+	if (clock_id >= plat_scmi_clock_count(msg->agent_id)) {
+		scmi_status_response(msg, SCMI_INVALID_PARAMETERS);
+		return;
+	}
+
+	plat_scmi_clock_get_duty_cycle(msg->agent_id, clock_id,
+				       &numerator, &denominator);
+	return_values.num = numerator;
+	return_values.den = denominator;
+
+	scmi_write_response(msg, &return_values, sizeof(return_values));
 }
 
 static void scmi_clock_config_set(struct scmi_msg *msg)
@@ -359,6 +433,8 @@ static const scmi_msg_handler_t scmi_clock_handler_table[] = {
 	[SCMI_CLOCK_RATE_SET] = scmi_clock_rate_set,
 	[SCMI_CLOCK_RATE_GET] = scmi_clock_rate_get,
 	[SCMI_CLOCK_CONFIG_SET] = scmi_clock_config_set,
+	[SCMI_CLOCK_DUTY_CYCLE_GET] = scmi_clock_duty_cycle_get,
+	[SCMI_CLOCK_ROUND_RATE_GET] = scmi_clock_round_rate_get,
 };
 
 static bool message_id_is_supported(size_t message_id)
