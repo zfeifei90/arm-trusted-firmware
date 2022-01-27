@@ -291,6 +291,10 @@ int regulator_disable(struct rdev *rdev)
 
 	assert(rdev != NULL);
 
+	if (rdev->flags & REGUL_ALWAYS_ON) {
+		return 0;
+	}
+
 	ret = __regulator_set_state(rdev, STATE_DISABLE);
 
 	udelay(rdev->enable_ramp_delay);
@@ -681,6 +685,21 @@ static void parse_low_power_modes(const void *fdt, struct rdev *rdev, int node)
 		}
 	}
 }
+#else
+static int parse_properties(const void *fdt, struct rdev *rdev, int node)
+{
+	int ret;
+
+	if (fdt_getprop(fdt, node, "regulator-always-on", NULL) != NULL) {
+		VERBOSE("%s: set regulator-always-on\n", rdev->desc->node_name);
+		ret = regulator_set_flag(rdev, REGUL_ALWAYS_ON);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	return 0;
+}
 #endif
 
 /*
@@ -747,12 +766,12 @@ static int parse_dt(struct rdev *rdev, int node)
 		return ret;
 	}
 
-#if defined(IMAGE_BL32)
 	ret = parse_properties(fdt, rdev, node);
 	if (ret != 0) {
 		return ret;
 	}
 
+#if defined(IMAGE_BL32)
 	parse_supply(fdt, rdev, node);
 
 	parse_low_power_modes(fdt, rdev, node);
