@@ -618,7 +618,7 @@ int fdt_get_gpio_bank_pin_count(unsigned int bank)
 	int node;
 	int len;
 	int i;
-	int pin_count = 0;
+	int pin_count;
 	uint32_t bank_offset;
 
 	pinctrl_node = stm32_get_gpio_bank_pinctrl_node(fdt, bank);
@@ -655,8 +655,11 @@ int fdt_get_gpio_bank_pin_count(unsigned int bank)
 			return -FDT_ERR_BADVALUE;
 		}
 
+		/* Get the last defined gpio line (offset + nb of pins) */
+		pin_count = fdt32_to_cpu(*(cuint + 1)) + fdt32_to_cpu(*(cuint + 3));
 		for (i = 0; i < len / 4; i++) {
-			pin_count += fdt32_to_cpu(*(cuint + 3));
+			pin_count = MAX(pin_count, (int)(fdt32_to_cpu(*(cuint + 1)) +
+							 fdt32_to_cpu(*(cuint + 3))));
 			cuint += 4;
 		}
 
