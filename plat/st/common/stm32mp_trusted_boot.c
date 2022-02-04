@@ -14,6 +14,7 @@
 #include <lib/fconf/fconf.h>
 #include <lib/fconf/fconf_dyn_cfg_getter.h>
 #include <lib/fconf/fconf_tbbr_getter.h>
+#include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <plat/common/platform.h>
 
@@ -172,20 +173,18 @@ int plat_get_rotpk_info(void *cookie, void **key_ptr, unsigned int *key_len,
 
 int plat_get_nv_ctr(void *cookie, unsigned int *nv_ctr)
 {
-	/*
-	 * This monotonic counter is the counter used by ROM code
-	 * to identify BL2.
-	 */
-	if (stm32_get_otp_value(MONOTONIC_OTP, nv_ctr) == 0) {
-		return 0;
-	}
+	*nv_ctr = mmio_read_32(TAMP_BASE + TAMP_COUNTR);
 
-	return -EINVAL;
+	return 0;
 }
 
 int plat_set_nv_ctr(void *cookie, unsigned int nv_ctr)
 {
-	return -EINVAL;
+	while (mmio_read_32(TAMP_BASE + TAMP_COUNTR) != nv_ctr) {
+		mmio_write_32(TAMP_BASE + TAMP_COUNTR, 1U);
+	}
+
+	return 0;
 }
 
 int plat_get_mbedtls_heap(void **heap_addr, size_t *heap_size)

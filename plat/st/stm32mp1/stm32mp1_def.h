@@ -527,6 +527,7 @@ enum ddr_type {
 #define TAMP_BKP_REGISTER_BASE		(TAMP_BASE + U(0x100))
 #define TAMP_BKP_SEC_NUMBER		U(10)
 #define TAMP_BKP_S_W_NS_R_NUMBER	U(5)
+#define TAMP_COUNTR			U(0x40)
 
 #if !(defined(__LINKER__) || defined(__ASSEMBLER__))
 static inline uint32_t tamp_bkpr(uint32_t idx)
