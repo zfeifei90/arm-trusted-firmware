@@ -135,9 +135,9 @@ void stm32_apply_pmic_suspend_config(uint32_t mode)
 static void enter_cstop(uint32_t mode, uint32_t nsec_addr)
 {
 	uint32_t zq0cr0_zdata;
-	uint32_t bkpr_core1_addr =
+	uintptr_t bkpr_core1_addr =
 		tamp_bkpr(BOOT_API_CORE1_BRANCH_ADDRESS_TAMP_BCK_REG_IDX);
-	uint32_t bkpr_core1_magic =
+	uintptr_t bkpr_core1_magic =
 		tamp_bkpr(BOOT_API_CORE1_MAGIC_NUMBER_TAMP_BCK_REG_IDX);
 	uint32_t pwr_cr1 = config_pwr[mode].pwr_cr1;
 	uintptr_t pwr_base = stm32mp_pwr_base();

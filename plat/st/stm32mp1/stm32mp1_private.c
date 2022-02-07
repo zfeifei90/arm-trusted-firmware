@@ -792,7 +792,7 @@ bool stm32mp1_is_wakeup_from_standby(void)
 {
 	uint32_t rstsr = mmio_read_32(stm32mp_rcc_base() + RCC_MP_RSTSCLRR);
 #if STM32MP15
-	uint32_t bkpr_core1_addr = tamp_bkpr(BOOT_API_CORE1_BRANCH_ADDRESS_TAMP_BCK_REG_IDX);
+	uintptr_t bkpr_core1_addr = tamp_bkpr(BOOT_API_CORE1_BRANCH_ADDRESS_TAMP_BCK_REG_IDX);
 	uint32_t nsec_address;
 #endif
 
@@ -819,7 +819,7 @@ bool stm32mp1_is_wakeup_from_standby(void)
 
 void stm32_save_boot_interface(uint32_t interface, uint32_t instance)
 {
-	uint32_t bkpr_itf_idx = tamp_bkpr(TAMP_BOOT_ITF_BACKUP_REG_ID);
+	uintptr_t bkpr_itf_idx = tamp_bkpr(TAMP_BOOT_ITF_BACKUP_REG_ID);
 
 	clk_enable(RTCAPB);
 
@@ -836,7 +836,7 @@ void stm32_get_boot_interface(uint32_t *interface, uint32_t *instance)
 	static uint32_t itf;
 
 	if (itf == 0U) {
-		uint32_t bkpr = tamp_bkpr(TAMP_BOOT_ITF_BACKUP_REG_ID);
+		uintptr_t bkpr = tamp_bkpr(TAMP_BOOT_ITF_BACKUP_REG_ID);
 
 		clk_enable(RTCAPB);
 

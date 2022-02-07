@@ -530,7 +530,7 @@ enum ddr_type {
 #define TAMP_COUNTR			U(0x40)
 
 #if !(defined(__LINKER__) || defined(__ASSEMBLER__))
-static inline uint32_t tamp_bkpr(uint32_t idx)
+static inline uintptr_t tamp_bkpr(uint32_t idx)
 {
 	return TAMP_BKP_REGISTER_BASE + (idx << 2);
 }
