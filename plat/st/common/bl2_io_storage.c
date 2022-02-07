@@ -563,22 +563,45 @@ int plat_try_next_boot_source(unsigned int image_id)
 
 #if (STM32MP_SDMMC || STM32MP_EMMC) && PSA_FWU_SUPPORT
 /*
- * Eventually, this function will return the
- * boot index to be passed on to the Update
- * Agent after performing certain checks like
- * a watchdog timeout, or Auth failure while
- * trying to load from a certain bank.
- * For now, since we do not have that logic
- * implemented, just pass the active_index
- * read from the metadata.
+ * In each boot in non-trial mode, we set the BKP register to
+ * FWU_MAX_TRIAL_REBOOT, and return the active_index from metadata.
+ *
+ * As long as the update agent didn't update the "accepted" field in metadata
+ * (ie we are in trial mode), we select the new active_index.
+ * To avoid infinite boot loop at trial boot we decrement a BKP register.
+ * If this counter is 0:
+ *     - an unexpected TAMPER event raised (that resets the BKP registers to 0)
+ *     - a power-off occurs before the update agent was able to update the
+ *       "accepted' field
+ *     - we already boot FWU_MAX_TRIAL_REBOOT times in trial mode.
+ * we select the previous_active_index.
  */
+#define INVALID_BOOT_IDX		0xFFFFFFFF
+
 uint32_t plat_fwu_get_boot_idx(void)
 {
-	const struct fwu_metadata *metadata;
+	/*
+	 * Need to memoize the boot_idx, as this function is call twice,
+	 * and double call has an effect on returned value.
+	 */
+	static uint32_t memoize_boot_idx = INVALID_BOOT_IDX;
+	const struct fwu_metadata *data;
 
-	metadata = fwu_get_metadata();
+	data = fwu_get_metadata();
 
-	return metadata->active_index;
+	if (memoize_boot_idx == INVALID_BOOT_IDX) {
+		memoize_boot_idx = data->active_index;
+		if (fwu_is_trial_run_state()) {
+			if (stm32_get_and_dec_fwu_trial_boot_cnt() == 0U) {
+				WARN("Trial FWU fails to many times");
+				memoize_boot_idx = data->previous_active_index;
+			}
+		} else {
+			stm32_set_max_fwu_trial_boot_cnt();
+		}
+	}
+
+	return memoize_boot_idx;
 }
 
 static void *stm32_get_image_spec(const uuid_t *img_type_uuid)
