@@ -11,6 +11,8 @@
 #if STM32MP_USB_PROGRAMMER
 	aliases {
 		/delete-property/ serial1;
+		/delete-property/ serial2;
+		/delete-property/ serial3;
 	};
 #endif
 

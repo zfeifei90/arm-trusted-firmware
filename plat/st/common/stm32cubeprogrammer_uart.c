@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2021-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -618,7 +618,7 @@ int stm32cubeprog_uart_ssp(uintptr_t instance,
 	}
 
 	/* NACK to synchronize STM32CubeProgrammer */
-	ret = uart_flush_and_nack();
+	ret = uart_send_result(NACK_BYTE);
 	if (ret != 0) {
 		return ret;
 	}
@@ -632,7 +632,7 @@ int stm32cubeprog_uart_ssp(uintptr_t instance,
 		handle.phase = PHASE_SSP;
 	}
 
-	return uart_read(MAX_IMAGE_IDS, handle.phase, ssp_base, ssp_len);
+	return uart_read(handle.phase, ssp_base, ssp_len);
 
 }
 #endif

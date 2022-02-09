@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2015-2022, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -8,7 +8,7 @@ ST_VERSION 		:=	r1.0-ssp
 VERSION_STRING		:=	v${VERSION_MAJOR}.${VERSION_MINOR}-${PLAT}-${ST_VERSION}(${BUILD_TYPE}):${BUILD_STRING}
 
 # Required to use BL2_IN_XIP_MEM
-BL2_IN_XIP_MEM 		:= 	1
+BL2_IN_XIP_MEM		:= 	1
 
 SEPARATE_CODE_AND_RODATA :=	1
 
@@ -75,8 +75,8 @@ ifeq (${STM32MP_USB_PROGRAMMER},1)
 $(eval $(call add_define_val,CONFIG_USBD_EP_NB,1U))
 BL2_SOURCES		+=	drivers/st/usb/stm32mp1_usb.c				\
 				drivers/usb/usb_device.c				\
-				drivers/usb/usb_dfu.c					\
 				plat/st/common/stm32cubeprogrammer_usb.c		\
+				plat/st/common/usb_dfu.c				\
 				plat/st/stm32mp1/stm32mp1_usb_dfu.c
 endif
 

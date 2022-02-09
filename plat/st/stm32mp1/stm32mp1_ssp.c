@@ -25,7 +25,6 @@
 #include <drivers/st/stm32mp_reset.h>
 #include <drivers/st/stpmic1.h>
 #include <drivers/usb_device.h>
-#include <drivers/usb_dfu.h>
 #include <lib/mmio.h>
 #include <lib/utils.h>
 #include <lib/utils_def.h>
@@ -33,6 +32,7 @@
 #include <plat/common/platform.h>
 
 #include <stm32cubeprogrammer.h>
+#include <usb_dfu.h>
 
 #define CERT_CHIP_ID_LEN		U(3)
 #define CERT_SECURITY_COUNTER_LEN	U(2)
