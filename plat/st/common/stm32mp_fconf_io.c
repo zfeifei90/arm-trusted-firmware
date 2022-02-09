@@ -44,9 +44,10 @@ struct plat_io_policy policies[MAX_NUMBER_IDS] = {
 	},
 #ifndef DECRYPTION_SUPPORT_none
 	[ENC_IMAGE_ID] = {
-		&fip_dev_handle,
-		(uintptr_t)NULL,
-		open_fip
+		.dev_handle = &fip_dev_handle,
+		.image_spec = (uintptr_t)NULL,
+		.img_type_guid = NULL_GUID,
+		.check = open_fip
 	},
 #endif
 #if STM32MP_SDMMC || STM32MP_EMMC
