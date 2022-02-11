@@ -23,8 +23,6 @@ uint32_t ddr_get_io_calibration_val(void);
 int ddr_standby_sr_entry(void);
 enum stm32mp1_ddr_sr_mode ddr_read_sr_mode(void);
 void ddr_set_sr_mode(enum stm32mp1_ddr_sr_mode mode);
-void ddr_save_sr_mode(void);
-void ddr_restore_sr_mode(void);
 bool ddr_is_nonsecured_area(uintptr_t address, uint32_t length);
 
 #endif /* STM32MP1_DDR_HELPERS_H */

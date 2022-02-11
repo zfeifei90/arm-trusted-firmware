@@ -559,8 +559,6 @@ void sp_min_platform_setup(void)
 {
 	stm32_init_low_power();
 
-	ddr_save_sr_mode();
-
 	stm32mp_gic_init();
 
 	init_sec_peripherals();

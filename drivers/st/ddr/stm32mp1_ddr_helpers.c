@@ -16,8 +16,6 @@
 #include <lib/mmio.h>
 #include <plat/common/platform.h>
 
-static enum stm32mp1_ddr_sr_mode saved_ddr_sr_mode;
-
 void ddr_enable_clock(void)
 {
 	stm32mp1_clk_rcc_regs_lock();
@@ -550,16 +548,6 @@ void ddr_set_sr_mode(enum stm32mp1_ddr_sr_mode mode)
 		ERROR("Unknown Self Refresh mode\n");
 		panic();
 	}
-}
-
-void ddr_save_sr_mode(void)
-{
-	saved_ddr_sr_mode = ddr_read_sr_mode();
-}
-
-void ddr_restore_sr_mode(void)
-{
-	ddr_set_sr_mode(saved_ddr_sr_mode);
 }
 
 bool ddr_is_nonsecured_area(uintptr_t address, uint32_t length)
