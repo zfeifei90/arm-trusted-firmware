@@ -907,6 +907,7 @@ enum stm32mp1_pll_id {
 enum stm32mp1_plltype {
 	PLL_800,
 	PLL_1600,
+	PLL_2000,
 	PLL_TYPE_NB
 };
 
@@ -934,6 +935,10 @@ static const struct stm32mp1_pll stm32mp1_pll[PLL_TYPE_NB] = {
 		.refclk_max = 16,
 	},
 	[PLL_1600] = {
+		.refclk_min = 8,
+		.refclk_max = 16,
+	},
+	[PLL_2000] = {
 		.refclk_min = 8,
 		.refclk_max = 16,
 	},
@@ -1653,7 +1658,7 @@ const char *clk_stm32_get_oscillator_name(enum stm32_osc id)
 	}
 
 static const struct stm32_clk_pll stm32_mp13_clk_pll[_PLL_NB] = {
-	CLK_PLL_CFG(_PLL1, _CK_PLL1, PLL_1600, RCC_PLL1CR),
+	CLK_PLL_CFG(_PLL1, _CK_PLL1, PLL_2000, RCC_PLL1CR),
 	CLK_PLL_CFG(_PLL2, _CK_PLL2, PLL_1600, RCC_PLL2CR),
 	CLK_PLL_CFG(_PLL3, _CK_PLL3, PLL_800, RCC_PLL3CR),
 	CLK_PLL_CFG(_PLL4, _CK_PLL4, PLL_800, RCC_PLL4CR),
