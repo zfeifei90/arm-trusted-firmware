@@ -522,7 +522,7 @@ static void init_sec_peripherals(void)
 	if (stm32_tamp_init() > 0) {
 		struct bkpregs_conf bkpregs_conf = {
 			.nb_zone1_regs = TAMP_BKP_SEC_NUMBER,
-			.nb_zone2_regs = 0 /* no register in zone 2 */
+			.nb_zone2_regs = TAMP_BKP_S_W_NS_R_NUMBER
 			/* zone3 all remaining */
 		};
 
