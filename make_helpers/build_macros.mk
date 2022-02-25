@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2015-2022, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -142,6 +142,13 @@ define ENCRYPT_FW
 $(2): $(1) enctool
 	$$(ECHO) "  ENC     $$<"
 	$$(Q)$$(ENCTOOL) $$(ENC_ARGS) -i $$< -o $$@
+endef
+
+# GEN_METADATA
+define GEN_METADATA
+$(2): $(1)
+	$$(ECHO) "  GEN_METADATA     $$<"
+	$$(Q)$$(FWUMDTOOL) $$(FWUMD_ARGS) jsonparse $$< -b $$@
 endef
 
 # TOOL_ADD_PAYLOAD appends the command line arguments required by fiptool to
