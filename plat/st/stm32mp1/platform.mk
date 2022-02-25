@@ -106,6 +106,10 @@ ifeq (${PSA_FWU_SUPPORT},1)
 # Number of banks of updatable firmware
 NR_OF_FW_BANKS			:=	2
 NR_OF_IMAGES_IN_FW_BANK		:=	1
+JSON_METADATA			?=	plat/st/stm32mp1/default_metadata.json
+STM32_DEPS			+=	${BUILD_PLAT}/metadata.bin
+
+$(eval $(call GEN_METADATA,${JSON_METADATA},${BUILD_PLAT}/metadata.bin))
 
 FWU_MAX_PART = $(shell echo $$(($(STM32_TF_A_COPIES) + 2 + $(NR_OF_FW_BANKS))))
 ifeq ($(shell test $(FWU_MAX_PART) -gt $(PLAT_PARTITION_MAX_ENTRIES); echo $$?),0)
@@ -113,7 +117,6 @@ $(error "Required partition number is $(FWU_MAX_PART) where PLAT_PARTITION_MAX_E
 $(PLAT_PARTITION_MAX_ENTRIES)")
 endif
 endif
-
 
 # Boot devices
 STM32MP_EMMC		?=	0
@@ -167,6 +170,7 @@ endif
 STM32IMAGEPATH		?= tools/stm32image
 STM32IMAGE		?= ${STM32IMAGEPATH}/stm32image${BIN_EXT}
 STM32IMAGE_SRC		:= ${STM32IMAGEPATH}/stm32image.c
+STM32_DEPS		+= ${STM32IMAGE}
 
 FIP_DEPS		+=	dtbs
 STM32MP_HW_CONFIG	:=	${BL33_CFG}
@@ -517,12 +521,12 @@ tf-a-%.bin: tf-a-%.elf
 	@echo "Built $@ successfully"
 	@echo
 
-tf-a-%.stm32: ${STM32IMAGE} tf-a-%.bin
+tf-a-%.stm32: tf-a-%.bin ${STM32_DEPS}
 	@echo
 	@echo "Generate $@"
 	$(eval LOADADDR = $(shell cat $(@:.stm32=.map) | grep RAM | awk '{print $$2}'))
 	$(eval ENTRY = $(shell cat $(@:.stm32=.map) | grep "__BL2_IMAGE_START" | awk '{print $$1}'))
-	${Q}${STM32IMAGE} -s $(word 2,$^) -d $@ \
+	${Q}${STM32IMAGE} -s $< -d $@ \
 		-l $(LOADADDR) -e ${ENTRY} \
 		-v ${STM32_TF_VERSION} \
 		-m ${STM32_HEADER_VERSION_MAJOR} \
