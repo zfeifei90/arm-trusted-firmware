@@ -165,13 +165,17 @@ int ddr_sw_self_refresh_exit(void)
 	/* Enable all clocks */
 	ddr_enable_clock();
 
-	stm32mp_ddr_start_sw_done((struct stm32mp_ddrctl *)ddrctrl_base);
+	/*
+	 * Manage quasi-dynamic registers modification
+	 * dfimisc.dfi_init_complete_en : Group 3
+	 */
+	stm32mp_ddr_set_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Mask dfi_init_complete_en */
 	mmio_clrbits_32(ddrctrl_base + DDRCTRL_DFIMISC,
 			DDRCTRL_DFIMISC_DFI_INIT_COMPLETE_EN);
 
-	stm32mp_ddr_wait_sw_done_ack((struct stm32mp_ddrctl *)ddrctrl_base);
+	stm32mp_ddr_unset_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Switch controller clocks (uMCTL2/PUBL) to DLL ref clock */
 	stm32mp1_clk_rcc_regs_lock();
@@ -230,13 +234,17 @@ int ddr_sw_self_refresh_exit(void)
 		}
 	}
 
-	stm32mp_ddr_start_sw_done((struct stm32mp_ddrctl *)ddrctrl_base);
+	/*
+	 * Manage quasi-dynamic registers modification
+	 * dfimisc.dfi_init_complete_en : Group 3
+	 */
+	stm32mp_ddr_set_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Unmask dfi_init_complete_en to uMCTL2 */
 	mmio_setbits_32(ddrctrl_base + DDRCTRL_DFIMISC,
 			DDRCTRL_DFIMISC_DFI_INIT_COMPLETE_EN);
 
-	stm32mp_ddr_wait_sw_done_ack((struct stm32mp_ddrctl *)ddrctrl_base);
+	stm32mp_ddr_unset_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Deactivate sw retention in PWR */
 	stm32mp_pwr_regs_lock();
@@ -356,6 +364,14 @@ static void ddr_sr_mode_ssr(void)
 
 	stm32mp1_clk_rcc_regs_unlock();
 
+	/*
+	 * Manage quasi-dynamic registers modification
+	 * hwlpctl.hw_lp_en : Group 3
+	 * pwrtmg.selfref_to_x32 & powerdown_to_x32 : Group 4
+	 * Group 3 is the most restrictive, apply its conditions for all
+	 */
+	stm32mp_ddr_set_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
+
 	/* Disable HW LP interface of uMCTL2 */
 	mmio_clrbits_32(ddrctrl_base + DDRCTRL_HWLPCTL,
 			DDRCTRL_HWLPCTL_HW_LP_EN);
@@ -364,6 +380,8 @@ static void ddr_sr_mode_ssr(void)
 	mmio_clrsetbits_32(ddrctrl_base + DDRCTRL_PWRTMG,
 			   DDRCTRL_PWRTMG_SELFREF_TO_X32_MASK,
 			   DDRCTRL_PWRTMG_SELFREF_TO_X32_0);
+
+	stm32mp_ddr_unset_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/*
 	 * Disable Clock disable with LP modes
@@ -399,6 +417,14 @@ static void ddr_sr_mode_asr(void)
 
 	stm32mp1_clk_rcc_regs_unlock();
 
+	/*
+	 * Manage quasi-dynamic registers modification
+	 * hwlpctl.hw_lp_en : Group 3
+	 * pwrtmg.selfref_to_x32 & powerdown_to_x32 : Group 4
+	 * Group 3 is the most restrictive, apply its conditions for all
+	 */
+	stm32mp_ddr_set_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
+
 	/* Enable HW LP interface of uMCTL2 */
 	mmio_setbits_32(ddrctrl_base + DDRCTRL_HWLPCTL,
 			DDRCTRL_HWLPCTL_HW_LP_EN);
@@ -407,6 +433,8 @@ static void ddr_sr_mode_asr(void)
 	mmio_clrsetbits_32(ddrctrl_base + DDRCTRL_PWRTMG,
 			   DDRCTRL_PWRTMG_SELFREF_TO_X32_MASK,
 			   DDRCTRL_PWRTMG_SELFREF_TO_X32_0);
+
+	stm32mp_ddr_unset_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/*
 	 * Enable Clock disable with LP modes
@@ -442,6 +470,14 @@ static void ddr_sr_mode_hsr(void)
 
 	stm32mp1_clk_rcc_regs_unlock();
 
+	/*
+	 * Manage quasi-dynamic registers modification
+	 * hwlpctl.hw_lp_en : Group 3
+	 * pwrtmg.selfref_to_x32 & powerdown_to_x32 : Group 4
+	 * Group 3 is the most restrictive, apply its conditions for all
+	 */
+	stm32mp_ddr_set_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
+
 	/* Enable HW LP interface of uMCTL2 */
 	mmio_setbits_32(ddrctrl_base + DDRCTRL_HWLPCTL,
 			DDRCTRL_HWLPCTL_HW_LP_EN);
@@ -450,6 +486,8 @@ static void ddr_sr_mode_hsr(void)
 	mmio_clrsetbits_32(ddrctrl_base + DDRCTRL_PWRTMG,
 			   DDRCTRL_PWRTMG_SELFREF_TO_X32_MASK,
 			   DDRCTRL_PWRTMG_SELFREF_TO_X32_0);
+
+	stm32mp_ddr_unset_qd3_update_conditions((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/*
 	 * Enable Clock disable with LP modes

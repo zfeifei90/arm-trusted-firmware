@@ -530,21 +530,36 @@ static void stm32mp1_ddr3_dll_off(struct stm32mp_ddr_priv *priv)
 
 static void stm32mp1_refresh_disable(struct stm32mp_ddrctl *ctl)
 {
+	/*
+	 * Manage quasi-dynamic registers modification
+	 * dfimisc.dfi_init_complete_en : Group 3
+	 * AXI ports not yet enabled, don't disable them
+	 */
+	stm32mp_ddr_disable_host_interface(ctl);
 	stm32mp_ddr_start_sw_done(ctl);
-	/* Quasi-dynamic register update*/
+
 	mmio_setbits_32((uintptr_t)&ctl->rfshctl3,
 			DDRCTRL_RFSHCTL3_DIS_AUTO_REFRESH);
 	mmio_clrbits_32((uintptr_t)&ctl->pwrctl, DDRCTRL_PWRCTL_POWERDOWN_EN |
 						 DDRCTRL_PWRCTL_SELFREF_EN);
 	mmio_clrbits_32((uintptr_t)&ctl->dfimisc,
 			DDRCTRL_DFIMISC_DFI_INIT_COMPLETE_EN);
+
 	stm32mp_ddr_wait_sw_done_ack(ctl);
+	stm32mp_ddr_enable_host_interface(ctl);
 }
 
 static void stm32mp1_refresh_restore(struct stm32mp_ddrctl *ctl,
 				     uint32_t rfshctl3, uint32_t pwrctl)
 {
+	/*
+	 * Manage quasi-dynamic registers modification
+	 * dfimisc.dfi_init_complete_en : Group 3
+	 * AXI ports not yet enabled, don't disable them
+	 */
+	stm32mp_ddr_disable_host_interface(ctl);
 	stm32mp_ddr_start_sw_done(ctl);
+
 	if ((rfshctl3 & DDRCTRL_RFSHCTL3_DIS_AUTO_REFRESH) == 0U) {
 		mmio_clrbits_32((uintptr_t)&ctl->rfshctl3,
 				DDRCTRL_RFSHCTL3_DIS_AUTO_REFRESH);
@@ -559,7 +574,9 @@ static void stm32mp1_refresh_restore(struct stm32mp_ddrctl *ctl,
 	}
 	mmio_setbits_32((uintptr_t)&ctl->dfimisc,
 			DDRCTRL_DFIMISC_DFI_INIT_COMPLETE_EN);
+
 	stm32mp_ddr_wait_sw_done_ack(ctl);
+	stm32mp_ddr_enable_host_interface(ctl);
 }
 
 static void stm32mp1_refresh_cmd(struct stm32mp_ddrctl *ctl)
