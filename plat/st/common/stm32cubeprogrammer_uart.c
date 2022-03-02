@@ -600,7 +600,6 @@ const struct stm32_uart_init_s init = {
 	.parity = STM32_UART_PARITY_EVEN,
 	.hw_flow_control = STM32_UART_HWCONTROL_NONE,
 	.mode = STM32_UART_MODE_TX_RX,
-	.over_sampling = STM32_UART_OVERSAMPLING_16,
 	.fifo_mode = STM32_UART_FIFOMODE_EN,
 };
 
