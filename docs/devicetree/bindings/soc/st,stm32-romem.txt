@@ -46,30 +46,3 @@ Example on stm32mp1:
 		};
 		...
 	};
-
-The nvmem_layout node gathers all nvmem platform-dependent layout information,
-including OTP names and phandles, in order to allow easy accesses for data
-consumers, using pre-defined string in nvmem-cell-names property.
-
-Required properties:
-- compatible:		"st,stm32-nvmem-layout"
-- nvmem-cells and nvmem-cell-names, as described in nvmem.txt.
-
-Example on stm32mp1:
-	nvmem_layout: nvmem_layout@0 {
-		compatible = "st,stm32-nvmem-layout";
-		nvmem-cells = <&part_number_otp>,
-			      ...
-			      ;
-		nvmem-cell-names = "part_number_otp",
-				   ...
-				   ;
-	};
-
-	bsec: nvmem@5c005000 {
-		...
-		part_number_otp: part_number_otp@4 {
-			reg = <0x4 0x1>;
-		};
-		...
-	};
