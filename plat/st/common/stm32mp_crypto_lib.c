@@ -456,8 +456,7 @@ int derive_key(uint8_t *key, size_t *key_len, size_t len,
 	 * But we expect a 32 bytes key, and otp is only 16 bytes
 	 *   => duplicate.
 	 */
-	for (i = 0U, j = len / sizeof(uint32_t);
-	     j < 32U;
+	for (i = 0U, j = len; j < 32U;
 	     i += sizeof(uint32_t), j += sizeof(uint32_t)) {
 		memcpy(key + j, key + i, sizeof(uint32_t));
 	}
