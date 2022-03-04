@@ -32,28 +32,6 @@
 		opp-shared;
 	};
 
-	nvmem_layout: nvmem_layout@0 {
-		compatible = "st,stm32-nvmem-layout";
-
-		nvmem-cells = <&cfg0_otp>,
-			      <&part_number_otp>,
-			      <&monotonic_otp>,
-			      <&nand_otp>,
-			      <&uid_otp>,
-			      <&package_otp>,
-			      <&hw2_otp>,
-			      <&pkh_otp>;
-
-		nvmem-cell-names = "cfg0_otp",
-				   "part_number_otp",
-				   "monotonic_otp",
-				   "nand_otp",
-				   "uid_otp",
-				   "package_otp",
-				   "hw2_otp",
-				   "pkh_otp";
-	};
-
 	psci {
 		compatible = "arm,psci-1.0";
 		method = "smc";

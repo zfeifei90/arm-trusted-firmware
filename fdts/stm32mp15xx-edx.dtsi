@@ -188,28 +188,6 @@
 	secure-status = "okay";
 };
 
-&nvmem_layout {
-	nvmem-cells = <&cfg0_otp>,
-		      <&part_number_otp>,
-		      <&monotonic_otp>,
-		      <&nand_otp>,
-		      <&uid_otp>,
-		      <&package_otp>,
-		      <&hw2_otp>,
-		      <&pkh_otp>,
-		      <&board_id>;
-
-	nvmem-cell-names = "cfg0_otp",
-			   "part_number_otp",
-			   "monotonic_otp",
-			   "nand_otp",
-			   "uid_otp",
-			   "package_otp",
-			   "hw2_otp",
-			   "pkh_otp",
-			   "board_id";
-};
-
 &pwr_regulators {
 	system_suspend_supported_soc_modes = <
 		STM32_PM_CSLEEP_RUN
