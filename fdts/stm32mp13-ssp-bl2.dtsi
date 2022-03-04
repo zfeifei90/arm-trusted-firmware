@@ -19,31 +19,6 @@
 	/delete-node/ cpu0-opp-table;
 	/delete-node/ psci;
 
-	nvmem_layout@0 {
-	/delete-property/ nvmem-cells;
-	/delete-property/ nvmem-cell-names;
-
-	nvmem-cells = <&cfg0_otp>,
-		      <&part_number_otp>,
-		      <&uid_otp>,
-		      <&hw2_otp>,
-		      <&pkh_otp>,
-		      <&cfg2_otp>,
-		      <&ssp_otp>,
-		      <&chip_otp>,
-		      <&rma_otp>;
-
-	nvmem-cell-names = "cfg0_otp",
-			   "part_number_otp",
-			   "uid_otp",
-			   "hw2_otp",
-			   "pkh_otp",
-			   "cfg2_otp",
-			   "ssp_otp",
-			   "chip_otp",
-			   "rma_otp";
-	};
-
 	soc {
 		efuse@5c005000 {
 			cfg0_otp: cfg0_otp@0 {
