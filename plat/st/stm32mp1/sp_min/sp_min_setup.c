@@ -187,16 +187,13 @@ static void disable_usb_phy_regulator(void)
  ******************************************************************************/
 void sp_min_plat_fiq_handler(uint32_t id)
 {
+	bool unrecoverable_err = false;
+
 	switch (id & INT_ID_MASK) {
 	case ARM_IRQ_SEC_PHY_TIMER:
 	case STM32MP1_IRQ_MCU_SEV:
 	case STM32MP1_IRQ_RCC_WAKEUP:
 		stm32mp1_calib_it_handler(id);
-		break;
-	case STM32MP1_IRQ_TZC400:
-		tzc400_init(STM32MP1_TZC_BASE);
-		(void)tzc400_it_handler();
-		panic();
 		break;
 	case STM32MP1_IRQ_TAMPSERRS:
 		stm32_tamp_it_handler();
@@ -211,9 +208,26 @@ void sp_min_plat_fiq_handler(uint32_t id)
 		}
 		gicv2_end_of_interrupt(ARM_IRQ_SEC_SGI_6);
 		break;
+	default:
+		unrecoverable_err = true;
+		break;
+	}
+
+	if (!unrecoverable_err) {
+		return;
+	}
+
+	(void)plat_crash_console_init();
+
+	switch (id & INT_ID_MASK) {
 	case STM32MP1_IRQ_IWDG1:
 	case STM32MP1_IRQ_IWDG2:
 		stm32_iwdg_it_handler(id);
+		break;
+	case STM32MP1_IRQ_TZC400:
+		tzc400_init(STM32MP1_TZC_BASE);
+		(void)tzc400_it_handler();
+		panic();
 		break;
 	case STM32MP1_IRQ_AXIERRIRQ:
 		ERROR("STM32MP1_IRQ_AXIERRIRQ generated\n");
