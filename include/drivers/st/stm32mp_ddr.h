@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2021-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
  */
@@ -64,8 +64,6 @@ void stm32mp_ddr_set_reg(const struct stm32mp_ddr_priv *priv, enum stm32mp_ddr_r
 			 const void *param, const struct stm32mp_ddr_reg_info *ddr_registers);
 void stm32mp_ddr_start_sw_done(struct stm32mp_ddrctl *ctl);
 void stm32mp_ddr_wait_sw_done_ack(struct stm32mp_ddrctl *ctl);
-void stm32mp_ddr_do_sw_handshake(void);
-void stm32mp_ddr_do_sw_ack(void);
 void stm32mp_ddr_enable_axi_port(struct stm32mp_ddrctl *ctl);
 int stm32mp_board_ddr_power_init(enum ddr_type ddr_type);
 

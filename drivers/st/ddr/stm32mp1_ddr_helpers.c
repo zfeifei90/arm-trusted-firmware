@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2021, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -209,13 +209,13 @@ int ddr_sw_self_refresh_exit(void)
 	/* Enable all clocks */
 	ddr_enable_clock();
 
-	stm32mp_ddr_do_sw_handshake();
+	stm32mp_ddr_start_sw_done((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Mask dfi_init_complete_en */
 	mmio_clrbits_32(ddrctrl_base + DDRCTRL_DFIMISC,
 			DDRCTRL_DFIMISC_DFI_INIT_COMPLETE_EN);
 
-	stm32mp_ddr_do_sw_ack();
+	stm32mp_ddr_wait_sw_done_ack((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Switch controller clocks (uMCTL2/PUBL) to DLL ref clock */
 	stm32mp1_clk_rcc_regs_lock();
@@ -274,13 +274,13 @@ int ddr_sw_self_refresh_exit(void)
 		}
 	}
 
-	stm32mp_ddr_do_sw_handshake();
+	stm32mp_ddr_start_sw_done((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Unmask dfi_init_complete_en to uMCTL2 */
 	mmio_setbits_32(ddrctrl_base + DDRCTRL_DFIMISC,
 			DDRCTRL_DFIMISC_DFI_INIT_COMPLETE_EN);
 
-	stm32mp_ddr_do_sw_ack();
+	stm32mp_ddr_wait_sw_done_ack((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Deactivate sw retention in PWR */
 	stm32mp_pwr_regs_lock();
