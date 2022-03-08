@@ -34,11 +34,6 @@ void ddr_enable_clock(void)
 
 static int ddr_sw_self_refresh_in(void)
 {
-	uint64_t timeout;
-	uint32_t stat;
-	uint32_t operating_mode;
-	uint32_t selref_type;
-	uint8_t op_mode_changed = 0;
 	uintptr_t rcc_base = stm32mp_rcc_base();
 	uintptr_t pwr_base = stm32mp_pwr_base();
 	uintptr_t ddrctrl_base = stm32mp_ddrctrl_base();
@@ -51,47 +46,14 @@ static int ddr_sw_self_refresh_in(void)
 	stm32mp1_clk_rcc_regs_unlock();
 
 	/* Blocks AXI ports from taking anymore transactions */
-	mmio_clrbits_32(ddrctrl_base + DDRCTRL_PCTRL_0,
-			DDRCTRL_PCTRL_N_PORT_EN);
-#if STM32MP_DDR_DUAL_AXI_PORT
-	mmio_clrbits_32(ddrctrl_base + DDRCTRL_PCTRL_1,
-			DDRCTRL_PCTRL_N_PORT_EN);
-#endif
-
-	/* Waits unit all AXI ports are idle
-	 * Poll PSTAT.rd_port_busy_n = 0
-	 * Poll PSTAT.wr_port_busy_n = 0
-	 */
-	timeout = timeout_init_us(TIMEOUT_500US);
-	while (mmio_read_32(ddrctrl_base + DDRCTRL_PSTAT)) {
-		if (timeout_elapsed(timeout)) {
-			goto pstat_failed;
-		}
+	if (stm32mp_ddr_disable_axi_port((struct stm32mp_ddrctl *)ddrctrl_base) != 0U) {
+		goto pstat_failed;
 	}
+
 	/* SW Self-Refresh entry */
-	mmio_setbits_32(ddrctrl_base + DDRCTRL_PWRCTL,
-			DDRCTRL_PWRCTL_SELFREF_SW);
-
-	/* Wait operating mode change in self-refresh mode
-	 * with STAT.operating_mode[1:0]==11.
-	 * Ensure transition to self-refresh was due to software
-	 * by checking also that STAT.selfref_type[1:0]=2.
-	 */
-	timeout = timeout_init_us(TIMEOUT_500US);
-	while (!timeout_elapsed(timeout)) {
-		stat = mmio_read_32(ddrctrl_base + DDRCTRL_STAT);
-		operating_mode = stat & DDRCTRL_STAT_OPERATING_MODE_MASK;
-		selref_type = stat & DDRCTRL_STAT_SELFREF_TYPE_MASK;
-
-		if ((operating_mode == DDRCTRL_STAT_OPERATING_MODE_SR) &&
-		    (selref_type == DDRCTRL_STAT_SELFREF_TYPE_SR)) {
-			op_mode_changed = 1;
-			break;
-		}
-	}
-
-	if (op_mode_changed == 0U)
+	if (stm32mp_ddr_sw_selfref_entry((struct stm32mp_ddrctl *)ddrctrl_base) != 0U) {
 		goto selfref_sw_failed;
+	}
 
 	/* IOs powering down (PUBL registers) */
 	mmio_setbits_32(ddrphyc_base + DDRPHYC_ACIOCR, DDRPHYC_ACIOCR_ACPDD);
@@ -183,17 +145,11 @@ static int ddr_sw_self_refresh_in(void)
 	return 0;
 
 selfref_sw_failed:
-	/* This bit should be cleared to restore DDR in its previous state */
-	mmio_clrbits_32(ddrctrl_base + DDRCTRL_PWRCTL,
-			DDRCTRL_PWRCTL_SELFREF_SW);
+	/* Restore DDR in its previous state */
+	stm32mp_ddr_sw_selfref_exit((struct stm32mp_ddrctl *)ddrctrl_base);
 
 pstat_failed:
-	mmio_setbits_32(ddrctrl_base + DDRCTRL_PCTRL_0,
-			DDRCTRL_PCTRL_N_PORT_EN);
-#if STM32MP_DDR_DUAL_AXI_PORT
-	mmio_setbits_32(ddrctrl_base + DDRCTRL_PCTRL_1,
-			DDRCTRL_PCTRL_N_PORT_EN);
-#endif
+	stm32mp_ddr_enable_axi_port((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	return -1;
 }
@@ -318,8 +274,7 @@ int ddr_sw_self_refresh_exit(void)
 			DDRPHYC_DSGCR_CKEPDD_MASK);
 
 	/* Remove selfrefresh */
-	mmio_clrbits_32(ddrctrl_base + DDRCTRL_PWRCTL,
-			DDRCTRL_PWRCTL_SELFREF_SW);
+	stm32mp_ddr_sw_selfref_exit((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	/* Wait operating_mode == normal */
 	timeout = timeout_init_us(TIMEOUT_500US);
@@ -332,12 +287,7 @@ int ddr_sw_self_refresh_exit(void)
 	}
 
 	/* AXI ports are no longer blocked from taking transactions */
-	mmio_setbits_32(ddrctrl_base + DDRCTRL_PCTRL_0,
-			DDRCTRL_PCTRL_N_PORT_EN);
-#if STM32MP_DDR_DUAL_AXI_PORT
-	mmio_setbits_32(ddrctrl_base + DDRCTRL_PCTRL_1,
-			DDRCTRL_PCTRL_N_PORT_EN);
-#endif
+	stm32mp_ddr_enable_axi_port((struct stm32mp_ddrctl *)ddrctrl_base);
 
 	stm32mp1_clk_rcc_regs_lock();
 

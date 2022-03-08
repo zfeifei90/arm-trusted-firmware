@@ -92,7 +92,90 @@ void stm32mp_ddr_enable_axi_port(struct stm32mp_ddrctl *ctl)
 	VERBOSE("[0x%lx] pctrl_1 = 0x%x\n", (uintptr_t)&ctl->pctrl_1,
 		mmio_read_32((uintptr_t)&ctl->pctrl_1));
 #endif
+}
 
+int stm32mp_ddr_disable_axi_port(struct stm32mp_ddrctl *ctl)
+{
+	uint64_t timeout;
+	uint32_t pstat;
+
+	/* Disable uMCTL2 AXI port 0 */
+	mmio_clrbits_32((uintptr_t)&ctl->pctrl_0, DDRCTRL_PCTRL_N_PORT_EN);
+	VERBOSE("[0x%lx] pctrl_0 = 0x%x\n", (uintptr_t)&ctl->pctrl_0,
+		mmio_read_32((uintptr_t)&ctl->pctrl_0));
+
+#if STM32MP_DDR_DUAL_AXI_PORT
+	/* Disable uMCTL2 AXI port 1 */
+	mmio_clrbits_32((uintptr_t)&ctl->pctrl_1, DDRCTRL_PCTRL_N_PORT_EN);
+	VERBOSE("[0x%lx] pctrl_1 = 0x%x\n", (uintptr_t)&ctl->pctrl_1,
+		mmio_read_32((uintptr_t)&ctl->pctrl_1));
+#endif
+
+	/*
+	 * Waits until all AXI ports are idle
+	 * Poll PSTAT.rd_port_busy_n = 0
+	 * Poll PSTAT.wr_port_busy_n = 0
+	 */
+	timeout = timeout_init_us(TIMEOUT_US_1S);
+	do {
+		pstat = mmio_read_32((uintptr_t)&ctl->pstat);
+		VERBOSE("[0x%lx] pstat = 0x%x ",
+			(uintptr_t)&ctl->pstat, pstat);
+		if (timeout_elapsed(timeout)) {
+			return -1;
+		}
+	} while (pstat != 0U);
+
+	return 0;
+}
+
+void stm32mp_ddr_enable_host_interface(struct stm32mp_ddrctl *ctl)
+{
+	mmio_clrbits_32((uintptr_t)&ctl->dbg1, DDRCTRL_DBG1_DIS_HIF);
+	VERBOSE("[0x%lx] dbg1 = 0x%x\n",
+		(uintptr_t)&ctl->dbg1,
+		mmio_read_32((uintptr_t)&ctl->dbg1));
+}
+
+int stm32mp_ddr_sw_selfref_entry(struct stm32mp_ddrctl *ctl)
+{
+	uint64_t timeout;
+	uint32_t stat;
+	uint32_t operating_mode;
+	uint32_t selref_type;
+
+	mmio_setbits_32((uintptr_t)&ctl->pwrctl, DDRCTRL_PWRCTL_SELFREF_SW);
+	VERBOSE("[0x%lx] pwrctl = 0x%x\n",
+		(uintptr_t)&ctl->pwrctl,
+		mmio_read_32((uintptr_t)&ctl->pwrctl));
+
+	/*
+	 * Wait operating mode change in self-refresh mode
+	 * with STAT.operating_mode[1:0]==11.
+	 * Ensure transition to self-refresh was due to software
+	 * by checking also that STAT.selfref_type[1:0]=2.
+	 */
+	timeout = timeout_init_us(TIMEOUT_500US);
+	while (!timeout_elapsed(timeout)) {
+		stat = mmio_read_32((uintptr_t)&ctl->stat);
+		operating_mode = stat & DDRCTRL_STAT_OPERATING_MODE_MASK;
+		selref_type = stat & DDRCTRL_STAT_SELFREF_TYPE_MASK;
+
+		if ((operating_mode == DDRCTRL_STAT_OPERATING_MODE_SR) &&
+		    (selref_type == DDRCTRL_STAT_SELFREF_TYPE_SR)) {
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
+void stm32mp_ddr_sw_selfref_exit(struct stm32mp_ddrctl *ctl)
+{
+	mmio_clrbits_32((uintptr_t)&ctl->pwrctl, DDRCTRL_PWRCTL_SELFREF_SW);
+	VERBOSE("[0x%lx] pwrctl = 0x%x\n",
+		(uintptr_t)&ctl->pwrctl,
+		mmio_read_32((uintptr_t)&ctl->pwrctl));
 }
 
 int stm32mp_board_ddr_power_init(enum ddr_type ddr_type)

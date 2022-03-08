@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2018-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
  */
@@ -510,8 +510,7 @@ static void stm32mp1_ddr3_dll_off(struct stm32mp_ddr_priv *priv)
 #endif
 
 	/* 12. Exit the self-refresh state by setting PWRCTL.selfref_sw = 0. */
-	mmio_clrbits_32((uintptr_t)&priv->ctl->pwrctl,
-			DDRCTRL_PWRCTL_SELFREF_SW);
+	stm32mp_ddr_sw_selfref_exit(priv->ctl);
 	stm32mp1_wait_operating_mode(priv, DDRCTRL_STAT_OPERATING_MODE_NORMAL);
 
 	/*
@@ -526,10 +525,7 @@ static void stm32mp1_ddr3_dll_off(struct stm32mp_ddr_priv *priv)
 	 */
 
 	/* 15. Write DBG1.dis_hif = 0 to re-enable reads and writes. */
-	mmio_clrbits_32((uintptr_t)&priv->ctl->dbg1, DDRCTRL_DBG1_DIS_HIF);
-	VERBOSE("[0x%lx] dbg1 = 0x%x\n",
-		(uintptr_t)&priv->ctl->dbg1,
-		mmio_read_32((uintptr_t)&priv->ctl->dbg1));
+	stm32mp_ddr_enable_host_interface(priv->ctl);
 }
 
 static void stm32mp1_refresh_disable(struct stm32mp_ddrctl *ctl)
@@ -841,8 +837,7 @@ void stm32mp1_ddr_init(struct stm32mp_ddr_priv *priv,
 
 	/* Trigger self-refresh exit */
 	if (config->self_refresh) {
-		mmio_clrbits_32((uintptr_t)&priv->ctl->pwrctl,
-				DDRCTRL_PWRCTL_SELFREF_SW);
+		stm32mp_ddr_sw_selfref_exit(priv->ctl);
 	}
 
 	stm32mp1_wait_operating_mode(priv, DDRCTRL_STAT_OPERATING_MODE_NORMAL);
