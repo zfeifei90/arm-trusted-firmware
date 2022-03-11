@@ -228,6 +228,36 @@ void stm32mp_ddr_unset_qd3_update_conditions(struct stm32mp_ddrctl *ctl)
 	stm32mp_ddr_enable_axi_port(ctl);
 }
 
+void stm32mp_ddr_wait_refresh_update_done_ack(struct stm32mp_ddrctl *ctl)
+{
+	uint64_t timeout;
+	uint32_t rfshctl3;
+	uint32_t refresh_update_level = DDRCTRL_RFSHCTL3_REFRESH_UPDATE_LEVEL;
+
+	/* Toggle rfshctl3.refresh_update_level */
+	rfshctl3 = mmio_read_32((uintptr_t)&ctl->rfshctl3);
+	if ((rfshctl3 & refresh_update_level) == refresh_update_level) {
+		mmio_setbits_32((uintptr_t)&ctl->rfshctl3, refresh_update_level);
+	} else {
+		mmio_clrbits_32((uintptr_t)&ctl->rfshctl3, refresh_update_level);
+		refresh_update_level = 0U;
+	}
+
+	VERBOSE("[0x%lx] rfshctl3 = 0x%x\n",
+		(uintptr_t)&ctl->rfshctl3, mmio_read_32((uintptr_t)&ctl->rfshctl3));
+
+	timeout = timeout_init_us(TIMEOUT_US_1S);
+	do {
+		rfshctl3 = mmio_read_32((uintptr_t)&ctl->rfshctl3);
+		VERBOSE("[0x%lx] rfshctl3 = 0x%x ", (uintptr_t)&ctl->rfshctl3, rfshctl3);
+		if (timeout_elapsed(timeout)) {
+			panic();
+		}
+	} while ((rfshctl3 & DDRCTRL_RFSHCTL3_REFRESH_UPDATE_LEVEL) != refresh_update_level);
+
+	VERBOSE("[0x%lx] rfshctl3 = 0x%x\n", (uintptr_t)&ctl->rfshctl3, rfshctl3);
+}
+
 int stm32mp_board_ddr_power_init(enum ddr_type ddr_type)
 {
 	if (dt_pmic_status() > 0) {

@@ -540,6 +540,8 @@ static void stm32mp1_refresh_disable(struct stm32mp_ddrctl *ctl)
 
 	mmio_setbits_32((uintptr_t)&ctl->rfshctl3,
 			DDRCTRL_RFSHCTL3_DIS_AUTO_REFRESH);
+	stm32mp_ddr_wait_refresh_update_done_ack(ctl);
+
 	mmio_clrbits_32((uintptr_t)&ctl->pwrctl, DDRCTRL_PWRCTL_POWERDOWN_EN |
 						 DDRCTRL_PWRCTL_SELFREF_EN);
 	mmio_clrbits_32((uintptr_t)&ctl->dfimisc,
@@ -563,6 +565,7 @@ static void stm32mp1_refresh_restore(struct stm32mp_ddrctl *ctl,
 	if ((rfshctl3 & DDRCTRL_RFSHCTL3_DIS_AUTO_REFRESH) == 0U) {
 		mmio_clrbits_32((uintptr_t)&ctl->rfshctl3,
 				DDRCTRL_RFSHCTL3_DIS_AUTO_REFRESH);
+		stm32mp_ddr_wait_refresh_update_done_ack(ctl);
 	}
 	if ((pwrctl & DDRCTRL_PWRCTL_POWERDOWN_EN) != 0U) {
 		mmio_setbits_32((uintptr_t)&ctl->pwrctl,
