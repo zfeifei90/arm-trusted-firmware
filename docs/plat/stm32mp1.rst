@@ -122,6 +122,8 @@ Other configuration flags:
   | Default: 115200
 - | ``STM32_TF_VERSION``: to manage BL2 monotonic counter.
   | Default: 0
+- | ``DWL_BUFFER_BASE``: the 'serial boot' load address of FIP,
+  | default location (end of the first 128MB) is used when absent
 
 
 Boot with FIP
