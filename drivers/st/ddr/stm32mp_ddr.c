@@ -137,6 +137,40 @@ void stm32mp_ddr_enable_host_interface(struct stm32mp_ddrctl *ctl)
 		mmio_read_32((uintptr_t)&ctl->dbg1));
 }
 
+void stm32mp_ddr_disable_host_interface(struct stm32mp_ddrctl *ctl)
+{
+	uint64_t timeout;
+	uint32_t dbgcam;
+	int count = 0;
+
+	mmio_setbits_32((uintptr_t)&ctl->dbg1, DDRCTRL_DBG1_DIS_HIF);
+	VERBOSE("[0x%lx] dbg1 = 0x%x\n",
+		(uintptr_t)&ctl->dbg1,
+		mmio_read_32((uintptr_t)&ctl->dbg1));
+
+	/*
+	 * Waits until all queues and pipelines are empty
+	 * Poll DBGCAM.dbg_wr_q_empty = 1
+	 * Poll DBGCAM.dbg_rd_q_empty = 1
+	 * Poll DBGCAM.dbg_wr_data_pipeline_empty = 1
+	 * Poll DBGCAM.dbg_rd_data_pipeline_empty = 1
+	 *
+	 * data_pipeline fields must be polled twice to ensure
+	 * value propoagation, so count is added to loop condition.
+	 */
+	timeout = timeout_init_us(TIMEOUT_US_1S);
+	do {
+		dbgcam = mmio_read_32((uintptr_t)&ctl->dbgcam);
+		VERBOSE("[0x%lx] dbgcam = 0x%x ",
+			(uintptr_t)&ctl->dbgcam, dbgcam);
+		if (timeout_elapsed(timeout)) {
+			panic();
+		}
+		count++;
+	} while (((dbgcam & DDRCTRL_DBG_Q_AND_DATA_PIPELINE_EMPTY) !=
+		  DDRCTRL_DBG_Q_AND_DATA_PIPELINE_EMPTY) || (count < 2));
+}
+
 int stm32mp_ddr_sw_selfref_entry(struct stm32mp_ddrctl *ctl)
 {
 	uint64_t timeout;
@@ -176,6 +210,22 @@ void stm32mp_ddr_sw_selfref_exit(struct stm32mp_ddrctl *ctl)
 	VERBOSE("[0x%lx] pwrctl = 0x%x\n",
 		(uintptr_t)&ctl->pwrctl,
 		mmio_read_32((uintptr_t)&ctl->pwrctl));
+}
+
+void stm32mp_ddr_set_qd3_update_conditions(struct stm32mp_ddrctl *ctl)
+{
+	if (stm32mp_ddr_disable_axi_port(ctl) != 0) {
+		panic();
+	}
+	stm32mp_ddr_disable_host_interface(ctl);
+	stm32mp_ddr_start_sw_done(ctl);
+}
+
+void stm32mp_ddr_unset_qd3_update_conditions(struct stm32mp_ddrctl *ctl)
+{
+	stm32mp_ddr_wait_sw_done_ack(ctl);
+	stm32mp_ddr_enable_host_interface(ctl);
+	stm32mp_ddr_enable_axi_port(ctl);
 }
 
 int stm32mp_board_ddr_power_init(enum ddr_type ddr_type)
