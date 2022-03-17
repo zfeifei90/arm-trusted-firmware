@@ -63,14 +63,13 @@ static void crypto_lib_init(void)
 		panic();
 	}
 
-	if (stm32_pka_init() != 0) {
-		panic();
-	}
-#ifndef DECRYPTION_SUPPORT_none
 	if (stm32_saes_driver_init() != 0) {
 		panic();
 	}
-#endif
+
+	if (stm32_pka_init() != 0) {
+		panic();
+	}
 #endif
 
 #if STM32MP15
