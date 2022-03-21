@@ -387,8 +387,13 @@ enum ddr_type {
 #define PACKAGE_OTP			"package_otp"
 #endif
 #define HW2_OTP				"hw2_otp"
+#if STM32MP13
+#define NAND_OTP			"cfg9_otp"
+#define NAND2_OTP			"cfg10_otp"
+#endif
+#if STM32MP15
 #define NAND_OTP			"nand_otp"
-#define NAND2_OTP			"nand2_otp"
+#endif
 #define MONOTONIC_OTP			"monotonic_otp"
 #define UID_OTP				"uid_otp"
 #define PKH_OTP				"pkh_otp"
