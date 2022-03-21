@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2018-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
  */
@@ -1364,6 +1364,11 @@ static void stm32mp1_lse_enable(bool bypass, bool digbyp, uint32_t lsedrv)
 {
 	uint32_t value;
 	uintptr_t rcc_base = stm32mp_rcc_base();
+
+	/* Do not reconfigure LSE if it is already ON */
+	if ((mmio_read_32(rcc_base + RCC_BDCR) & RCC_BDCR_LSEON) == RCC_BDCR_LSEON) {
+		return;
+	}
 
 	if (digbyp) {
 		mmio_setbits_32(rcc_base + RCC_BDCR, RCC_BDCR_DIGBYP);
