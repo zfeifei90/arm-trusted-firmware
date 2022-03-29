@@ -182,7 +182,7 @@
 };
 
 &pka {
-	secure-status = "okay";
+	status = "okay";
 };
 
 &lptimer3 {
@@ -319,7 +319,7 @@
 };
 
 &saes {
-	secure-status = "okay";
+	status = "okay";
 };
 
 &sdmmc1 {
