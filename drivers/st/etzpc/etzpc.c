@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2020, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -89,15 +89,21 @@ static bool valid_tzma_id(unsigned int id)
 }
 #endif
 
-static int etzpc_dt_conf_decprot(int node)
+static int etzpc_dt_conf_decprot(void)
 {
 	const struct dt_id_attr *conf_list;
 	void *fdt;
 	unsigned int i;
 	int len = 0;
+	int node;
 
 	if (fdt_get_address(&fdt) == 0) {
 		return -ENOENT;
+	}
+
+	node = fdt_node_offset_by_compatible(fdt, -1, ETZPC_COMPAT);
+	if (node < 0) {
+		return -EIO;
 	}
 
 	conf_list = (const struct dt_id_attr *)fdt_getprop(fdt, node,
@@ -273,20 +279,8 @@ uintptr_t etzpc_get_base_address(void)
 int etzpc_init(void)
 {
 	uint32_t hwcfg;
-	int node;
-	struct dt_node_info etzpc_info;
 
-	node = dt_get_node(&etzpc_info, -1, ETZPC_COMPAT);
-	if (node < 0) {
-		return -EIO;
-	}
-
-	/* Check ETZPC is secure only */
-	if (etzpc_info.status != DT_SECURE) {
-		return -EACCES;
-	}
-
-	etzpc_dev.base = etzpc_info.base;
+	etzpc_dev.base = STM32MP1_ETZPC_BASE;
 
 	hwcfg = mmio_read_32(etzpc_dev.base + ETZPC_HWCFGR);
 
@@ -302,5 +296,5 @@ int etzpc_init(void)
 
 	VERBOSE("ETZPC version 0x%x", etzpc_dev.revision);
 
-	return etzpc_dt_conf_decprot(node);
+	return etzpc_dt_conf_decprot();
 }
