@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
- * Copyright (c) 2017-2021, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2017-2022, STMicroelectronics - All Rights Reserved
  * Author: Ludovic Barre <ludovic.barre@st.com> for STMicroelectronics.
  */
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -520,8 +520,6 @@
 			compatible = "st,stm32-etzpc";
 			reg = <0x5C007000 0x400>;
 			clocks = <&rcc TZPC>;
-			status = "disabled";
-			secure-status = "okay";
 		};
 
 		stgen: stgen@5c008000 {
