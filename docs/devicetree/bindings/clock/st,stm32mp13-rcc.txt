@@ -446,7 +446,6 @@ Example of clock tree initialization and Operating Points Performance
 			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
 			secure-interrupts = <GIC_SPI 122 IRQ_TYPE_LEVEL_HIGH>;
 			secure-interrupt-names = "wakeup";
-			secure-status = "okay";
 
 			st,clksrc = <
 				CLK_MPU_PLL1P
