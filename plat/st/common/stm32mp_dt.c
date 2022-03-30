@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2022, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -120,23 +120,16 @@ static int fdt_get_node_parent_address_cells(int node)
  ******************************************************************************/
 int fdt_get_interrupt(int node, const fdt32_t **array, int *len, bool *extended)
 {
-	uint8_t status = fdt_get_status(node);
-
 	*extended = false;
 
-	switch (status) {
-	case DT_SECURE:
+	*array = fdt_getprop(fdt, node, "secure-interrupts", len);
+	if (*array == NULL) {
 		*array = fdt_getprop(fdt, node, "interrupts-extended", len);
 		if (*array == NULL) {
 			*array = fdt_getprop(fdt, node, "interrupts", len);
 		} else {
 			*extended = true;
 		}
-		break;
-
-	default:
-		*array = fdt_getprop(fdt, node, "secure-interrupts", len);
-		break;
 	}
 
 	if (*array == NULL) {
