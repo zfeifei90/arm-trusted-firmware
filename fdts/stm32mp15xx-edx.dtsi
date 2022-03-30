@@ -57,7 +57,6 @@
 	i2c-scl-falling-time-ns = <20>;
 	clock-frequency = <400000>;
 	status = "okay";
-	secure-status = "okay";
 
 	pmic: stpmic@33 {
 		compatible = "st,stpmic1";
@@ -66,7 +65,6 @@
 		interrupt-controller;
 		#interrupt-cells = <2>;
 		status = "okay";
-		secure-status = "okay";
 
 		regulators {
 			compatible = "st,stpmic1-regulators";
@@ -185,7 +183,6 @@
 	timeout-sec = <32>;
 	secure-timeout-sec = <5>;
 	status = "okay";
-	secure-status = "okay";
 };
 
 &pwr_regulators {
@@ -294,12 +291,10 @@
 
 &rng1 {
 	status = "okay";
-	secure-status = "okay";
 };
 
 &rtc {
 	status = "okay";
-	secure-status = "okay";
 };
 
 &sdmmc1 {

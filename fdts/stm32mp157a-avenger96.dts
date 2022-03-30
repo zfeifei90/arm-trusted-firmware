@@ -183,7 +183,6 @@
 &iwdg2 {
 	timeout-sec = <32>;
 	status = "okay";
-	secure-status = "okay";
 };
 
 &pwr_regulators {
@@ -291,12 +290,10 @@
 
 &rng1 {
 	status = "okay";
-	secure-status = "okay";
 };
 
 &rtc {
 	status = "okay";
-	secure-status = "okay";
 };
 
 &sdmmc1 {

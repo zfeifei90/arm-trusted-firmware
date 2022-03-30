@@ -15,7 +15,6 @@
 			clocks = <&rcc CRYP1>;
 			resets = <&rcc CRYP1_R>;
 			status = "disabled";
-			secure-status = "disabled";
 		};
 	};
 };

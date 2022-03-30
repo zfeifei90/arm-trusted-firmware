@@ -281,7 +281,6 @@
 			clocks = <&rcc HASH1>;
 			resets = <&rcc HASH1_R>;
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		rng1: rng@54003000 {
@@ -290,7 +289,6 @@
 			clocks = <&rcc RNG1_K>;
 			resets = <&rcc RNG1_R>;
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		fmc: memory-controller@58002000 {
@@ -372,7 +370,6 @@
 			clocks = <&rcc IWDG2>, <&rcc CK_LSI>;
 			clock-names = "pclk", "lsi";
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		ddr: ddr@5a003000{
@@ -423,7 +420,6 @@
 			clocks = <&rcc USART1_K>;
 			resets = <&rcc USART1_R>;
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		spi6: spi@5c001000 {
@@ -435,7 +431,6 @@
 			clocks = <&rcc SPI6_K>;
 			resets = <&rcc SPI6_R>;
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		i2c4: i2c@5c002000 {
@@ -451,7 +446,6 @@
 			st,syscfg-fmp = <&syscfg 0x4 0x8>;
 			wakeup-source;
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		iwdg1: watchdog@5c003000 {
@@ -461,7 +455,6 @@
 			clocks = <&rcc IWDG1>, <&rcc CK_LSI>;
 			clock-names = "pclk", "lsi";
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		rtc: rtc@5c004000 {
@@ -471,7 +464,6 @@
 			clock-names = "pclk", "rtc_ck";
 			interrupts-extended = <&exti 19 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		bsec: efuse@5c005000 {
@@ -540,7 +532,6 @@
 			st,syscfg-fmp = <&syscfg 0x4 0x20>;
 			wakeup-source;
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		tamp: tamp@5c00a000 {
@@ -704,7 +695,6 @@
 				st,bank-name = "GPIOZ";
 				st,bank-ioport = <11>;
 				status = "disabled";
-				secure-status = "disabled";
 			};
 		};
 	};
