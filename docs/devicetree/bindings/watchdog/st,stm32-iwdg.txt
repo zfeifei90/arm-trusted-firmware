@@ -14,7 +14,6 @@ Optional properties:
 - secure-timeout-sec: Watchdog early timeout management in seconds.
 - stm32,enable-on-stop: Keep watchdog enable during stop.
 - stm32,enable-on-standby: Keep watchdog enable durung standby.
-- secure-status: Required to properly enable/disable secure IP.
 
 Examples:
 
