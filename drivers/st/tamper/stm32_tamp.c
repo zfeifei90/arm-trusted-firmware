@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2018-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -644,8 +644,7 @@ int stm32_tamp_init(void)
 	clk_enable(stm32_tamp.clock);
 
 	/* Check if TAMP is enabled */
-	if ((dt_tamp.status != DT_SECURE) &&
-	    (dt_tamp.status != DT_SHARED)) {
+	if (dt_tamp.status == DT_DISABLED) {
 		return 0;
 	}
 
