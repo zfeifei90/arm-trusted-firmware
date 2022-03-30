@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2018-2022, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -273,8 +273,7 @@ int stm32_timer_init(void)
 	for (node = stm32_timer_get_dt_node(&dt_timer, node);
 	     node != -FDT_ERR_NOTFOUND;
 	     node = stm32_timer_get_dt_node(&dt_timer, node)) {
-
-		if (dt_timer.status == DT_SECURE) {
+		if (dt_timer.status != DT_DISABLED) {
 			struct stm32_timer_instance *timer;
 			const fdt32_t *cuint;
 
