@@ -92,7 +92,6 @@
 			clocks = <&rcc TIM12_K>;
 			clock-names = "int";
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		usart2: serial@4000e000 {
@@ -182,7 +181,6 @@
 			clocks = <&rcc TIM15_K>;
 			clock-names = "int";
 			status = "disabled";
-			secure-status = "disabled";
 		};
 
 		usbotg_hs: usb-otg@49000000 {

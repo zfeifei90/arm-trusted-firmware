@@ -328,7 +328,7 @@
 };
 
 &timers15 {
-	secure-status = "okay";
+	status = "okay";
 	st,hsi-cal-input = <7>;
 	st,csi-cal-input = <8>;
 };
