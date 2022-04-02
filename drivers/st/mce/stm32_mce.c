@@ -368,7 +368,7 @@ static int fconf_populate_mce(uintptr_t config)
 	/* Check the node offset point to "st,mem-encrypt" compatible property */
 	const char *compatible_str = "st,mem-encrypt";
 
-	if (!stm32mp_is_auth_supported()) {
+	if (!stm32mp_is_closed_device() && !stm32mp_is_auth_supported()) {
 		return 0;
 	}
 

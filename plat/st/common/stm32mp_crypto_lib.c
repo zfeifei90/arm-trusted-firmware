@@ -54,7 +54,7 @@ static void crypto_lib_init(void)
 
 	int ret;
 
-	if (!stm32mp_is_auth_supported()) {
+	if (!stm32mp_is_closed_device() && !stm32mp_is_auth_supported()) {
 		return;
 	}
 

@@ -452,7 +452,7 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 	switch (image_id) {
 	case FW_CONFIG_ID:
 #if STM32MP13
-		if (stm32mp_is_auth_supported()) {
+		if (stm32mp_is_closed_device() || stm32mp_is_auth_supported()) {
 			prepare_encryption();
 		}
 #endif
