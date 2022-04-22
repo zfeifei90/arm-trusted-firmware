@@ -315,9 +315,9 @@ static int stm32_tamp_set_ext_config(struct stm32_tamp_ext *tamp_ext,
 	}
 
 	if ((tamp_ext->mode & TAMP_ACTIVE) == TAMP_ACTIVE) {
-		SETBITS(*cr1, _TAMP_ATCR1_ETAMPAM(id));
+		SETBITS(*atcr1, _TAMP_ATCR1_ETAMPAM(id));
 	} else {
-		CLRBITS(*cr1, _TAMP_ATCR1_ETAMPAM(id));
+		CLRBITS(*atcr1, _TAMP_ATCR1_ETAMPAM(id));
 	}
 
 	if ((tamp_ext->mode & TAMP_NOERASE) == TAMP_NOERASE) {
@@ -348,7 +348,7 @@ static int stm32_tamp_set_ext_config(struct stm32_tamp_ext *tamp_ext,
 			 * and internally cleared by hardware. The backup registers are not erased.
 			 */
 			CLRBITS(*ier, _TAMP_IER_ETAMP(id));
-			CLRBITS(*cr2, _TAMP_CR2_ETAMPMSK(id));
+			SETBITS(*cr2, _TAMP_CR2_ETAMPMSK(id));
 		} else {
 			/*
 			 * normal ETAMP interrupt:
@@ -356,11 +356,11 @@ static int stm32_tamp_set_ext_config(struct stm32_tamp_ext *tamp_ext,
 			 * by software to * allow next tamper event detection.
 			 */
 			CLRBITS(*cr2, _TAMP_CR2_ETAMPMSK(id));
-			CLRBITS(*ier, _TAMP_IER_ETAMP(id));
+			SETBITS(*ier, _TAMP_IER_ETAMP(id));
 		}
 	} else {
 		/* other than 1,2,3 external TAMP, we want its interruption */
-		CLRBITS(*ier, _TAMP_IER_ETAMP(id));
+		SETBITS(*ier, _TAMP_IER_ETAMP(id));
 	}
 
 	return 0;
