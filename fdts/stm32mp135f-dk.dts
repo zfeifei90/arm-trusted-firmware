@@ -17,8 +17,6 @@
 	compatible = "st,stm32mp135f-dk", "st,stm32mp135";
 
 	aliases {
-		ethernet0 = &eth1;
-		ethernet1 = &eth2;
 		serial0 = &uart4;
 		serial1 = &usart1;
 		serial2 = &uart8;

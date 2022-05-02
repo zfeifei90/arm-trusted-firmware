@@ -8,8 +8,6 @@
 #if !STM32MP_EMMC && !STM32MP_SDMMC
 		/delete-property/ mmc0;
 #endif
-		/delete-property/ ethernet0;
-		/delete-property/ ethernet1;
 	};
 
 	cpus {
