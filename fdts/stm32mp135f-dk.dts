@@ -62,10 +62,6 @@
 	cpu-supply = <&vddcpu>;
 };
 
-&cryp {
-	status = "okay";
-};
-
 &hash {
 	status = "okay";
 };
@@ -183,17 +179,6 @@
 	status = "okay";
 };
 
-&lptimer3 {
-	external-input = <0 0>;
-	external-trigger = <1 1>;
-	status = "okay";
-
-	counter {
-		compatible = "st,stm32-lptimer-counter";
-		status = "okay";
-	};
-};
-
 &pwr_regulators {
 	vdd-supply = <&vdd>;
 	vdd_3v3_usbfs-supply = <&vdd_usb>;
@@ -309,10 +294,6 @@
 };
 
 &rng {
-	status = "okay";
-};
-
-&rtc {
 	status = "okay";
 };
 
