@@ -96,7 +96,6 @@
 		/delete-node/ usbphyc@5a006000;
 #endif
 		/delete-node/ perf@5a007000;
-		/delete-node/ rtc@5c004000;
 		/delete-node/ tamp@5c00a000;
 		/delete-node/ stgen@5c008000;
 
