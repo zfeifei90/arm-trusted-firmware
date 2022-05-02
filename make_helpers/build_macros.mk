@@ -146,7 +146,7 @@ endef
 
 # GEN_METADATA
 define GEN_METADATA
-$(2): $(1)
+$(2): $(1) | $(dir $(2))
 	$$(ECHO) "  GEN_METADATA     $$<"
 	$$(Q)$$(FWUMDTOOL) $$(FWUMD_ARGS) jsonparse $$< -b $$@
 endef
