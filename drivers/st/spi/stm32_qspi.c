@@ -139,10 +139,6 @@ static int stm32_qspi_wait_cmd(const struct spi_mem_op *op)
 	int ret = 0;
 	uint64_t timeout;
 
-	if (op->data.nbytes == 0U) {
-		return stm32_qspi_wait_for_not_busy();
-	}
-
 	timeout = timeout_init_us(QSPI_CMD_TIMEOUT_US);
 	while ((mmio_read_32(qspi_base() + QSPI_SR) & QSPI_SR_TCF) == 0U) {
 		if (timeout_elapsed(timeout)) {
@@ -162,6 +158,10 @@ static int stm32_qspi_wait_cmd(const struct spi_mem_op *op)
 
 	/* Clear flags */
 	mmio_write_32(qspi_base() + QSPI_FCR, QSPI_FCR_CTCF | QSPI_FCR_CTEF);
+
+	if (ret == 0) {
+		ret = stm32_qspi_wait_for_not_busy();
+	}
 
 	return ret;
 }
