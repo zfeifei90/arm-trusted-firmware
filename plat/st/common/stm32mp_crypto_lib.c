@@ -288,11 +288,14 @@ static int crypto_verify_signature(void *data_ptr, unsigned int data_len,
 	int ret;
 	size_t len;
 	mbedtls_asn1_sequence seq;
+	mbedtls_asn1_sequence *cur;
 	unsigned char *p, *end;
 	int curve_id;
 	mbedtls_asn1_buf sig_oid, sig_params;
 	mbedtls_md_type_t md_alg;
 	mbedtls_pk_type_t pk_alg;
+	size_t bignum_len = sizeof(sig) / 2U;
+	unsigned int seq_num = 0U;
 
 	/* Get pointers to signature OID and parameters */
 	p = (unsigned char *)sig_alg;
@@ -350,7 +353,7 @@ static int crypto_verify_signature(void *data_ptr, unsigned int data_len,
 
 	/* We expect only 2 integers (r and s) from the sequence */
 	if (seq.next->next != NULL) {
-		mbedtls_asn1_sequence *cur = seq.next;
+		cur = seq.next;
 		mbedtls_asn1_sequence *next;
 
 		VERBOSE("%s: nb seq != 2\n", __func__);
@@ -364,14 +367,37 @@ static int crypto_verify_signature(void *data_ptr, unsigned int data_len,
 		return CRYPTO_ERR_SIGNATURE;
 	}
 
-	/* Integer sequence may (sometime) start with 0x00 as MSB, but we can only
-	 * manage exactly 2*32 bytes, we remove this higher byte
-	 * if there are not 00, we will fail either.
+	/*
+	 * ECDSA signatures are composed of a tuple (R,S) where R and S are between 0 and n.
+	 * This means that the R and S can have a maximum of 32 each, but can also be smaller.
+	 * Also seen the integer sequence may (sometime) start with 0x00 as MSB, but we can only
+	 * manage exactly 2*32 bytes, we remove this higher byte if there are not 00,
+	 * we will fail either.
 	 */
-	memcpy(sig, seq.buf.p + seq.buf.len - sizeof(sig) / 2U, sizeof(sig) / 2U);
-	memcpy(sig +  sizeof(sig) / 2U,
-	       seq.next->buf.p + seq.next->buf.len - sizeof(sig) / 2U,
-	       sizeof(sig) / 2U);
+	cur = &seq;
+	memset(sig, 0U, sizeof(sig));
+
+	while (cur != NULL) {
+		size_t skip = 0U;
+		size_t seek = seq_num * bignum_len;
+
+		if (cur->buf.len > bignum_len) {
+			/* Remove extra 0x00 bytes */
+			skip = cur->buf.len - bignum_len;
+		} else if (cur->buf.len < bignum_len) {
+			/* Add padding to match HW required size */
+			seek += (bignum_len % cur->buf.len);
+		}
+
+		if (seek + cur->buf.len > sizeof(sig) + skip) {
+			panic();
+		}
+
+		memcpy(sig + seek, cur->buf.p + skip, cur->buf.len - skip);
+		cur = cur->next;
+		seq_num++;
+	}
+
 	/* Need to free allocated 'next' in mbedtls_asn1_get_sequence_of */
 	mbedtls_free(seq.next);
 
