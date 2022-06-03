@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2015-2022, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -25,6 +25,8 @@ PLAT_BL_COMMON_SOURCES	+=	${XLAT_TABLES_LIB_SRCS}
 
 PLAT_BL_COMMON_SOURCES	+=	lib/cpus/aarch32/cortex_a7.S
 
+PLAT_BL_COMMON_SOURCES	+=	drivers/regulator/regulator_core.c
+
 PLAT_BL_COMMON_SOURCES	+=	drivers/st/uart/aarch32/stm32_console.S
 
 PLAT_BL_COMMON_SOURCES	+=	drivers/arm/tzc/tzc400.c				\
@@ -38,8 +40,6 @@ PLAT_BL_COMMON_SOURCES	+=	drivers/arm/tzc/tzc400.c				\
 				drivers/st/iwdg/stm32_iwdg.c				\
 				drivers/st/pmic/stm32mp_pmic.c				\
 				drivers/st/pmic/stpmic1.c				\
-				drivers/st/regulator/stm32mp_dummy_regulator.c		\
-				drivers/st/regulator/stm32mp_regulator.c		\
 				drivers/st/reset/stm32mp1_reset.c			\
 				plat/st/common/stm32mp_dt.c				\
 				plat/st/common/stm32mp_shres_helpers.c			\
