@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2022, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -60,11 +60,6 @@
 #define PKG_AB_LFBGA354		U(3)
 #define PKG_AC_TFBGA361		U(2)
 #define PKG_AD_TFBGA257		U(1)
-
-/*******************************************************************************
- * BOOT PARAM
- ******************************************************************************/
-#define BOOT_PARAM_ADDR			U(0x2FFC0078)
 
 /*******************************************************************************
  * STM32MP1 memory map related constants
